@@ -1,0 +1,1705 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"key.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.Init_Key,"ax",%progbits
+  20              		.align	2
+  21              		.global	Init_Key
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	Init_Key, %function
+  25              	Init_Key:
+  26              	.LFB64:
+  27              		.file 1 "..\\API\\key.c"
+   1:..\API/key.c  **** //=========================================================
+   2:..\API/key.c  **** // PSoC5LP Project
+   3:..\API/key.c  **** //=========================================================
+   4:..\API/key.c  **** // File Name : key.c
+   5:..\API/key.c  **** // Function  : Key/Switch Control
+   6:..\API/key.c  **** //---------------------------------------------------------
+   7:..\API/key.c  **** // Rev.01 2012.09.01 Munetomo Maruyama
+   8:..\API/key.c  **** //---------------------------------------------------------
+   9:..\API/key.c  **** // Copyright (C) 2012-2013 Munetomo Maruyama
+  10:..\API/key.c  **** //=========================================================
+  11:..\API/key.c  **** // ---- License Information -------------------------------
+  12:..\API/key.c  **** // Anyone can FREELY use this code fully or partially
+  13:..\API/key.c  **** // under conditions shown below.
+  14:..\API/key.c  **** // 1. You may use this code only for individual purpose,
+  15:..\API/key.c  **** //    and educational purpose.
+  16:..\API/key.c  **** //    Do not use this code for business even if partially.
+  17:..\API/key.c  **** // 2. You can copy, modify and distribute this code.
+  18:..\API/key.c  **** // 3. You should remain this header text in your codes
+  19:..\API/key.c  **** //   including Copyright credit and License Information.
+  20:..\API/key.c  **** // 4. Your codes should inherit this license information.
+  21:..\API/key.c  **** //=========================================================
+  22:..\API/key.c  **** // ---- Patent Notice -------------------------------------
+  23:..\API/key.c  **** // I have not cared whether this system (hw + sw) causes
+  24:..\API/key.c  **** // infringement on the patent, copyright, trademark,
+  25:..\API/key.c  **** // or trade secret rights of others. You have all
+  26:..\API/key.c  **** // responsibilities for determining if your designs
+  27:..\API/key.c  **** // and products infringe on the intellectual property
+  28:..\API/key.c  **** // rights of others, when you use technical information
+  29:..\API/key.c  **** // included in this system for your business.
+  30:..\API/key.c  **** //=========================================================
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 2
+
+
+  31:..\API/key.c  **** // ---- Disclaimers ---------------------------------------
+  32:..\API/key.c  **** // The function and reliability of this system are not
+  33:..\API/key.c  **** // guaranteed. They may cause any damages to loss of
+  34:..\API/key.c  **** // properties, data, money, profits, life, or business.
+  35:..\API/key.c  **** // By adopting this system even partially, you assume
+  36:..\API/key.c  **** // all responsibility for its use.
+  37:..\API/key.c  **** //=========================================================
+  38:..\API/key.c  **** 
+  39:..\API/key.c  **** #include "key.h"
+  40:..\API/key.c  **** 
+  41:..\API/key.c  **** //---------------------------
+  42:..\API/key.c  **** // RTOS Includes
+  43:..\API/key.c  **** //---------------------------
+  44:..\API/key.c  **** #include "FreeRTOS.h"
+  45:..\API/key.c  **** #include "queue.h"
+  46:..\API/key.c  **** #include "semphr.h"
+  47:..\API/key.c  **** #include "task.h"
+  48:..\API/key.c  **** 
+  49:..\API/key.c  **** //---------------------
+  50:..\API/key.c  **** // Define Queue
+  51:..\API/key.c  **** //---------------------
+  52:..\API/key.c  **** extern xQueueHandle xQueue_KEY[2];
+  53:..\API/key.c  **** 
+  54:..\API/key.c  **** //---------------------
+  55:..\API/key.c  **** // Key Detection Status
+  56:..\API/key.c  **** //---------------------
+  57:..\API/key.c  **** enum KEY_DETECT_STATUS {KEY_IDLE, KEY_DETECT, KEY_CONFIRM, KEY_PUSH, KEY_PUSH_COUNT, KEY_PUSH_LONG}
+  58:..\API/key.c  **** 
+  59:..\API/key.c  **** //---------------------
+  60:..\API/key.c  **** // Globals
+  61:..\API/key.c  **** //---------------------
+  62:..\API/key.c  **** uint8 gKey[MAX_KEY];
+  63:..\API/key.c  **** 
+  64:..\API/key.c  **** //======================
+  65:..\API/key.c  **** // Initialize Key
+  66:..\API/key.c  **** //======================
+  67:..\API/key.c  **** void Init_Key(void)
+  68:..\API/key.c  **** {
+  28              		.loc 1 68 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  33              	.LVL0:
+  69:..\API/key.c  ****     uint32 i;    
+  70:..\API/key.c  ****     // Initialize State
+  71:..\API/key.c  ****     for (i = 0; i < MAX_KEY; i++) gKey[i]  = 0;
+  34              		.loc 1 71 0
+  35 0000 0023     		movs	r3, #0
+  36 0002 03E0     		b	.L2
+  37              	.LVL1:
+  38              	.L3:
+  39              		.loc 1 71 0 is_stmt 0 discriminator 3
+  40 0004 0021     		movs	r1, #0
+  41 0006 034A     		ldr	r2, .L4
+  42 0008 D154     		strb	r1, [r2, r3]
+  43 000a 0133     		adds	r3, r3, #1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 3
+
+
+  44              	.LVL2:
+  45              	.L2:
+  46              		.loc 1 71 0 discriminator 1
+  47 000c 012B     		cmp	r3, #1
+  48 000e F9D9     		bls	.L3
+  72:..\API/key.c  **** }
+  49              		.loc 1 72 0 is_stmt 1
+  50 0010 7047     		bx	lr
+  51              	.L5:
+  52 0012 00BF     		.align	2
+  53              	.L4:
+  54 0014 00000000 		.word	gKey
+  55              		.cfi_endproc
+  56              	.LFE64:
+  57              		.size	Init_Key, .-Init_Key
+  58              		.section	.text.Check_Key_Status,"ax",%progbits
+  59              		.align	2
+  60              		.global	Check_Key_Status
+  61              		.thumb
+  62              		.thumb_func
+  63              		.type	Check_Key_Status, %function
+  64              	Check_Key_Status:
+  65              	.LFB65:
+  73:..\API/key.c  **** 
+  74:..\API/key.c  **** //=========================
+  75:..\API/key.c  **** // Get Key Status
+  76:..\API/key.c  **** //=========================
+  77:..\API/key.c  **** uint8 Check_Key_Status(uint8 key)
+  78:..\API/key.c  **** {
+  66              		.loc 1 78 0
+  67              		.cfi_startproc
+  68              		@ args = 0, pretend = 0, frame = 0
+  69              		@ frame_needed = 0, uses_anonymous_args = 0
+  70              	.LVL3:
+  71 0000 08B5     		push	{r3, lr}
+  72              		.cfi_def_cfa_offset 8
+  73              		.cfi_offset 3, -8
+  74              		.cfi_offset 14, -4
+  79:..\API/key.c  ****     uint8 status;
+  80:..\API/key.c  ****     status = (key == KEY_0)? (~PI_KEY_0_Read()) & 0x01 :
+  75              		.loc 1 80 0
+  76 0002 30B9     		cbnz	r0, .L7
+  77              		.loc 1 80 0 is_stmt 0 discriminator 1
+  78 0004 FFF7FEFF 		bl	PI_KEY_0_Read
+  79              	.LVL4:
+  80 0008 80F00100 		eor	r0, r0, #1
+  81 000c 00F00100 		and	r0, r0, #1
+  82 0010 08BD     		pop	{r3, pc}
+  83              	.LVL5:
+  84              	.L7:
+  81:..\API/key.c  ****              (key == KEY_1)? (~PI_KEY_1_Read()) & 0x01 :
+  85              		.loc 1 81 0 is_stmt 1
+  86 0012 0128     		cmp	r0, #1
+  87 0014 06D1     		bne	.L10
+  88              		.loc 1 81 0 is_stmt 0 discriminator 1
+  89 0016 FFF7FEFF 		bl	PI_KEY_1_Read
+  90              	.LVL6:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 4
+
+
+  91 001a 10F0010F 		tst	r0, #1
+  92 001e 03D1     		bne	.L11
+  93              		.loc 1 81 0
+  94 0020 0120     		movs	r0, #1
+  95 0022 02E0     		b	.L9
+  96              	.LVL7:
+  97              	.L10:
+  98 0024 0020     		movs	r0, #0
+  99              	.LVL8:
+ 100 0026 00E0     		b	.L9
+ 101              	.L11:
+ 102 0028 0020     		movs	r0, #0
+ 103              	.L9:
+  80:..\API/key.c  ****              (key == KEY_1)? (~PI_KEY_1_Read()) & 0x01 :
+ 104              		.loc 1 80 0 is_stmt 1 discriminator 3
+ 105 002a C0B2     		uxtb	r0, r0
+ 106              	.LVL9:
+  82:..\API/key.c  ****              0;
+  83:..\API/key.c  ****     return status;
+  84:..\API/key.c  **** }
+ 107              		.loc 1 84 0 discriminator 3
+ 108 002c 08BD     		pop	{r3, pc}
+ 109              		.cfi_endproc
+ 110              	.LFE65:
+ 111              		.size	Check_Key_Status, .-Check_Key_Status
+ 112 002e 00BF     		.section	.text.Task_KEY,"ax",%progbits
+ 113              		.align	2
+ 114              		.global	Task_KEY
+ 115              		.thumb
+ 116              		.thumb_func
+ 117              		.type	Task_KEY, %function
+ 118              	Task_KEY:
+ 119              	.LFB66:
+  85:..\API/key.c  **** 
+  86:..\API/key.c  **** //=========================
+  87:..\API/key.c  **** // Task KEY
+  88:..\API/key.c  **** //=========================
+  89:..\API/key.c  **** void Task_KEY(void *pvParameters)
+  90:..\API/key.c  **** {
+ 120              		.loc 1 90 0
+ 121              		.cfi_startproc
+ 122              		@ args = 0, pretend = 0, frame = 0
+ 123              		@ frame_needed = 0, uses_anonymous_args = 0
+ 124              	.LVL10:
+ 125 0000 38B5     		push	{r3, r4, r5, lr}
+ 126              		.cfi_def_cfa_offset 16
+ 127              		.cfi_offset 3, -16
+ 128              		.cfi_offset 4, -12
+ 129              		.cfi_offset 5, -8
+ 130              		.cfi_offset 14, -4
+ 131              	.LVL11:
+ 132              	.L30:
+  91:..\API/key.c  ****     static uint32 i;
+  92:..\API/key.c  ****     static uint8 key;
+  93:..\API/key.c  ****     static uint32 push_count[MAX_KEY];
+  94:..\API/key.c  ****     static uint8 qmsg = 1;
+  95:..\API/key.c  ****     
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 5
+
+
+  96:..\API/key.c  ****     // Block for 10ms
+  97:..\API/key.c  ****     const portTickType xDelay = 10 / portTICK_RATE_MS;
+  98:..\API/key.c  ****     
+  99:..\API/key.c  ****     // Task Loop
+ 100:..\API/key.c  ****     while(1)
+ 101:..\API/key.c  ****     {   
+ 102:..\API/key.c  ****         // State Machine for Key Detection
+ 103:..\API/key.c  ****         for (i = 0; i < MAX_KEY; i++)
+ 133              		.loc 1 103 0
+ 134 0002 0022     		movs	r2, #0
+ 135 0004 324B     		ldr	r3, .L32
+ 136 0006 1A60     		str	r2, [r3]
+ 137 0008 59E0     		b	.L14
+ 138              	.L29:
+ 104:..\API/key.c  ****         {
+ 105:..\API/key.c  ****             key = Check_Key_Status(i);
+ 139              		.loc 1 105 0
+ 140 000a C0B2     		uxtb	r0, r0
+ 141 000c FFF7FEFF 		bl	Check_Key_Status
+ 142              	.LVL12:
+ 143 0010 2F4B     		ldr	r3, .L32
+ 144 0012 1871     		strb	r0, [r3, #4]
+ 106:..\API/key.c  ****             //
+ 107:..\API/key.c  ****             switch(gKey[i])
+ 145              		.loc 1 107 0
+ 146 0014 1D68     		ldr	r5, [r3]
+ 147 0016 2F4B     		ldr	r3, .L32+4
+ 148 0018 5C5D     		ldrb	r4, [r3, r5]	@ zero_extendqisi2
+ 149 001a 052C     		cmp	r4, #5
+ 150 001c 4BD8     		bhi	.L15
+ 151 001e DFE804F0 		tbb	[pc, r4]
+ 152              	.L17:
+ 153 0022 03       		.byte	(.L16-.L17)/2
+ 154 0023 09       		.byte	(.L18-.L17)/2
+ 155 0024 0E       		.byte	(.L19-.L17)/2
+ 156 0025 13       		.byte	(.L20-.L17)/2
+ 157 0026 27       		.byte	(.L21-.L17)/2
+ 158 0027 3B       		.byte	(.L22-.L17)/2
+ 159              		.p2align 1
+ 160              	.L16:
+ 108:..\API/key.c  ****             {
+ 109:..\API/key.c  ****                 case KEY_IDLE:
+ 110:..\API/key.c  ****                 {
+ 111:..\API/key.c  ****                     gKey[i] = (key)? KEY_DETECT : KEY_IDLE;
+ 161              		.loc 1 111 0
+ 162 0028 0030     		adds	r0, r0, #0
+ 163 002a 18BF     		it	ne
+ 164 002c 0120     		movne	r0, #1
+ 165 002e 294B     		ldr	r3, .L32+4
+ 166 0030 5855     		strb	r0, [r3, r5]
+ 112:..\API/key.c  ****                     break;
+ 167              		.loc 1 112 0
+ 168 0032 40E0     		b	.L15
+ 169              	.L18:
+ 113:..\API/key.c  ****                 }
+ 114:..\API/key.c  ****                 case KEY_DETECT:
+ 115:..\API/key.c  ****                 {
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 6
+
+
+ 116:..\API/key.c  ****                     gKey[i] = (key)? KEY_CONFIRM : KEY_IDLE;
+ 170              		.loc 1 116 0
+ 171 0034 00B1     		cbz	r0, .L23
+ 172 0036 0220     		movs	r0, #2
+ 173              	.L23:
+ 174              		.loc 1 116 0 is_stmt 0 discriminator 4
+ 175 0038 264B     		ldr	r3, .L32+4
+ 176 003a 5855     		strb	r0, [r3, r5]
+ 117:..\API/key.c  ****                     break;
+ 177              		.loc 1 117 0 is_stmt 1 discriminator 4
+ 178 003c 3BE0     		b	.L15
+ 179              	.L19:
+ 118:..\API/key.c  ****                 }
+ 119:..\API/key.c  ****                 case KEY_CONFIRM:
+ 120:..\API/key.c  ****                 {
+ 121:..\API/key.c  ****                     gKey[i] = (key)? KEY_PUSH : KEY_IDLE;
+ 180              		.loc 1 121 0
+ 181 003e 00B1     		cbz	r0, .L24
+ 182 0040 0320     		movs	r0, #3
+ 183              	.L24:
+ 184              		.loc 1 121 0 is_stmt 0 discriminator 4
+ 185 0042 244B     		ldr	r3, .L32+4
+ 186 0044 5855     		strb	r0, [r3, r5]
+ 122:..\API/key.c  ****                     break;
+ 187              		.loc 1 122 0 is_stmt 1 discriminator 4
+ 188 0046 36E0     		b	.L15
+ 189              	.L20:
+ 123:..\API/key.c  ****                 }
+ 124:..\API/key.c  ****                 case KEY_PUSH:
+ 125:..\API/key.c  ****                 {
+ 126:..\API/key.c  ****                     xQueueSend(xQueue_KEY[i], &qmsg, 0);
+ 190              		.loc 1 126 0
+ 191 0048 0023     		movs	r3, #0
+ 192 004a 1A46     		mov	r2, r3
+ 193 004c 2249     		ldr	r1, .L32+8
+ 194 004e 2348     		ldr	r0, .L32+12
+ 195 0050 50F82500 		ldr	r0, [r0, r5, lsl #2]
+ 196 0054 FFF7FEFF 		bl	xQueueGenericSend
+ 197              	.LVL13:
+ 127:..\API/key.c  ****                     push_count[i] = 0;
+ 198              		.loc 1 127 0
+ 199 0058 1D4B     		ldr	r3, .L32
+ 200 005a 1A68     		ldr	r2, [r3]
+ 201 005c 03EB8201 		add	r1, r3, r2, lsl #2
+ 202 0060 0020     		movs	r0, #0
+ 203 0062 8860     		str	r0, [r1, #8]
+ 128:..\API/key.c  ****                     gKey[i] = (key)? KEY_PUSH_COUNT : KEY_IDLE;
+ 204              		.loc 1 128 0
+ 205 0064 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 206 0066 03B1     		cbz	r3, .L25
+ 207 0068 0423     		movs	r3, #4
+ 208              	.L25:
+ 209              		.loc 1 128 0 is_stmt 0 discriminator 4
+ 210 006a 1A49     		ldr	r1, .L32+4
+ 211 006c 8B54     		strb	r3, [r1, r2]
+ 129:..\API/key.c  ****                     break;
+ 212              		.loc 1 129 0 is_stmt 1 discriminator 4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 7
+
+
+ 213 006e 22E0     		b	.L15
+ 214              	.L21:
+ 130:..\API/key.c  ****                 }
+ 131:..\API/key.c  ****                 case KEY_PUSH_COUNT:
+ 132:..\API/key.c  ****                 {
+ 133:..\API/key.c  ****                     if (key)
+ 215              		.loc 1 133 0
+ 216 0070 70B1     		cbz	r0, .L26
+ 134:..\API/key.c  ****                     {
+ 135:..\API/key.c  ****                         gKey[i] = (push_count[i] > KEY_PUSH_LONG_TICKS)? KEY_PUSH_LONG : KEY_PUSH_C
+ 217              		.loc 1 135 0
+ 218 0072 174B     		ldr	r3, .L32
+ 219 0074 03EB8503 		add	r3, r3, r5, lsl #2
+ 220 0078 9B68     		ldr	r3, [r3, #8]
+ 221 007a 322B     		cmp	r3, #50
+ 222 007c 00D9     		bls	.L27
+ 223 007e 0524     		movs	r4, #5
+ 224              	.L27:
+ 225              		.loc 1 135 0 is_stmt 0 discriminator 4
+ 226 0080 144A     		ldr	r2, .L32+4
+ 227 0082 5455     		strb	r4, [r2, r5]
+ 136:..\API/key.c  ****                         push_count[i]++;
+ 228              		.loc 1 136 0 is_stmt 1 discriminator 4
+ 229 0084 124A     		ldr	r2, .L32
+ 230 0086 02EB8505 		add	r5, r2, r5, lsl #2
+ 231 008a 0133     		adds	r3, r3, #1
+ 232 008c AB60     		str	r3, [r5, #8]
+ 233 008e 12E0     		b	.L15
+ 234              	.L26:
+ 137:..\API/key.c  ****                     }
+ 138:..\API/key.c  ****                     else
+ 139:..\API/key.c  ****                     {
+ 140:..\API/key.c  ****                         gKey[i] = KEY_IDLE;
+ 235              		.loc 1 140 0
+ 236 0090 0022     		movs	r2, #0
+ 237 0092 104B     		ldr	r3, .L32+4
+ 238 0094 5A55     		strb	r2, [r3, r5]
+ 239 0096 0EE0     		b	.L15
+ 240              	.L22:
+ 141:..\API/key.c  ****                     }
+ 142:..\API/key.c  ****                     break;
+ 143:..\API/key.c  ****                 }
+ 144:..\API/key.c  ****                 case KEY_PUSH_LONG:
+ 145:..\API/key.c  ****                 {
+ 146:..\API/key.c  ****                     xQueueSend(xQueue_KEY[i], &qmsg, 0);
+ 241              		.loc 1 146 0
+ 242 0098 0023     		movs	r3, #0
+ 243 009a 1A46     		mov	r2, r3
+ 244 009c 0E49     		ldr	r1, .L32+8
+ 245 009e 0F48     		ldr	r0, .L32+12
+ 246 00a0 50F82500 		ldr	r0, [r0, r5, lsl #2]
+ 247 00a4 FFF7FEFF 		bl	xQueueGenericSend
+ 248              	.LVL14:
+ 147:..\API/key.c  ****                     gKey[i] = (key)? KEY_PUSH_LONG : KEY_IDLE;
+ 249              		.loc 1 147 0
+ 250 00a8 094B     		ldr	r3, .L32
+ 251 00aa 1A68     		ldr	r2, [r3]
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 8
+
+
+ 252 00ac 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 253 00ae 03B1     		cbz	r3, .L28
+ 254 00b0 2346     		mov	r3, r4
+ 255              	.L28:
+ 256              		.loc 1 147 0 is_stmt 0 discriminator 4
+ 257 00b2 0849     		ldr	r1, .L32+4
+ 258 00b4 8B54     		strb	r3, [r1, r2]
+ 259              	.L15:
+ 103:..\API/key.c  ****         {
+ 260              		.loc 1 103 0 is_stmt 1 discriminator 2
+ 261 00b6 064A     		ldr	r2, .L32
+ 262 00b8 1368     		ldr	r3, [r2]
+ 263 00ba 0133     		adds	r3, r3, #1
+ 264 00bc 1360     		str	r3, [r2]
+ 265              	.L14:
+ 103:..\API/key.c  ****         {
+ 266              		.loc 1 103 0 is_stmt 0 discriminator 1
+ 267 00be 044B     		ldr	r3, .L32
+ 268 00c0 1868     		ldr	r0, [r3]
+ 269 00c2 0128     		cmp	r0, #1
+ 270 00c4 A1D9     		bls	.L29
+ 148:..\API/key.c  ****                     break;
+ 149:..\API/key.c  ****                 }
+ 150:..\API/key.c  ****                 default:
+ 151:..\API/key.c  ****                 {
+ 152:..\API/key.c  ****                     break; // do nothing
+ 153:..\API/key.c  ****                 }
+ 154:..\API/key.c  ****             }
+ 155:..\API/key.c  ****         }
+ 156:..\API/key.c  ****         // Blocking Task
+ 157:..\API/key.c  ****         vTaskDelay(xDelay);
+ 271              		.loc 1 157 0 is_stmt 1
+ 272 00c6 0A20     		movs	r0, #10
+ 273 00c8 FFF7FEFF 		bl	vTaskDelay
+ 274              	.LVL15:
+ 158:..\API/key.c  ****     }
+ 275              		.loc 1 158 0
+ 276 00cc 99E7     		b	.L30
+ 277              	.L33:
+ 278 00ce 00BF     		.align	2
+ 279              	.L32:
+ 280 00d0 00000000 		.word	.LANCHOR0
+ 281 00d4 00000000 		.word	gKey
+ 282 00d8 00000000 		.word	.LANCHOR1
+ 283 00dc 00000000 		.word	xQueue_KEY
+ 284              		.cfi_endproc
+ 285              	.LFE66:
+ 286              		.size	Task_KEY, .-Task_KEY
+ 287              		.comm	gKey,2,4
+ 288              		.data
+ 289              		.set	.LANCHOR1,. + 0
+ 290              		.type	qmsg.6868, %object
+ 291              		.size	qmsg.6868, 1
+ 292              	qmsg.6868:
+ 293 0000 01       		.byte	1
+ 294              		.bss
+ 295              		.align	2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 9
+
+
+ 296              		.set	.LANCHOR0,. + 0
+ 297              		.type	i.6865, %object
+ 298              		.size	i.6865, 4
+ 299              	i.6865:
+ 300 0000 00000000 		.space	4
+ 301              		.type	key.6866, %object
+ 302              		.size	key.6866, 1
+ 303              	key.6866:
+ 304 0004 00       		.space	1
+ 305 0005 000000   		.space	3
+ 306              		.type	push_count.6867, %object
+ 307              		.size	push_count.6867, 8
+ 308              	push_count.6867:
+ 309 0008 00000000 		.space	8
+ 309      00000000 
+ 310              		.text
+ 311              	.Letext0:
+ 312              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4.
+ 313              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4.
+ 314              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 315              		.file 5 "..\\FreeRTOS/portmacro.h"
+ 316              		.file 6 "..\\FreeRTOS/queue.h"
+ 317              		.file 7 "..\\API\\key.h"
+ 318              		.file 8 "Generated_Source\\PSoC5/core_cm3.h"
+ 319              		.file 9 "Generated_Source\\PSoC5/PI_KEY_0.h"
+ 320              		.file 10 "Generated_Source\\PSoC5/PI_KEY_1.h"
+ 321              		.file 11 "..\\FreeRTOS/task.h"
+ 322              		.section	.debug_info,"",%progbits
+ 323              	.Ldebug_info0:
+ 324 0000 0B030000 		.4byte	0x30b
+ 325 0004 0400     		.2byte	0x4
+ 326 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 327 000a 04       		.byte	0x4
+ 328 000b 01       		.uleb128 0x1
+ 329 000c B4000000 		.4byte	.LASF46
+ 330 0010 0C       		.byte	0xc
+ 331 0011 87020000 		.4byte	.LASF47
+ 332 0015 8F010000 		.4byte	.LASF48
+ 333 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 334 001d 00000000 		.4byte	0
+ 335 0021 00000000 		.4byte	.Ldebug_line0
+ 336 0025 02       		.uleb128 0x2
+ 337 0026 01       		.byte	0x1
+ 338 0027 06       		.byte	0x6
+ 339 0028 DC020000 		.4byte	.LASF0
+ 340 002c 02       		.uleb128 0x2
+ 341 002d 01       		.byte	0x1
+ 342 002e 08       		.byte	0x8
+ 343 002f A6000000 		.4byte	.LASF1
+ 344 0033 02       		.uleb128 0x2
+ 345 0034 02       		.byte	0x2
+ 346 0035 05       		.byte	0x5
+ 347 0036 85010000 		.4byte	.LASF2
+ 348 003a 02       		.uleb128 0x2
+ 349 003b 02       		.byte	0x2
+ 350 003c 07       		.byte	0x7
+ 351 003d 41000000 		.4byte	.LASF3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 10
+
+
+ 352 0041 03       		.uleb128 0x3
+ 353 0042 2E000000 		.4byte	.LASF5
+ 354 0046 02       		.byte	0x2
+ 355 0047 3F       		.byte	0x3f
+ 356 0048 4C000000 		.4byte	0x4c
+ 357 004c 02       		.uleb128 0x2
+ 358 004d 04       		.byte	0x4
+ 359 004e 05       		.byte	0x5
+ 360 004f 38000000 		.4byte	.LASF4
+ 361 0053 03       		.uleb128 0x3
+ 362 0054 42010000 		.4byte	.LASF6
+ 363 0058 02       		.byte	0x2
+ 364 0059 41       		.byte	0x41
+ 365 005a 5E000000 		.4byte	0x5e
+ 366 005e 02       		.uleb128 0x2
+ 367 005f 04       		.byte	0x4
+ 368 0060 07       		.byte	0x7
+ 369 0061 4D010000 		.4byte	.LASF7
+ 370 0065 02       		.uleb128 0x2
+ 371 0066 08       		.byte	0x8
+ 372 0067 05       		.byte	0x5
+ 373 0068 56020000 		.4byte	.LASF8
+ 374 006c 02       		.uleb128 0x2
+ 375 006d 08       		.byte	0x8
+ 376 006e 07       		.byte	0x7
+ 377 006f 27020000 		.4byte	.LASF9
+ 378 0073 04       		.uleb128 0x4
+ 379 0074 04       		.byte	0x4
+ 380 0075 05       		.byte	0x5
+ 381 0076 696E7400 		.ascii	"int\000"
+ 382 007a 02       		.uleb128 0x2
+ 383 007b 04       		.byte	0x4
+ 384 007c 07       		.byte	0x7
+ 385 007d 01020000 		.4byte	.LASF10
+ 386 0081 03       		.uleb128 0x3
+ 387 0082 3E020000 		.4byte	.LASF11
+ 388 0086 03       		.byte	0x3
+ 389 0087 2C       		.byte	0x2c
+ 390 0088 41000000 		.4byte	0x41
+ 391 008c 03       		.uleb128 0x3
+ 392 008d B7020000 		.4byte	.LASF12
+ 393 0091 03       		.byte	0x3
+ 394 0092 30       		.byte	0x30
+ 395 0093 53000000 		.4byte	0x53
+ 396 0097 05       		.uleb128 0x5
+ 397 0098 A6020000 		.4byte	.LASF13
+ 398 009c 04       		.byte	0x4
+ 399 009d 3801     		.2byte	0x138
+ 400 009f 2C000000 		.4byte	0x2c
+ 401 00a3 05       		.uleb128 0x5
+ 402 00a4 F1010000 		.4byte	.LASF14
+ 403 00a8 04       		.byte	0x4
+ 404 00a9 3A01     		.2byte	0x13a
+ 405 00ab 5E000000 		.4byte	0x5e
+ 406 00af 02       		.uleb128 0x2
+ 407 00b0 04       		.byte	0x4
+ 408 00b1 04       		.byte	0x4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 11
+
+
+ 409 00b2 97000000 		.4byte	.LASF15
+ 410 00b6 02       		.uleb128 0x2
+ 411 00b7 08       		.byte	0x8
+ 412 00b8 04       		.byte	0x4
+ 413 00b9 6E000000 		.4byte	.LASF16
+ 414 00bd 02       		.uleb128 0x2
+ 415 00be 01       		.byte	0x1
+ 416 00bf 08       		.byte	0x8
+ 417 00c0 64020000 		.4byte	.LASF17
+ 418 00c4 02       		.uleb128 0x2
+ 419 00c5 08       		.byte	0x8
+ 420 00c6 04       		.byte	0x4
+ 421 00c7 D0020000 		.4byte	.LASF18
+ 422 00cb 02       		.uleb128 0x2
+ 423 00cc 04       		.byte	0x4
+ 424 00cd 07       		.byte	0x7
+ 425 00ce 46020000 		.4byte	.LASF19
+ 426 00d2 06       		.uleb128 0x6
+ 427 00d3 04       		.byte	0x4
+ 428 00d4 03       		.uleb128 0x3
+ 429 00d5 F6020000 		.4byte	.LASF20
+ 430 00d9 05       		.byte	0x5
+ 431 00da 62       		.byte	0x62
+ 432 00db 4C000000 		.4byte	0x4c
+ 433 00df 03       		.uleb128 0x3
+ 434 00e0 23000000 		.4byte	.LASF21
+ 435 00e4 05       		.byte	0x5
+ 436 00e5 69       		.byte	0x69
+ 437 00e6 8C000000 		.4byte	0x8c
+ 438 00ea 03       		.uleb128 0x3
+ 439 00eb 54000000 		.4byte	.LASF22
+ 440 00ef 06       		.byte	0x6
+ 441 00f0 58       		.byte	0x58
+ 442 00f1 D2000000 		.4byte	0xd2
+ 443 00f5 07       		.uleb128 0x7
+ 444 00f6 00000000 		.4byte	.LASF25
+ 445 00fa 01       		.byte	0x1
+ 446 00fb 2C000000 		.4byte	0x2c
+ 447 00ff 07       		.byte	0x7
+ 448 0100 3A       		.byte	0x3a
+ 449 0101 12010000 		.4byte	0x112
+ 450 0105 08       		.uleb128 0x8
+ 451 0106 62000000 		.4byte	.LASF23
+ 452 010a 00       		.byte	0
+ 453 010b 08       		.uleb128 0x8
+ 454 010c 68000000 		.4byte	.LASF24
+ 455 0110 01       		.byte	0x1
+ 456 0111 00       		.byte	0
+ 457 0112 07       		.uleb128 0x7
+ 458 0113 85000000 		.4byte	.LASF26
+ 459 0117 01       		.byte	0x1
+ 460 0118 2C000000 		.4byte	0x2c
+ 461 011c 01       		.byte	0x1
+ 462 011d 39       		.byte	0x39
+ 463 011e 47010000 		.4byte	0x147
+ 464 0122 08       		.uleb128 0x8
+ 465 0123 7C010000 		.4byte	.LASF27
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 12
+
+
+ 466 0127 00       		.byte	0
+ 467 0128 08       		.uleb128 0x8
+ 468 0129 1C020000 		.4byte	.LASF28
+ 469 012d 01       		.byte	0x1
+ 470 012e 08       		.uleb128 0x8
+ 471 012f 17000000 		.4byte	.LASF29
+ 472 0133 02       		.byte	0x2
+ 473 0134 08       		.uleb128 0x8
+ 474 0135 F8010000 		.4byte	.LASF30
+ 475 0139 03       		.byte	0x3
+ 476 013a 08       		.uleb128 0x8
+ 477 013b 01030000 		.4byte	.LASF31
+ 478 013f 04       		.byte	0x4
+ 479 0140 08       		.uleb128 0x8
+ 480 0141 09000000 		.4byte	.LASF32
+ 481 0145 05       		.byte	0x5
+ 482 0146 00       		.byte	0
+ 483 0147 09       		.uleb128 0x9
+ 484 0148 9D000000 		.4byte	.LASF49
+ 485 014c 01       		.byte	0x1
+ 486 014d 43       		.byte	0x43
+ 487 014e 00000000 		.4byte	.LFB64
+ 488 0152 18000000 		.4byte	.LFE64-.LFB64
+ 489 0156 01       		.uleb128 0x1
+ 490 0157 9C       		.byte	0x9c
+ 491 0158 6A010000 		.4byte	0x16a
+ 492 015c 0A       		.uleb128 0xa
+ 493 015d 6900     		.ascii	"i\000"
+ 494 015f 01       		.byte	0x1
+ 495 0160 45       		.byte	0x45
+ 496 0161 A3000000 		.4byte	0xa3
+ 497 0165 00000000 		.4byte	.LLST0
+ 498 0169 00       		.byte	0
+ 499 016a 0B       		.uleb128 0xb
+ 500 016b 76020000 		.4byte	.LASF34
+ 501 016f 01       		.byte	0x1
+ 502 0170 4D       		.byte	0x4d
+ 503 0171 97000000 		.4byte	0x97
+ 504 0175 00000000 		.4byte	.LFB65
+ 505 0179 2E000000 		.4byte	.LFE65-.LFB65
+ 506 017d 01       		.uleb128 0x1
+ 507 017e 9C       		.byte	0x9c
+ 508 017f B2010000 		.4byte	0x1b2
+ 509 0183 0C       		.uleb128 0xc
+ 510 0184 6B657900 		.ascii	"key\000"
+ 511 0188 01       		.byte	0x1
+ 512 0189 4D       		.byte	0x4d
+ 513 018a 97000000 		.4byte	0x97
+ 514 018e 1F000000 		.4byte	.LLST1
+ 515 0192 0D       		.uleb128 0xd
+ 516 0193 75000000 		.4byte	.LASF33
+ 517 0197 01       		.byte	0x1
+ 518 0198 4F       		.byte	0x4f
+ 519 0199 97000000 		.4byte	0x97
+ 520 019d 01       		.uleb128 0x1
+ 521 019e 50       		.byte	0x50
+ 522 019f 0E       		.uleb128 0xe
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 13
+
+
+ 523 01a0 08000000 		.4byte	.LVL4
+ 524 01a4 E0020000 		.4byte	0x2e0
+ 525 01a8 0E       		.uleb128 0xe
+ 526 01a9 1A000000 		.4byte	.LVL6
+ 527 01ad EB020000 		.4byte	0x2eb
+ 528 01b1 00       		.byte	0
+ 529 01b2 0F       		.uleb128 0xf
+ 530 01b3 7C000000 		.4byte	.LASF35
+ 531 01b7 01       		.byte	0x1
+ 532 01b8 59       		.byte	0x59
+ 533 01b9 00000000 		.4byte	.LFB66
+ 534 01bd E0000000 		.4byte	.LFE66-.LFB66
+ 535 01c1 01       		.uleb128 0x1
+ 536 01c2 9C       		.byte	0x9c
+ 537 01c3 7E020000 		.4byte	0x27e
+ 538 01c7 10       		.uleb128 0x10
+ 539 01c8 69020000 		.4byte	.LASF36
+ 540 01cc 01       		.byte	0x1
+ 541 01cd 59       		.byte	0x59
+ 542 01ce D2000000 		.4byte	0xd2
+ 543 01d2 72000000 		.4byte	.LLST2
+ 544 01d6 11       		.uleb128 0x11
+ 545 01d7 6900     		.ascii	"i\000"
+ 546 01d9 01       		.byte	0x1
+ 547 01da 5B       		.byte	0x5b
+ 548 01db A3000000 		.4byte	0xa3
+ 549 01df 05       		.uleb128 0x5
+ 550 01e0 03       		.byte	0x3
+ 551 01e1 00000000 		.4byte	i.6865
+ 552 01e5 11       		.uleb128 0x11
+ 553 01e6 6B657900 		.ascii	"key\000"
+ 554 01ea 01       		.byte	0x1
+ 555 01eb 5C       		.byte	0x5c
+ 556 01ec 97000000 		.4byte	0x97
+ 557 01f0 05       		.uleb128 0x5
+ 558 01f1 03       		.byte	0x3
+ 559 01f2 04000000 		.4byte	key.6866
+ 560 01f6 0D       		.uleb128 0xd
+ 561 01f7 AC020000 		.4byte	.LASF37
+ 562 01fb 01       		.byte	0x1
+ 563 01fc 5D       		.byte	0x5d
+ 564 01fd 7E020000 		.4byte	0x27e
+ 565 0201 05       		.uleb128 0x5
+ 566 0202 03       		.byte	0x3
+ 567 0203 08000000 		.4byte	push_count.6867
+ 568 0207 0D       		.uleb128 0xd
+ 569 0208 6C010000 		.4byte	.LASF38
+ 570 020c 01       		.byte	0x1
+ 571 020d 5E       		.byte	0x5e
+ 572 020e 97000000 		.4byte	0x97
+ 573 0212 05       		.uleb128 0x5
+ 574 0213 03       		.byte	0x3
+ 575 0214 00000000 		.4byte	qmsg.6868
+ 576 0218 12       		.uleb128 0x12
+ 577 0219 4F020000 		.4byte	.LASF50
+ 578 021d 01       		.byte	0x1
+ 579 021e 61       		.byte	0x61
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 14
+
+
+ 580 021f 8E020000 		.4byte	0x28e
+ 581 0223 0E       		.uleb128 0xe
+ 582 0224 10000000 		.4byte	.LVL12
+ 583 0228 6A010000 		.4byte	0x16a
+ 584 022c 13       		.uleb128 0x13
+ 585 022d 58000000 		.4byte	.LVL13
+ 586 0231 F6020000 		.4byte	0x2f6
+ 587 0235 4D020000 		.4byte	0x24d
+ 588 0239 14       		.uleb128 0x14
+ 589 023a 01       		.uleb128 0x1
+ 590 023b 51       		.byte	0x51
+ 591 023c 05       		.uleb128 0x5
+ 592 023d 03       		.byte	0x3
+ 593 023e 00000000 		.4byte	.LANCHOR1
+ 594 0242 14       		.uleb128 0x14
+ 595 0243 01       		.uleb128 0x1
+ 596 0244 52       		.byte	0x52
+ 597 0245 01       		.uleb128 0x1
+ 598 0246 30       		.byte	0x30
+ 599 0247 14       		.uleb128 0x14
+ 600 0248 01       		.uleb128 0x1
+ 601 0249 53       		.byte	0x53
+ 602 024a 01       		.uleb128 0x1
+ 603 024b 30       		.byte	0x30
+ 604 024c 00       		.byte	0
+ 605 024d 13       		.uleb128 0x13
+ 606 024e A8000000 		.4byte	.LVL14
+ 607 0252 F6020000 		.4byte	0x2f6
+ 608 0256 6E020000 		.4byte	0x26e
+ 609 025a 14       		.uleb128 0x14
+ 610 025b 01       		.uleb128 0x1
+ 611 025c 51       		.byte	0x51
+ 612 025d 05       		.uleb128 0x5
+ 613 025e 03       		.byte	0x3
+ 614 025f 00000000 		.4byte	.LANCHOR1
+ 615 0263 14       		.uleb128 0x14
+ 616 0264 01       		.uleb128 0x1
+ 617 0265 52       		.byte	0x52
+ 618 0266 01       		.uleb128 0x1
+ 619 0267 30       		.byte	0x30
+ 620 0268 14       		.uleb128 0x14
+ 621 0269 01       		.uleb128 0x1
+ 622 026a 53       		.byte	0x53
+ 623 026b 01       		.uleb128 0x1
+ 624 026c 30       		.byte	0x30
+ 625 026d 00       		.byte	0
+ 626 026e 15       		.uleb128 0x15
+ 627 026f CC000000 		.4byte	.LVL15
+ 628 0273 02030000 		.4byte	0x302
+ 629 0277 14       		.uleb128 0x14
+ 630 0278 01       		.uleb128 0x1
+ 631 0279 50       		.byte	0x50
+ 632 027a 01       		.uleb128 0x1
+ 633 027b 3A       		.byte	0x3a
+ 634 027c 00       		.byte	0
+ 635 027d 00       		.byte	0
+ 636 027e 16       		.uleb128 0x16
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 15
+
+
+ 637 027f A3000000 		.4byte	0xa3
+ 638 0283 8E020000 		.4byte	0x28e
+ 639 0287 17       		.uleb128 0x17
+ 640 0288 CB000000 		.4byte	0xcb
+ 641 028c 01       		.byte	0x1
+ 642 028d 00       		.byte	0
+ 643 028e 18       		.uleb128 0x18
+ 644 028f DF000000 		.4byte	0xdf
+ 645 0293 19       		.uleb128 0x19
+ 646 0294 5F010000 		.4byte	.LASF39
+ 647 0298 08       		.byte	0x8
+ 648 0299 5506     		.2byte	0x655
+ 649 029b 9F020000 		.4byte	0x29f
+ 650 029f 1A       		.uleb128 0x1a
+ 651 02a0 81000000 		.4byte	0x81
+ 652 02a4 16       		.uleb128 0x16
+ 653 02a5 EA000000 		.4byte	0xea
+ 654 02a9 B4020000 		.4byte	0x2b4
+ 655 02ad 17       		.uleb128 0x17
+ 656 02ae CB000000 		.4byte	0xcb
+ 657 02b2 01       		.byte	0x1
+ 658 02b3 00       		.byte	0
+ 659 02b4 1B       		.uleb128 0x1b
+ 660 02b5 71010000 		.4byte	.LASF40
+ 661 02b9 01       		.byte	0x1
+ 662 02ba 34       		.byte	0x34
+ 663 02bb A4020000 		.4byte	0x2a4
+ 664 02bf 16       		.uleb128 0x16
+ 665 02c0 97000000 		.4byte	0x97
+ 666 02c4 CF020000 		.4byte	0x2cf
+ 667 02c8 17       		.uleb128 0x17
+ 668 02c9 CB000000 		.4byte	0xcb
+ 669 02cd 01       		.byte	0x1
+ 670 02ce 00       		.byte	0
+ 671 02cf 1C       		.uleb128 0x1c
+ 672 02d0 C0020000 		.4byte	.LASF41
+ 673 02d4 01       		.byte	0x1
+ 674 02d5 3E       		.byte	0x3e
+ 675 02d6 BF020000 		.4byte	0x2bf
+ 676 02da 05       		.uleb128 0x5
+ 677 02db 03       		.byte	0x3
+ 678 02dc 00000000 		.4byte	gKey
+ 679 02e0 1D       		.uleb128 0x1d
+ 680 02e1 0E020000 		.4byte	.LASF42
+ 681 02e5 0E020000 		.4byte	.LASF42
+ 682 02e9 09       		.byte	0x9
+ 683 02ea 29       		.byte	0x29
+ 684 02eb 1D       		.uleb128 0x1d
+ 685 02ec E8020000 		.4byte	.LASF43
+ 686 02f0 E8020000 		.4byte	.LASF43
+ 687 02f4 0A       		.byte	0xa
+ 688 02f5 29       		.byte	0x29
+ 689 02f6 1E       		.uleb128 0x1e
+ 690 02f7 94020000 		.4byte	.LASF44
+ 691 02fb 94020000 		.4byte	.LASF44
+ 692 02ff 06       		.byte	0x6
+ 693 0300 5002     		.2byte	0x250
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 16
+
+
+ 694 0302 1E       		.uleb128 0x1e
+ 695 0303 C5020000 		.4byte	.LASF45
+ 696 0307 C5020000 		.4byte	.LASF45
+ 697 030b 0B       		.byte	0xb
+ 698 030c 2B02     		.2byte	0x22b
+ 699 030e 00       		.byte	0
+ 700              		.section	.debug_abbrev,"",%progbits
+ 701              	.Ldebug_abbrev0:
+ 702 0000 01       		.uleb128 0x1
+ 703 0001 11       		.uleb128 0x11
+ 704 0002 01       		.byte	0x1
+ 705 0003 25       		.uleb128 0x25
+ 706 0004 0E       		.uleb128 0xe
+ 707 0005 13       		.uleb128 0x13
+ 708 0006 0B       		.uleb128 0xb
+ 709 0007 03       		.uleb128 0x3
+ 710 0008 0E       		.uleb128 0xe
+ 711 0009 1B       		.uleb128 0x1b
+ 712 000a 0E       		.uleb128 0xe
+ 713 000b 55       		.uleb128 0x55
+ 714 000c 17       		.uleb128 0x17
+ 715 000d 11       		.uleb128 0x11
+ 716 000e 01       		.uleb128 0x1
+ 717 000f 10       		.uleb128 0x10
+ 718 0010 17       		.uleb128 0x17
+ 719 0011 00       		.byte	0
+ 720 0012 00       		.byte	0
+ 721 0013 02       		.uleb128 0x2
+ 722 0014 24       		.uleb128 0x24
+ 723 0015 00       		.byte	0
+ 724 0016 0B       		.uleb128 0xb
+ 725 0017 0B       		.uleb128 0xb
+ 726 0018 3E       		.uleb128 0x3e
+ 727 0019 0B       		.uleb128 0xb
+ 728 001a 03       		.uleb128 0x3
+ 729 001b 0E       		.uleb128 0xe
+ 730 001c 00       		.byte	0
+ 731 001d 00       		.byte	0
+ 732 001e 03       		.uleb128 0x3
+ 733 001f 16       		.uleb128 0x16
+ 734 0020 00       		.byte	0
+ 735 0021 03       		.uleb128 0x3
+ 736 0022 0E       		.uleb128 0xe
+ 737 0023 3A       		.uleb128 0x3a
+ 738 0024 0B       		.uleb128 0xb
+ 739 0025 3B       		.uleb128 0x3b
+ 740 0026 0B       		.uleb128 0xb
+ 741 0027 49       		.uleb128 0x49
+ 742 0028 13       		.uleb128 0x13
+ 743 0029 00       		.byte	0
+ 744 002a 00       		.byte	0
+ 745 002b 04       		.uleb128 0x4
+ 746 002c 24       		.uleb128 0x24
+ 747 002d 00       		.byte	0
+ 748 002e 0B       		.uleb128 0xb
+ 749 002f 0B       		.uleb128 0xb
+ 750 0030 3E       		.uleb128 0x3e
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 17
+
+
+ 751 0031 0B       		.uleb128 0xb
+ 752 0032 03       		.uleb128 0x3
+ 753 0033 08       		.uleb128 0x8
+ 754 0034 00       		.byte	0
+ 755 0035 00       		.byte	0
+ 756 0036 05       		.uleb128 0x5
+ 757 0037 16       		.uleb128 0x16
+ 758 0038 00       		.byte	0
+ 759 0039 03       		.uleb128 0x3
+ 760 003a 0E       		.uleb128 0xe
+ 761 003b 3A       		.uleb128 0x3a
+ 762 003c 0B       		.uleb128 0xb
+ 763 003d 3B       		.uleb128 0x3b
+ 764 003e 05       		.uleb128 0x5
+ 765 003f 49       		.uleb128 0x49
+ 766 0040 13       		.uleb128 0x13
+ 767 0041 00       		.byte	0
+ 768 0042 00       		.byte	0
+ 769 0043 06       		.uleb128 0x6
+ 770 0044 0F       		.uleb128 0xf
+ 771 0045 00       		.byte	0
+ 772 0046 0B       		.uleb128 0xb
+ 773 0047 0B       		.uleb128 0xb
+ 774 0048 00       		.byte	0
+ 775 0049 00       		.byte	0
+ 776 004a 07       		.uleb128 0x7
+ 777 004b 04       		.uleb128 0x4
+ 778 004c 01       		.byte	0x1
+ 779 004d 03       		.uleb128 0x3
+ 780 004e 0E       		.uleb128 0xe
+ 781 004f 0B       		.uleb128 0xb
+ 782 0050 0B       		.uleb128 0xb
+ 783 0051 49       		.uleb128 0x49
+ 784 0052 13       		.uleb128 0x13
+ 785 0053 3A       		.uleb128 0x3a
+ 786 0054 0B       		.uleb128 0xb
+ 787 0055 3B       		.uleb128 0x3b
+ 788 0056 0B       		.uleb128 0xb
+ 789 0057 01       		.uleb128 0x1
+ 790 0058 13       		.uleb128 0x13
+ 791 0059 00       		.byte	0
+ 792 005a 00       		.byte	0
+ 793 005b 08       		.uleb128 0x8
+ 794 005c 28       		.uleb128 0x28
+ 795 005d 00       		.byte	0
+ 796 005e 03       		.uleb128 0x3
+ 797 005f 0E       		.uleb128 0xe
+ 798 0060 1C       		.uleb128 0x1c
+ 799 0061 0B       		.uleb128 0xb
+ 800 0062 00       		.byte	0
+ 801 0063 00       		.byte	0
+ 802 0064 09       		.uleb128 0x9
+ 803 0065 2E       		.uleb128 0x2e
+ 804 0066 01       		.byte	0x1
+ 805 0067 3F       		.uleb128 0x3f
+ 806 0068 19       		.uleb128 0x19
+ 807 0069 03       		.uleb128 0x3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 18
+
+
+ 808 006a 0E       		.uleb128 0xe
+ 809 006b 3A       		.uleb128 0x3a
+ 810 006c 0B       		.uleb128 0xb
+ 811 006d 3B       		.uleb128 0x3b
+ 812 006e 0B       		.uleb128 0xb
+ 813 006f 27       		.uleb128 0x27
+ 814 0070 19       		.uleb128 0x19
+ 815 0071 11       		.uleb128 0x11
+ 816 0072 01       		.uleb128 0x1
+ 817 0073 12       		.uleb128 0x12
+ 818 0074 06       		.uleb128 0x6
+ 819 0075 40       		.uleb128 0x40
+ 820 0076 18       		.uleb128 0x18
+ 821 0077 9742     		.uleb128 0x2117
+ 822 0079 19       		.uleb128 0x19
+ 823 007a 01       		.uleb128 0x1
+ 824 007b 13       		.uleb128 0x13
+ 825 007c 00       		.byte	0
+ 826 007d 00       		.byte	0
+ 827 007e 0A       		.uleb128 0xa
+ 828 007f 34       		.uleb128 0x34
+ 829 0080 00       		.byte	0
+ 830 0081 03       		.uleb128 0x3
+ 831 0082 08       		.uleb128 0x8
+ 832 0083 3A       		.uleb128 0x3a
+ 833 0084 0B       		.uleb128 0xb
+ 834 0085 3B       		.uleb128 0x3b
+ 835 0086 0B       		.uleb128 0xb
+ 836 0087 49       		.uleb128 0x49
+ 837 0088 13       		.uleb128 0x13
+ 838 0089 02       		.uleb128 0x2
+ 839 008a 17       		.uleb128 0x17
+ 840 008b 00       		.byte	0
+ 841 008c 00       		.byte	0
+ 842 008d 0B       		.uleb128 0xb
+ 843 008e 2E       		.uleb128 0x2e
+ 844 008f 01       		.byte	0x1
+ 845 0090 3F       		.uleb128 0x3f
+ 846 0091 19       		.uleb128 0x19
+ 847 0092 03       		.uleb128 0x3
+ 848 0093 0E       		.uleb128 0xe
+ 849 0094 3A       		.uleb128 0x3a
+ 850 0095 0B       		.uleb128 0xb
+ 851 0096 3B       		.uleb128 0x3b
+ 852 0097 0B       		.uleb128 0xb
+ 853 0098 27       		.uleb128 0x27
+ 854 0099 19       		.uleb128 0x19
+ 855 009a 49       		.uleb128 0x49
+ 856 009b 13       		.uleb128 0x13
+ 857 009c 11       		.uleb128 0x11
+ 858 009d 01       		.uleb128 0x1
+ 859 009e 12       		.uleb128 0x12
+ 860 009f 06       		.uleb128 0x6
+ 861 00a0 40       		.uleb128 0x40
+ 862 00a1 18       		.uleb128 0x18
+ 863 00a2 9742     		.uleb128 0x2117
+ 864 00a4 19       		.uleb128 0x19
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 19
+
+
+ 865 00a5 01       		.uleb128 0x1
+ 866 00a6 13       		.uleb128 0x13
+ 867 00a7 00       		.byte	0
+ 868 00a8 00       		.byte	0
+ 869 00a9 0C       		.uleb128 0xc
+ 870 00aa 05       		.uleb128 0x5
+ 871 00ab 00       		.byte	0
+ 872 00ac 03       		.uleb128 0x3
+ 873 00ad 08       		.uleb128 0x8
+ 874 00ae 3A       		.uleb128 0x3a
+ 875 00af 0B       		.uleb128 0xb
+ 876 00b0 3B       		.uleb128 0x3b
+ 877 00b1 0B       		.uleb128 0xb
+ 878 00b2 49       		.uleb128 0x49
+ 879 00b3 13       		.uleb128 0x13
+ 880 00b4 02       		.uleb128 0x2
+ 881 00b5 17       		.uleb128 0x17
+ 882 00b6 00       		.byte	0
+ 883 00b7 00       		.byte	0
+ 884 00b8 0D       		.uleb128 0xd
+ 885 00b9 34       		.uleb128 0x34
+ 886 00ba 00       		.byte	0
+ 887 00bb 03       		.uleb128 0x3
+ 888 00bc 0E       		.uleb128 0xe
+ 889 00bd 3A       		.uleb128 0x3a
+ 890 00be 0B       		.uleb128 0xb
+ 891 00bf 3B       		.uleb128 0x3b
+ 892 00c0 0B       		.uleb128 0xb
+ 893 00c1 49       		.uleb128 0x49
+ 894 00c2 13       		.uleb128 0x13
+ 895 00c3 02       		.uleb128 0x2
+ 896 00c4 18       		.uleb128 0x18
+ 897 00c5 00       		.byte	0
+ 898 00c6 00       		.byte	0
+ 899 00c7 0E       		.uleb128 0xe
+ 900 00c8 898201   		.uleb128 0x4109
+ 901 00cb 00       		.byte	0
+ 902 00cc 11       		.uleb128 0x11
+ 903 00cd 01       		.uleb128 0x1
+ 904 00ce 31       		.uleb128 0x31
+ 905 00cf 13       		.uleb128 0x13
+ 906 00d0 00       		.byte	0
+ 907 00d1 00       		.byte	0
+ 908 00d2 0F       		.uleb128 0xf
+ 909 00d3 2E       		.uleb128 0x2e
+ 910 00d4 01       		.byte	0x1
+ 911 00d5 3F       		.uleb128 0x3f
+ 912 00d6 19       		.uleb128 0x19
+ 913 00d7 03       		.uleb128 0x3
+ 914 00d8 0E       		.uleb128 0xe
+ 915 00d9 3A       		.uleb128 0x3a
+ 916 00da 0B       		.uleb128 0xb
+ 917 00db 3B       		.uleb128 0x3b
+ 918 00dc 0B       		.uleb128 0xb
+ 919 00dd 27       		.uleb128 0x27
+ 920 00de 19       		.uleb128 0x19
+ 921 00df 8701     		.uleb128 0x87
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 20
+
+
+ 922 00e1 19       		.uleb128 0x19
+ 923 00e2 11       		.uleb128 0x11
+ 924 00e3 01       		.uleb128 0x1
+ 925 00e4 12       		.uleb128 0x12
+ 926 00e5 06       		.uleb128 0x6
+ 927 00e6 40       		.uleb128 0x40
+ 928 00e7 18       		.uleb128 0x18
+ 929 00e8 9742     		.uleb128 0x2117
+ 930 00ea 19       		.uleb128 0x19
+ 931 00eb 01       		.uleb128 0x1
+ 932 00ec 13       		.uleb128 0x13
+ 933 00ed 00       		.byte	0
+ 934 00ee 00       		.byte	0
+ 935 00ef 10       		.uleb128 0x10
+ 936 00f0 05       		.uleb128 0x5
+ 937 00f1 00       		.byte	0
+ 938 00f2 03       		.uleb128 0x3
+ 939 00f3 0E       		.uleb128 0xe
+ 940 00f4 3A       		.uleb128 0x3a
+ 941 00f5 0B       		.uleb128 0xb
+ 942 00f6 3B       		.uleb128 0x3b
+ 943 00f7 0B       		.uleb128 0xb
+ 944 00f8 49       		.uleb128 0x49
+ 945 00f9 13       		.uleb128 0x13
+ 946 00fa 02       		.uleb128 0x2
+ 947 00fb 17       		.uleb128 0x17
+ 948 00fc 00       		.byte	0
+ 949 00fd 00       		.byte	0
+ 950 00fe 11       		.uleb128 0x11
+ 951 00ff 34       		.uleb128 0x34
+ 952 0100 00       		.byte	0
+ 953 0101 03       		.uleb128 0x3
+ 954 0102 08       		.uleb128 0x8
+ 955 0103 3A       		.uleb128 0x3a
+ 956 0104 0B       		.uleb128 0xb
+ 957 0105 3B       		.uleb128 0x3b
+ 958 0106 0B       		.uleb128 0xb
+ 959 0107 49       		.uleb128 0x49
+ 960 0108 13       		.uleb128 0x13
+ 961 0109 02       		.uleb128 0x2
+ 962 010a 18       		.uleb128 0x18
+ 963 010b 00       		.byte	0
+ 964 010c 00       		.byte	0
+ 965 010d 12       		.uleb128 0x12
+ 966 010e 34       		.uleb128 0x34
+ 967 010f 00       		.byte	0
+ 968 0110 03       		.uleb128 0x3
+ 969 0111 0E       		.uleb128 0xe
+ 970 0112 3A       		.uleb128 0x3a
+ 971 0113 0B       		.uleb128 0xb
+ 972 0114 3B       		.uleb128 0x3b
+ 973 0115 0B       		.uleb128 0xb
+ 974 0116 49       		.uleb128 0x49
+ 975 0117 13       		.uleb128 0x13
+ 976 0118 00       		.byte	0
+ 977 0119 00       		.byte	0
+ 978 011a 13       		.uleb128 0x13
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 21
+
+
+ 979 011b 898201   		.uleb128 0x4109
+ 980 011e 01       		.byte	0x1
+ 981 011f 11       		.uleb128 0x11
+ 982 0120 01       		.uleb128 0x1
+ 983 0121 31       		.uleb128 0x31
+ 984 0122 13       		.uleb128 0x13
+ 985 0123 01       		.uleb128 0x1
+ 986 0124 13       		.uleb128 0x13
+ 987 0125 00       		.byte	0
+ 988 0126 00       		.byte	0
+ 989 0127 14       		.uleb128 0x14
+ 990 0128 8A8201   		.uleb128 0x410a
+ 991 012b 00       		.byte	0
+ 992 012c 02       		.uleb128 0x2
+ 993 012d 18       		.uleb128 0x18
+ 994 012e 9142     		.uleb128 0x2111
+ 995 0130 18       		.uleb128 0x18
+ 996 0131 00       		.byte	0
+ 997 0132 00       		.byte	0
+ 998 0133 15       		.uleb128 0x15
+ 999 0134 898201   		.uleb128 0x4109
+ 1000 0137 01       		.byte	0x1
+ 1001 0138 11       		.uleb128 0x11
+ 1002 0139 01       		.uleb128 0x1
+ 1003 013a 31       		.uleb128 0x31
+ 1004 013b 13       		.uleb128 0x13
+ 1005 013c 00       		.byte	0
+ 1006 013d 00       		.byte	0
+ 1007 013e 16       		.uleb128 0x16
+ 1008 013f 01       		.uleb128 0x1
+ 1009 0140 01       		.byte	0x1
+ 1010 0141 49       		.uleb128 0x49
+ 1011 0142 13       		.uleb128 0x13
+ 1012 0143 01       		.uleb128 0x1
+ 1013 0144 13       		.uleb128 0x13
+ 1014 0145 00       		.byte	0
+ 1015 0146 00       		.byte	0
+ 1016 0147 17       		.uleb128 0x17
+ 1017 0148 21       		.uleb128 0x21
+ 1018 0149 00       		.byte	0
+ 1019 014a 49       		.uleb128 0x49
+ 1020 014b 13       		.uleb128 0x13
+ 1021 014c 2F       		.uleb128 0x2f
+ 1022 014d 0B       		.uleb128 0xb
+ 1023 014e 00       		.byte	0
+ 1024 014f 00       		.byte	0
+ 1025 0150 18       		.uleb128 0x18
+ 1026 0151 26       		.uleb128 0x26
+ 1027 0152 00       		.byte	0
+ 1028 0153 49       		.uleb128 0x49
+ 1029 0154 13       		.uleb128 0x13
+ 1030 0155 00       		.byte	0
+ 1031 0156 00       		.byte	0
+ 1032 0157 19       		.uleb128 0x19
+ 1033 0158 34       		.uleb128 0x34
+ 1034 0159 00       		.byte	0
+ 1035 015a 03       		.uleb128 0x3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 22
+
+
+ 1036 015b 0E       		.uleb128 0xe
+ 1037 015c 3A       		.uleb128 0x3a
+ 1038 015d 0B       		.uleb128 0xb
+ 1039 015e 3B       		.uleb128 0x3b
+ 1040 015f 05       		.uleb128 0x5
+ 1041 0160 49       		.uleb128 0x49
+ 1042 0161 13       		.uleb128 0x13
+ 1043 0162 3F       		.uleb128 0x3f
+ 1044 0163 19       		.uleb128 0x19
+ 1045 0164 3C       		.uleb128 0x3c
+ 1046 0165 19       		.uleb128 0x19
+ 1047 0166 00       		.byte	0
+ 1048 0167 00       		.byte	0
+ 1049 0168 1A       		.uleb128 0x1a
+ 1050 0169 35       		.uleb128 0x35
+ 1051 016a 00       		.byte	0
+ 1052 016b 49       		.uleb128 0x49
+ 1053 016c 13       		.uleb128 0x13
+ 1054 016d 00       		.byte	0
+ 1055 016e 00       		.byte	0
+ 1056 016f 1B       		.uleb128 0x1b
+ 1057 0170 34       		.uleb128 0x34
+ 1058 0171 00       		.byte	0
+ 1059 0172 03       		.uleb128 0x3
+ 1060 0173 0E       		.uleb128 0xe
+ 1061 0174 3A       		.uleb128 0x3a
+ 1062 0175 0B       		.uleb128 0xb
+ 1063 0176 3B       		.uleb128 0x3b
+ 1064 0177 0B       		.uleb128 0xb
+ 1065 0178 49       		.uleb128 0x49
+ 1066 0179 13       		.uleb128 0x13
+ 1067 017a 3F       		.uleb128 0x3f
+ 1068 017b 19       		.uleb128 0x19
+ 1069 017c 3C       		.uleb128 0x3c
+ 1070 017d 19       		.uleb128 0x19
+ 1071 017e 00       		.byte	0
+ 1072 017f 00       		.byte	0
+ 1073 0180 1C       		.uleb128 0x1c
+ 1074 0181 34       		.uleb128 0x34
+ 1075 0182 00       		.byte	0
+ 1076 0183 03       		.uleb128 0x3
+ 1077 0184 0E       		.uleb128 0xe
+ 1078 0185 3A       		.uleb128 0x3a
+ 1079 0186 0B       		.uleb128 0xb
+ 1080 0187 3B       		.uleb128 0x3b
+ 1081 0188 0B       		.uleb128 0xb
+ 1082 0189 49       		.uleb128 0x49
+ 1083 018a 13       		.uleb128 0x13
+ 1084 018b 3F       		.uleb128 0x3f
+ 1085 018c 19       		.uleb128 0x19
+ 1086 018d 02       		.uleb128 0x2
+ 1087 018e 18       		.uleb128 0x18
+ 1088 018f 00       		.byte	0
+ 1089 0190 00       		.byte	0
+ 1090 0191 1D       		.uleb128 0x1d
+ 1091 0192 2E       		.uleb128 0x2e
+ 1092 0193 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 23
+
+
+ 1093 0194 3F       		.uleb128 0x3f
+ 1094 0195 19       		.uleb128 0x19
+ 1095 0196 3C       		.uleb128 0x3c
+ 1096 0197 19       		.uleb128 0x19
+ 1097 0198 6E       		.uleb128 0x6e
+ 1098 0199 0E       		.uleb128 0xe
+ 1099 019a 03       		.uleb128 0x3
+ 1100 019b 0E       		.uleb128 0xe
+ 1101 019c 3A       		.uleb128 0x3a
+ 1102 019d 0B       		.uleb128 0xb
+ 1103 019e 3B       		.uleb128 0x3b
+ 1104 019f 0B       		.uleb128 0xb
+ 1105 01a0 00       		.byte	0
+ 1106 01a1 00       		.byte	0
+ 1107 01a2 1E       		.uleb128 0x1e
+ 1108 01a3 2E       		.uleb128 0x2e
+ 1109 01a4 00       		.byte	0
+ 1110 01a5 3F       		.uleb128 0x3f
+ 1111 01a6 19       		.uleb128 0x19
+ 1112 01a7 3C       		.uleb128 0x3c
+ 1113 01a8 19       		.uleb128 0x19
+ 1114 01a9 6E       		.uleb128 0x6e
+ 1115 01aa 0E       		.uleb128 0xe
+ 1116 01ab 03       		.uleb128 0x3
+ 1117 01ac 0E       		.uleb128 0xe
+ 1118 01ad 3A       		.uleb128 0x3a
+ 1119 01ae 0B       		.uleb128 0xb
+ 1120 01af 3B       		.uleb128 0x3b
+ 1121 01b0 05       		.uleb128 0x5
+ 1122 01b1 00       		.byte	0
+ 1123 01b2 00       		.byte	0
+ 1124 01b3 00       		.byte	0
+ 1125              		.section	.debug_loc,"",%progbits
+ 1126              	.Ldebug_loc0:
+ 1127              	.LLST0:
+ 1128 0000 00000000 		.4byte	.LVL0
+ 1129 0004 04000000 		.4byte	.LVL1
+ 1130 0008 0200     		.2byte	0x2
+ 1131 000a 30       		.byte	0x30
+ 1132 000b 9F       		.byte	0x9f
+ 1133 000c 04000000 		.4byte	.LVL1
+ 1134 0010 18000000 		.4byte	.LFE64
+ 1135 0014 0100     		.2byte	0x1
+ 1136 0016 53       		.byte	0x53
+ 1137 0017 00000000 		.4byte	0
+ 1138 001b 00000000 		.4byte	0
+ 1139              	.LLST1:
+ 1140 001f 00000000 		.4byte	.LVL3
+ 1141 0023 07000000 		.4byte	.LVL4-1
+ 1142 0027 0100     		.2byte	0x1
+ 1143 0029 50       		.byte	0x50
+ 1144 002a 07000000 		.4byte	.LVL4-1
+ 1145 002e 12000000 		.4byte	.LVL5
+ 1146 0032 0400     		.2byte	0x4
+ 1147 0034 F3       		.byte	0xf3
+ 1148 0035 01       		.uleb128 0x1
+ 1149 0036 50       		.byte	0x50
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 24
+
+
+ 1150 0037 9F       		.byte	0x9f
+ 1151 0038 12000000 		.4byte	.LVL5
+ 1152 003c 19000000 		.4byte	.LVL6-1
+ 1153 0040 0100     		.2byte	0x1
+ 1154 0042 50       		.byte	0x50
+ 1155 0043 19000000 		.4byte	.LVL6-1
+ 1156 0047 24000000 		.4byte	.LVL7
+ 1157 004b 0400     		.2byte	0x4
+ 1158 004d F3       		.byte	0xf3
+ 1159 004e 01       		.uleb128 0x1
+ 1160 004f 50       		.byte	0x50
+ 1161 0050 9F       		.byte	0x9f
+ 1162 0051 24000000 		.4byte	.LVL7
+ 1163 0055 26000000 		.4byte	.LVL8
+ 1164 0059 0100     		.2byte	0x1
+ 1165 005b 50       		.byte	0x50
+ 1166 005c 26000000 		.4byte	.LVL8
+ 1167 0060 2E000000 		.4byte	.LFE65
+ 1168 0064 0400     		.2byte	0x4
+ 1169 0066 F3       		.byte	0xf3
+ 1170 0067 01       		.uleb128 0x1
+ 1171 0068 50       		.byte	0x50
+ 1172 0069 9F       		.byte	0x9f
+ 1173 006a 00000000 		.4byte	0
+ 1174 006e 00000000 		.4byte	0
+ 1175              	.LLST2:
+ 1176 0072 00000000 		.4byte	.LVL10
+ 1177 0076 02000000 		.4byte	.LVL11
+ 1178 007a 0100     		.2byte	0x1
+ 1179 007c 50       		.byte	0x50
+ 1180 007d 02000000 		.4byte	.LVL11
+ 1181 0081 E0000000 		.4byte	.LFE66
+ 1182 0085 0400     		.2byte	0x4
+ 1183 0087 F3       		.byte	0xf3
+ 1184 0088 01       		.uleb128 0x1
+ 1185 0089 50       		.byte	0x50
+ 1186 008a 9F       		.byte	0x9f
+ 1187 008b 00000000 		.4byte	0
+ 1188 008f 00000000 		.4byte	0
+ 1189              		.section	.debug_aranges,"",%progbits
+ 1190 0000 2C000000 		.4byte	0x2c
+ 1191 0004 0200     		.2byte	0x2
+ 1192 0006 00000000 		.4byte	.Ldebug_info0
+ 1193 000a 04       		.byte	0x4
+ 1194 000b 00       		.byte	0
+ 1195 000c 0000     		.2byte	0
+ 1196 000e 0000     		.2byte	0
+ 1197 0010 00000000 		.4byte	.LFB64
+ 1198 0014 18000000 		.4byte	.LFE64-.LFB64
+ 1199 0018 00000000 		.4byte	.LFB65
+ 1200 001c 2E000000 		.4byte	.LFE65-.LFB65
+ 1201 0020 00000000 		.4byte	.LFB66
+ 1202 0024 E0000000 		.4byte	.LFE66-.LFB66
+ 1203 0028 00000000 		.4byte	0
+ 1204 002c 00000000 		.4byte	0
+ 1205              		.section	.debug_ranges,"",%progbits
+ 1206              	.Ldebug_ranges0:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 25
+
+
+ 1207 0000 00000000 		.4byte	.LFB64
+ 1208 0004 18000000 		.4byte	.LFE64
+ 1209 0008 00000000 		.4byte	.LFB65
+ 1210 000c 2E000000 		.4byte	.LFE65
+ 1211 0010 00000000 		.4byte	.LFB66
+ 1212 0014 E0000000 		.4byte	.LFE66
+ 1213 0018 00000000 		.4byte	0
+ 1214 001c 00000000 		.4byte	0
+ 1215              		.section	.debug_line,"",%progbits
+ 1216              	.Ldebug_line0:
+ 1217 0000 60020000 		.section	.debug_str,"MS",%progbits,1
+ 1217      0200A701 
+ 1217      00000201 
+ 1217      FB0E0D00 
+ 1217      01010101 
+ 1218              	.LASF25:
+ 1219 0000 4B45595F 		.ascii	"KEY_NAME\000"
+ 1219      4E414D45 
+ 1219      00
+ 1220              	.LASF32:
+ 1221 0009 4B45595F 		.ascii	"KEY_PUSH_LONG\000"
+ 1221      50555348 
+ 1221      5F4C4F4E 
+ 1221      4700
+ 1222              	.LASF29:
+ 1223 0017 4B45595F 		.ascii	"KEY_CONFIRM\000"
+ 1223      434F4E46 
+ 1223      49524D00 
+ 1224              	.LASF21:
+ 1225 0023 5469636B 		.ascii	"TickType_t\000"
+ 1225      54797065 
+ 1225      5F7400
+ 1226              	.LASF5:
+ 1227 002e 5F5F696E 		.ascii	"__int32_t\000"
+ 1227      7433325F 
+ 1227      7400
+ 1228              	.LASF4:
+ 1229 0038 6C6F6E67 		.ascii	"long int\000"
+ 1229      20696E74 
+ 1229      00
+ 1230              	.LASF3:
+ 1231 0041 73686F72 		.ascii	"short unsigned int\000"
+ 1231      7420756E 
+ 1231      7369676E 
+ 1231      65642069 
+ 1231      6E7400
+ 1232              	.LASF22:
+ 1233 0054 51756575 		.ascii	"QueueHandle_t\000"
+ 1233      6548616E 
+ 1233      646C655F 
+ 1233      7400
+ 1234              	.LASF23:
+ 1235 0062 4B45595F 		.ascii	"KEY_0\000"
+ 1235      3000
+ 1236              	.LASF24:
+ 1237 0068 4B45595F 		.ascii	"KEY_1\000"
+ 1237      3100
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 26
+
+
+ 1238              	.LASF16:
+ 1239 006e 646F7562 		.ascii	"double\000"
+ 1239      6C6500
+ 1240              	.LASF33:
+ 1241 0075 73746174 		.ascii	"status\000"
+ 1241      757300
+ 1242              	.LASF35:
+ 1243 007c 5461736B 		.ascii	"Task_KEY\000"
+ 1243      5F4B4559 
+ 1243      00
+ 1244              	.LASF26:
+ 1245 0085 4B45595F 		.ascii	"KEY_DETECT_STATUS\000"
+ 1245      44455445 
+ 1245      43545F53 
+ 1245      54415455 
+ 1245      5300
+ 1246              	.LASF15:
+ 1247 0097 666C6F61 		.ascii	"float\000"
+ 1247      7400
+ 1248              	.LASF49:
+ 1249 009d 496E6974 		.ascii	"Init_Key\000"
+ 1249      5F4B6579 
+ 1249      00
+ 1250              	.LASF1:
+ 1251 00a6 756E7369 		.ascii	"unsigned char\000"
+ 1251      676E6564 
+ 1251      20636861 
+ 1251      7200
+ 1252              	.LASF46:
+ 1253 00b4 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 1253      43313120 
+ 1253      352E342E 
+ 1253      31203230 
+ 1253      31363036 
+ 1254 00e7 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 1254      20726576 
+ 1254      6973696F 
+ 1254      6E203233 
+ 1254      37373135 
+ 1255 011a 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 1255      66756E63 
+ 1255      74696F6E 
+ 1255      2D736563 
+ 1255      74696F6E 
+ 1256              	.LASF6:
+ 1257 0142 5F5F7569 		.ascii	"__uint32_t\000"
+ 1257      6E743332 
+ 1257      5F7400
+ 1258              	.LASF7:
+ 1259 014d 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1259      20756E73 
+ 1259      69676E65 
+ 1259      6420696E 
+ 1259      7400
+ 1260              	.LASF39:
+ 1261 015f 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 1261      52784275 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 27
+
+
+ 1261      66666572 
+ 1261      00
+ 1262              	.LASF38:
+ 1263 016c 716D7367 		.ascii	"qmsg\000"
+ 1263      00
+ 1264              	.LASF40:
+ 1265 0171 78517565 		.ascii	"xQueue_KEY\000"
+ 1265      75655F4B 
+ 1265      455900
+ 1266              	.LASF27:
+ 1267 017c 4B45595F 		.ascii	"KEY_IDLE\000"
+ 1267      49444C45 
+ 1267      00
+ 1268              	.LASF2:
+ 1269 0185 73686F72 		.ascii	"short int\000"
+ 1269      7420696E 
+ 1269      7400
+ 1270              	.LASF48:
+ 1271 018f 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 1271      536F435F 
+ 1271      43726561 
+ 1271      746F725C 
+ 1271      43593843 
+ 1272 01bf 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 1272      65636569 
+ 1272      7665725C 
+ 1272      43593843 
+ 1272      4B49542D 
+ 1273              	.LASF14:
+ 1274 01f1 75696E74 		.ascii	"uint32\000"
+ 1274      333200
+ 1275              	.LASF30:
+ 1276 01f8 4B45595F 		.ascii	"KEY_PUSH\000"
+ 1276      50555348 
+ 1276      00
+ 1277              	.LASF10:
+ 1278 0201 756E7369 		.ascii	"unsigned int\000"
+ 1278      676E6564 
+ 1278      20696E74 
+ 1278      00
+ 1279              	.LASF42:
+ 1280 020e 50495F4B 		.ascii	"PI_KEY_0_Read\000"
+ 1280      45595F30 
+ 1280      5F526561 
+ 1280      6400
+ 1281              	.LASF28:
+ 1282 021c 4B45595F 		.ascii	"KEY_DETECT\000"
+ 1282      44455445 
+ 1282      435400
+ 1283              	.LASF9:
+ 1284 0227 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1284      206C6F6E 
+ 1284      6720756E 
+ 1284      7369676E 
+ 1284      65642069 
+ 1285              	.LASF11:
+ 1286 023e 696E7433 		.ascii	"int32_t\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 28
+
+
+ 1286      325F7400 
+ 1287              	.LASF19:
+ 1288 0246 73697A65 		.ascii	"sizetype\000"
+ 1288      74797065 
+ 1288      00
+ 1289              	.LASF50:
+ 1290 024f 7844656C 		.ascii	"xDelay\000"
+ 1290      617900
+ 1291              	.LASF8:
+ 1292 0256 6C6F6E67 		.ascii	"long long int\000"
+ 1292      206C6F6E 
+ 1292      6720696E 
+ 1292      7400
+ 1293              	.LASF17:
+ 1294 0264 63686172 		.ascii	"char\000"
+ 1294      00
+ 1295              	.LASF36:
+ 1296 0269 70765061 		.ascii	"pvParameters\000"
+ 1296      72616D65 
+ 1296      74657273 
+ 1296      00
+ 1297              	.LASF34:
+ 1298 0276 43686563 		.ascii	"Check_Key_Status\000"
+ 1298      6B5F4B65 
+ 1298      795F5374 
+ 1298      61747573 
+ 1298      00
+ 1299              	.LASF47:
+ 1300 0287 2E2E5C41 		.ascii	"..\\API\\key.c\000"
+ 1300      50495C6B 
+ 1300      65792E63 
+ 1300      00
+ 1301              	.LASF44:
+ 1302 0294 78517565 		.ascii	"xQueueGenericSend\000"
+ 1302      75654765 
+ 1302      6E657269 
+ 1302      6353656E 
+ 1302      6400
+ 1303              	.LASF13:
+ 1304 02a6 75696E74 		.ascii	"uint8\000"
+ 1304      3800
+ 1305              	.LASF37:
+ 1306 02ac 70757368 		.ascii	"push_count\000"
+ 1306      5F636F75 
+ 1306      6E7400
+ 1307              	.LASF12:
+ 1308 02b7 75696E74 		.ascii	"uint32_t\000"
+ 1308      33325F74 
+ 1308      00
+ 1309              	.LASF41:
+ 1310 02c0 674B6579 		.ascii	"gKey\000"
+ 1310      00
+ 1311              	.LASF45:
+ 1312 02c5 76546173 		.ascii	"vTaskDelay\000"
+ 1312      6B44656C 
+ 1312      617900
+ 1313              	.LASF18:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccUhpC1I.s 			page 29
+
+
+ 1314 02d0 6C6F6E67 		.ascii	"long double\000"
+ 1314      20646F75 
+ 1314      626C6500 
+ 1315              	.LASF0:
+ 1316 02dc 7369676E 		.ascii	"signed char\000"
+ 1316      65642063 
+ 1316      68617200 
+ 1317              	.LASF43:
+ 1318 02e8 50495F4B 		.ascii	"PI_KEY_1_Read\000"
+ 1318      45595F31 
+ 1318      5F526561 
+ 1318      6400
+ 1319              	.LASF20:
+ 1320 02f6 42617365 		.ascii	"BaseType_t\000"
+ 1320      54797065 
+ 1320      5F7400
+ 1321              	.LASF31:
+ 1322 0301 4B45595F 		.ascii	"KEY_PUSH_COUNT\000"
+ 1322      50555348 
+ 1322      5F434F55 
+ 1322      4E5400
+ 1323              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

@@ -1,0 +1,1222 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"rot.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.Init_ROT,"ax",%progbits
+  20              		.align	2
+  21              		.global	Init_ROT
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	Init_ROT, %function
+  25              	Init_ROT:
+  26              	.LFB64:
+  27              		.file 1 "..\\API\\rot.c"
+   1:..\API/rot.c  **** /* ========================================
+   2:..\API/rot.c  ****  *
+   3:..\API/rot.c  ****  * Copyright YOUR COMPANY, THE YEAR
+   4:..\API/rot.c  ****  * All Rights Reserved
+   5:..\API/rot.c  ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:..\API/rot.c  ****  *
+   7:..\API/rot.c  ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:..\API/rot.c  ****  * WHICH IS THE PROPERTY OF your company.
+   9:..\API/rot.c  ****  *
+  10:..\API/rot.c  ****  * ========================================
+  11:..\API/rot.c  ****  */
+  12:..\API/rot.c  **** 
+  13:..\API/rot.c  **** /* API */
+  14:..\API/rot.c  **** #include "rot.h"
+  15:..\API/rot.c  **** 
+  16:..\API/rot.c  **** /* Definitions of FreeRTOS related Resource */
+  17:..\API/rot.c  **** extern xQueueHandle xQueue_ROT;
+  18:..\API/rot.c  **** 
+  19:..\API/rot.c  **** /***********************
+  20:..\API/rot.c  ****  *  Initialize ROT     *
+  21:..\API/rot.c  ****  ***********************/
+  22:..\API/rot.c  **** void Init_ROT(void)
+  23:..\API/rot.c  **** {
+  28              		.loc 1 23 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  33 0000 7047     		bx	lr
+  34              		.cfi_endproc
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 2
+
+
+  35              	.LFE64:
+  36              		.size	Init_ROT, .-Init_ROT
+  37 0002 00BF     		.section	.text.Task_ROT,"ax",%progbits
+  38              		.align	2
+  39              		.global	Task_ROT
+  40              		.thumb
+  41              		.thumb_func
+  42              		.type	Task_ROT, %function
+  43              	Task_ROT:
+  44              	.LFB65:
+  24:..\API/rot.c  ****     /* initialize the rotary encoder */    
+  25:..\API/rot.c  **** }
+  26:..\API/rot.c  **** 
+  27:..\API/rot.c  **** 
+  28:..\API/rot.c  **** #define QUEUE_INTERVAL 50
+  29:..\API/rot.c  **** 
+  30:..\API/rot.c  **** /***********************
+  31:..\API/rot.c  ****  *  Task ROT           *
+  32:..\API/rot.c  ****  ***********************/
+  33:..\API/rot.c  **** void Task_ROT(void *pvParameters)
+  34:..\API/rot.c  **** {
+  45              		.loc 1 34 0
+  46              		.cfi_startproc
+  47              		@ args = 0, pretend = 0, frame = 8
+  48              		@ frame_needed = 0, uses_anonymous_args = 0
+  49              	.LVL0:
+  50              		.loc 1 34 0
+  51 0000 70B5     		push	{r4, r5, r6, lr}
+  52              		.cfi_def_cfa_offset 16
+  53              		.cfi_offset 4, -16
+  54              		.cfi_offset 5, -12
+  55              		.cfi_offset 6, -8
+  56              		.cfi_offset 14, -4
+  57 0002 82B0     		sub	sp, sp, #8
+  58              		.cfi_def_cfa_offset 24
+  59              	.LVL1:
+  35:..\API/rot.c  ****     /* Block for 3ms */
+  36:..\API/rot.c  ****     const portTickType xDelay = 3 / portTICK_RATE_MS;
+  37:..\API/rot.c  **** 
+  38:..\API/rot.c  ****     uint8 new = 0;  /* current state of ROT */
+  39:..\API/rot.c  ****     uint8 prev = 0; /* previous state of ROT */
+  40:..\API/rot.c  ****     int8 count = 0; /* click count */
+  60              		.loc 1 40 0
+  61 0004 0026     		movs	r6, #0
+  62 0006 8DF80760 		strb	r6, [sp, #7]
+  63              	.LVL2:
+  41:..\API/rot.c  ****     uint16 cntTask = 0;   /* task count */
+  64              		.loc 1 41 0
+  65 000a 3546     		mov	r5, r6
+  66              	.LVL3:
+  67              	.L6:
+  68              	.LBB2:
+  42:..\API/rot.c  **** 
+  43:..\API/rot.c  ****     /* Task Loop */
+  44:..\API/rot.c  ****     while(1)
+  45:..\API/rot.c  ****     {
+  46:..\API/rot.c  ****         /*****************************************
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 3
+
+
+  47:..\API/rot.c  **** 		*	Rotary Encoder
+  48:..\API/rot.c  **** 		******************************************/
+  49:..\API/rot.c  **** 
+  50:..\API/rot.c  ****         /* click detect */
+  51:..\API/rot.c  ****         new = (ROT_A_Read() << 1) + ROT_B_Read();
+  69              		.loc 1 51 0
+  70 000c FFF7FEFF 		bl	ROT_A_Read
+  71              	.LVL4:
+  72 0010 0446     		mov	r4, r0
+  73 0012 FFF7FEFF 		bl	ROT_B_Read
+  74              	.LVL5:
+  75 0016 00EB4400 		add	r0, r0, r4, lsl #1
+  76 001a C0B2     		uxtb	r0, r0
+  77              	.LVL6:
+  52:..\API/rot.c  ****         if (new != prev)
+  78              		.loc 1 52 0
+  79 001c 8642     		cmp	r6, r0
+  80 001e 16D0     		beq	.L3
+  53:..\API/rot.c  ****         {
+  54:..\API/rot.c  ****             /* click CW ? */
+  55:..\API/rot.c  ****             if ((new == 0x03u) && (prev == 0x02u))
+  81              		.loc 1 55 0
+  82 0020 0328     		cmp	r0, #3
+  83 0022 06D1     		bne	.L4
+  84              		.loc 1 55 0 is_stmt 0 discriminator 1
+  85 0024 022E     		cmp	r6, #2
+  86 0026 04D1     		bne	.L4
+  56:..\API/rot.c  ****                 count++;
+  87              		.loc 1 56 0 is_stmt 1
+  88 0028 9DF80730 		ldrb	r3, [sp, #7]	@ zero_extendqisi2
+  89 002c 0133     		adds	r3, r3, #1
+  90 002e 8DF80730 		strb	r3, [sp, #7]
+  91              	.L4:
+  57:..\API/rot.c  ****             /* click CCW ? */
+  58:..\API/rot.c  ****             if ((new == 0x03u) && (prev == 0x01u))
+  92              		.loc 1 58 0
+  93 0032 0328     		cmp	r0, #3
+  94 0034 08D1     		bne	.L7
+  95              		.loc 1 58 0 is_stmt 0 discriminator 1
+  96 0036 012E     		cmp	r6, #1
+  97 0038 08D1     		bne	.L8
+  59:..\API/rot.c  ****                 count--;
+  98              		.loc 1 59 0 is_stmt 1
+  99 003a 9DF80730 		ldrb	r3, [sp, #7]	@ zero_extendqisi2
+ 100 003e 013B     		subs	r3, r3, #1
+ 101 0040 8DF80730 		strb	r3, [sp, #7]
+  60:..\API/rot.c  ****             /* update the ROT state */
+  61:..\API/rot.c  ****             prev = new;
+ 102              		.loc 1 61 0
+ 103 0044 0646     		mov	r6, r0
+ 104              	.LVL7:
+ 105 0046 02E0     		b	.L3
+ 106              	.LVL8:
+ 107              	.L7:
+ 108 0048 0646     		mov	r6, r0
+ 109              	.LVL9:
+ 110 004a 00E0     		b	.L3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 4
+
+
+ 111              	.LVL10:
+ 112              	.L8:
+ 113 004c 0646     		mov	r6, r0
+ 114              	.LVL11:
+ 115              	.L3:
+  62:..\API/rot.c  ****         }
+  63:..\API/rot.c  **** 
+  64:..\API/rot.c  ****         cntTask++;
+ 116              		.loc 1 64 0
+ 117 004e 0135     		adds	r5, r5, #1
+ 118              	.LVL12:
+ 119 0050 ADB2     		uxth	r5, r5
+ 120              	.LVL13:
+  65:..\API/rot.c  ****         if (cntTask >= QUEUE_INTERVAL)
+ 121              		.loc 1 65 0
+ 122 0052 312D     		cmp	r5, #49
+ 123 0054 0FD9     		bls	.L5
+  66:..\API/rot.c  ****         {
+  67:..\API/rot.c  ****             if (count != 0)
+ 124              		.loc 1 67 0
+ 125 0056 9DF90730 		ldrsb	r3, [sp, #7]
+ 126 005a 5BB1     		cbz	r3, .L9
+  68:..\API/rot.c  ****             {
+  69:..\API/rot.c  ****                 xQueueSend(xQueue_ROT, &count, 0);
+ 127              		.loc 1 69 0
+ 128 005c 0023     		movs	r3, #0
+ 129 005e 1A46     		mov	r2, r3
+ 130 0060 0DF10701 		add	r1, sp, #7
+ 131 0064 0648     		ldr	r0, .L11
+ 132              	.LVL14:
+ 133 0066 0068     		ldr	r0, [r0]
+ 134 0068 FFF7FEFF 		bl	xQueueGenericSend
+ 135              	.LVL15:
+  70:..\API/rot.c  ****                 count = 0;
+ 136              		.loc 1 70 0
+ 137 006c 0025     		movs	r5, #0
+ 138              	.LVL16:
+ 139 006e 8DF80750 		strb	r5, [sp, #7]
+ 140 0072 00E0     		b	.L5
+ 141              	.LVL17:
+ 142              	.L9:
+  71:..\API/rot.c  ****             }
+  72:..\API/rot.c  ****             cntTask = 0;
+ 143              		.loc 1 72 0
+ 144 0074 0025     		movs	r5, #0
+ 145              	.LVL18:
+ 146              	.L5:
+  73:..\API/rot.c  ****         }
+  74:..\API/rot.c  **** 
+  75:..\API/rot.c  ****         /* Blocking Task */
+  76:..\API/rot.c  ****         vTaskDelay(xDelay);
+ 147              		.loc 1 76 0
+ 148 0076 0320     		movs	r0, #3
+ 149 0078 FFF7FEFF 		bl	vTaskDelay
+ 150              	.LVL19:
+ 151              	.LBE2:
+  77:..\API/rot.c  ****     }
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 5
+
+
+ 152              		.loc 1 77 0
+ 153 007c C6E7     		b	.L6
+ 154              	.L12:
+ 155 007e 00BF     		.align	2
+ 156              	.L11:
+ 157 0080 00000000 		.word	xQueue_ROT
+ 158              		.cfi_endproc
+ 159              	.LFE65:
+ 160              		.size	Task_ROT, .-Task_ROT
+ 161              		.text
+ 162              	.Letext0:
+ 163              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.1\\psoc creator\\import\\gnu\\arm\\5.4.
+ 164              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.1\\psoc creator\\import\\gnu\\arm\\5.4.
+ 165              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 166              		.file 5 "..\\FreeRTOS/portmacro.h"
+ 167              		.file 6 "..\\FreeRTOS/queue.h"
+ 168              		.file 7 "Generated_Source\\PSoC5/core_cm3.h"
+ 169              		.file 8 "..\\FreeRTOS/task.h"
+ 170              		.section	.debug_info,"",%progbits
+ 171              	.Ldebug_info0:
+ 172 0000 35020000 		.4byte	0x235
+ 173 0004 0400     		.2byte	0x4
+ 174 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 175 000a 04       		.byte	0x4
+ 176 000b 01       		.uleb128 0x1
+ 177 000c 4A000000 		.4byte	.LASF34
+ 178 0010 0C       		.byte	0xc
+ 179 0011 62020000 		.4byte	.LASF35
+ 180 0015 31010000 		.4byte	.LASF36
+ 181 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 182 001d 00000000 		.4byte	0
+ 183 0021 00000000 		.4byte	.Ldebug_line0
+ 184 0025 02       		.uleb128 0x2
+ 185 0026 01       		.byte	0x1
+ 186 0027 06       		.byte	0x6
+ 187 0028 77020000 		.4byte	.LASF0
+ 188 002c 02       		.uleb128 0x2
+ 189 002d 01       		.byte	0x1
+ 190 002e 08       		.byte	0x8
+ 191 002f 3C000000 		.4byte	.LASF1
+ 192 0033 02       		.uleb128 0x2
+ 193 0034 02       		.byte	0x2
+ 194 0035 05       		.byte	0x5
+ 195 0036 27010000 		.4byte	.LASF2
+ 196 003a 02       		.uleb128 0x2
+ 197 003b 02       		.byte	0x2
+ 198 003c 07       		.byte	0x7
+ 199 003d F5000000 		.4byte	.LASF3
+ 200 0041 03       		.uleb128 0x3
+ 201 0042 16000000 		.4byte	.LASF5
+ 202 0046 02       		.byte	0x2
+ 203 0047 3F       		.byte	0x3f
+ 204 0048 4C000000 		.4byte	0x4c
+ 205 004c 02       		.uleb128 0x2
+ 206 004d 04       		.byte	0x4
+ 207 004e 05       		.byte	0x5
+ 208 004f 4E020000 		.4byte	.LASF4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 6
+
+
+ 209 0053 03       		.uleb128 0x3
+ 210 0054 D8000000 		.4byte	.LASF6
+ 211 0058 02       		.byte	0x2
+ 212 0059 41       		.byte	0x41
+ 213 005a 5E000000 		.4byte	0x5e
+ 214 005e 02       		.uleb128 0x2
+ 215 005f 04       		.byte	0x4
+ 216 0060 07       		.byte	0x7
+ 217 0061 E3000000 		.4byte	.LASF7
+ 218 0065 02       		.uleb128 0x2
+ 219 0066 08       		.byte	0x8
+ 220 0067 05       		.byte	0x5
+ 221 0068 05020000 		.4byte	.LASF8
+ 222 006c 02       		.uleb128 0x2
+ 223 006d 08       		.byte	0x8
+ 224 006e 07       		.byte	0x7
+ 225 006f C7010000 		.4byte	.LASF9
+ 226 0073 04       		.uleb128 0x4
+ 227 0074 04       		.byte	0x4
+ 228 0075 05       		.byte	0x5
+ 229 0076 696E7400 		.ascii	"int\000"
+ 230 007a 02       		.uleb128 0x2
+ 231 007b 04       		.byte	0x4
+ 232 007c 07       		.byte	0x7
+ 233 007d BA010000 		.4byte	.LASF10
+ 234 0081 03       		.uleb128 0x3
+ 235 0082 2E000000 		.4byte	.LASF11
+ 236 0086 03       		.byte	0x3
+ 237 0087 2C       		.byte	0x2c
+ 238 0088 41000000 		.4byte	0x41
+ 239 008c 03       		.uleb128 0x3
+ 240 008d 45020000 		.4byte	.LASF12
+ 241 0091 03       		.byte	0x3
+ 242 0092 30       		.byte	0x30
+ 243 0093 53000000 		.4byte	0x53
+ 244 0097 05       		.uleb128 0x5
+ 245 0098 3F020000 		.4byte	.LASF13
+ 246 009c 04       		.byte	0x4
+ 247 009d 3801     		.2byte	0x138
+ 248 009f 2C000000 		.4byte	0x2c
+ 249 00a3 05       		.uleb128 0x5
+ 250 00a4 93010000 		.4byte	.LASF14
+ 251 00a8 04       		.byte	0x4
+ 252 00a9 3901     		.2byte	0x139
+ 253 00ab 3A000000 		.4byte	0x3a
+ 254 00af 05       		.uleb128 0x5
+ 255 00b0 9A010000 		.4byte	.LASF15
+ 256 00b4 04       		.byte	0x4
+ 257 00b5 3B01     		.2byte	0x13b
+ 258 00b7 25000000 		.4byte	0x25
+ 259 00bb 02       		.uleb128 0x2
+ 260 00bc 04       		.byte	0x4
+ 261 00bd 04       		.byte	0x4
+ 262 00be 36000000 		.4byte	.LASF16
+ 263 00c2 02       		.uleb128 0x2
+ 264 00c3 08       		.byte	0x8
+ 265 00c4 04       		.byte	0x4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 7
+
+
+ 266 00c5 20010000 		.4byte	.LASF17
+ 267 00c9 02       		.uleb128 0x2
+ 268 00ca 01       		.byte	0x1
+ 269 00cb 08       		.byte	0x8
+ 270 00cc 13020000 		.4byte	.LASF18
+ 271 00d0 02       		.uleb128 0x2
+ 272 00d1 08       		.byte	0x8
+ 273 00d2 04       		.byte	0x4
+ 274 00d3 E9010000 		.4byte	.LASF19
+ 275 00d7 02       		.uleb128 0x2
+ 276 00d8 04       		.byte	0x4
+ 277 00d9 07       		.byte	0x7
+ 278 00da F5010000 		.4byte	.LASF20
+ 279 00de 06       		.uleb128 0x6
+ 280 00df 04       		.byte	0x4
+ 281 00e0 03       		.uleb128 0x3
+ 282 00e1 2B020000 		.4byte	.LASF21
+ 283 00e5 05       		.byte	0x5
+ 284 00e6 62       		.byte	0x62
+ 285 00e7 4C000000 		.4byte	0x4c
+ 286 00eb 03       		.uleb128 0x3
+ 287 00ec 00000000 		.4byte	.LASF22
+ 288 00f0 05       		.byte	0x5
+ 289 00f1 69       		.byte	0x69
+ 290 00f2 8C000000 		.4byte	0x8c
+ 291 00f6 03       		.uleb128 0x3
+ 292 00f7 20000000 		.4byte	.LASF23
+ 293 00fb 06       		.byte	0x6
+ 294 00fc 58       		.byte	0x58
+ 295 00fd DE000000 		.4byte	0xde
+ 296 0101 07       		.uleb128 0x7
+ 297 0102 36020000 		.4byte	.LASF37
+ 298 0106 01       		.byte	0x1
+ 299 0107 16       		.byte	0x16
+ 300 0108 00000000 		.4byte	.LFB64
+ 301 010c 02000000 		.4byte	.LFE64-.LFB64
+ 302 0110 01       		.uleb128 0x1
+ 303 0111 9C       		.byte	0x9c
+ 304 0112 08       		.uleb128 0x8
+ 305 0113 9F010000 		.4byte	.LASF38
+ 306 0117 01       		.byte	0x1
+ 307 0118 21       		.byte	0x21
+ 308 0119 00000000 		.4byte	.LFB65
+ 309 011d 84000000 		.4byte	.LFE65-.LFB65
+ 310 0121 01       		.uleb128 0x1
+ 311 0122 9C       		.byte	0x9c
+ 312 0123 E9010000 		.4byte	0x1e9
+ 313 0127 09       		.uleb128 0x9
+ 314 0128 18020000 		.4byte	.LASF39
+ 315 012c 01       		.byte	0x1
+ 316 012d 21       		.byte	0x21
+ 317 012e DE000000 		.4byte	0xde
+ 318 0132 00000000 		.4byte	.LLST0
+ 319 0136 0A       		.uleb128 0xa
+ 320 0137 FE010000 		.4byte	.LASF24
+ 321 013b 01       		.byte	0x1
+ 322 013c 24       		.byte	0x24
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 8
+
+
+ 323 013d E9010000 		.4byte	0x1e9
+ 324 0141 03       		.byte	0x3
+ 325 0142 0B       		.uleb128 0xb
+ 326 0143 6E657700 		.ascii	"new\000"
+ 327 0147 01       		.byte	0x1
+ 328 0148 26       		.byte	0x26
+ 329 0149 97000000 		.4byte	0x97
+ 330 014d 21000000 		.4byte	.LLST1
+ 331 0151 0C       		.uleb128 0xc
+ 332 0152 83020000 		.4byte	.LASF25
+ 333 0156 01       		.byte	0x1
+ 334 0157 27       		.byte	0x27
+ 335 0158 97000000 		.4byte	0x97
+ 336 015c 4B000000 		.4byte	.LLST2
+ 337 0160 0D       		.uleb128 0xd
+ 338 0161 25020000 		.4byte	.LASF26
+ 339 0165 01       		.byte	0x1
+ 340 0166 28       		.byte	0x28
+ 341 0167 AF000000 		.4byte	0xaf
+ 342 016b 02       		.uleb128 0x2
+ 343 016c 91       		.byte	0x91
+ 344 016d 6F       		.sleb128 -17
+ 345 016e 0C       		.uleb128 0xc
+ 346 016f 6F020000 		.4byte	.LASF27
+ 347 0173 01       		.byte	0x1
+ 348 0174 29       		.byte	0x29
+ 349 0175 A3000000 		.4byte	0xa3
+ 350 0179 80000000 		.4byte	.LLST3
+ 351 017d 0E       		.uleb128 0xe
+ 352 017e 0C000000 		.4byte	.LBB2
+ 353 0182 70000000 		.4byte	.LBE2-.LBB2
+ 354 0186 0F       		.uleb128 0xf
+ 355 0187 15010000 		.4byte	.LASF28
+ 356 018b 01       		.byte	0x1
+ 357 018c 33       		.byte	0x33
+ 358 018d 73000000 		.4byte	0x73
+ 359 0191 97010000 		.4byte	0x197
+ 360 0195 10       		.uleb128 0x10
+ 361 0196 00       		.byte	0
+ 362 0197 0F       		.uleb128 0xf
+ 363 0198 DE010000 		.4byte	.LASF29
+ 364 019c 01       		.byte	0x1
+ 365 019d 33       		.byte	0x33
+ 366 019e 73000000 		.4byte	0x73
+ 367 01a2 A8010000 		.4byte	0x1a8
+ 368 01a6 10       		.uleb128 0x10
+ 369 01a7 00       		.byte	0
+ 370 01a8 11       		.uleb128 0x11
+ 371 01a9 10000000 		.4byte	.LVL4
+ 372 01ad 0A020000 		.4byte	0x20a
+ 373 01b1 11       		.uleb128 0x11
+ 374 01b2 16000000 		.4byte	.LVL5
+ 375 01b6 15020000 		.4byte	0x215
+ 376 01ba 12       		.uleb128 0x12
+ 377 01bb 6C000000 		.4byte	.LVL15
+ 378 01bf 20020000 		.4byte	0x220
+ 379 01c3 D8010000 		.4byte	0x1d8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 9
+
+
+ 380 01c7 13       		.uleb128 0x13
+ 381 01c8 01       		.uleb128 0x1
+ 382 01c9 51       		.byte	0x51
+ 383 01ca 02       		.uleb128 0x2
+ 384 01cb 91       		.byte	0x91
+ 385 01cc 6F       		.sleb128 -17
+ 386 01cd 13       		.uleb128 0x13
+ 387 01ce 01       		.uleb128 0x1
+ 388 01cf 52       		.byte	0x52
+ 389 01d0 01       		.uleb128 0x1
+ 390 01d1 30       		.byte	0x30
+ 391 01d2 13       		.uleb128 0x13
+ 392 01d3 01       		.uleb128 0x1
+ 393 01d4 53       		.byte	0x53
+ 394 01d5 01       		.uleb128 0x1
+ 395 01d6 30       		.byte	0x30
+ 396 01d7 00       		.byte	0
+ 397 01d8 14       		.uleb128 0x14
+ 398 01d9 7C000000 		.4byte	.LVL19
+ 399 01dd 2C020000 		.4byte	0x22c
+ 400 01e1 13       		.uleb128 0x13
+ 401 01e2 01       		.uleb128 0x1
+ 402 01e3 50       		.byte	0x50
+ 403 01e4 01       		.uleb128 0x1
+ 404 01e5 33       		.byte	0x33
+ 405 01e6 00       		.byte	0
+ 406 01e7 00       		.byte	0
+ 407 01e8 00       		.byte	0
+ 408 01e9 15       		.uleb128 0x15
+ 409 01ea EB000000 		.4byte	0xeb
+ 410 01ee 16       		.uleb128 0x16
+ 411 01ef 08010000 		.4byte	.LASF30
+ 412 01f3 07       		.byte	0x7
+ 413 01f4 5506     		.2byte	0x655
+ 414 01f6 FA010000 		.4byte	0x1fa
+ 415 01fa 17       		.uleb128 0x17
+ 416 01fb 81000000 		.4byte	0x81
+ 417 01ff 18       		.uleb128 0x18
+ 418 0200 0B000000 		.4byte	.LASF31
+ 419 0204 01       		.byte	0x1
+ 420 0205 11       		.byte	0x11
+ 421 0206 F6000000 		.4byte	0xf6
+ 422 020a 19       		.uleb128 0x19
+ 423 020b 15010000 		.4byte	.LASF28
+ 424 020f 15010000 		.4byte	.LASF28
+ 425 0213 01       		.byte	0x1
+ 426 0214 33       		.byte	0x33
+ 427 0215 19       		.uleb128 0x19
+ 428 0216 DE010000 		.4byte	.LASF29
+ 429 021a DE010000 		.4byte	.LASF29
+ 430 021e 01       		.byte	0x1
+ 431 021f 33       		.byte	0x33
+ 432 0220 1A       		.uleb128 0x1a
+ 433 0221 A8010000 		.4byte	.LASF32
+ 434 0225 A8010000 		.4byte	.LASF32
+ 435 0229 06       		.byte	0x6
+ 436 022a 5002     		.2byte	0x250
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 10
+
+
+ 437 022c 1A       		.uleb128 0x1a
+ 438 022d 57020000 		.4byte	.LASF33
+ 439 0231 57020000 		.4byte	.LASF33
+ 440 0235 08       		.byte	0x8
+ 441 0236 2B02     		.2byte	0x22b
+ 442 0238 00       		.byte	0
+ 443              		.section	.debug_abbrev,"",%progbits
+ 444              	.Ldebug_abbrev0:
+ 445 0000 01       		.uleb128 0x1
+ 446 0001 11       		.uleb128 0x11
+ 447 0002 01       		.byte	0x1
+ 448 0003 25       		.uleb128 0x25
+ 449 0004 0E       		.uleb128 0xe
+ 450 0005 13       		.uleb128 0x13
+ 451 0006 0B       		.uleb128 0xb
+ 452 0007 03       		.uleb128 0x3
+ 453 0008 0E       		.uleb128 0xe
+ 454 0009 1B       		.uleb128 0x1b
+ 455 000a 0E       		.uleb128 0xe
+ 456 000b 55       		.uleb128 0x55
+ 457 000c 17       		.uleb128 0x17
+ 458 000d 11       		.uleb128 0x11
+ 459 000e 01       		.uleb128 0x1
+ 460 000f 10       		.uleb128 0x10
+ 461 0010 17       		.uleb128 0x17
+ 462 0011 00       		.byte	0
+ 463 0012 00       		.byte	0
+ 464 0013 02       		.uleb128 0x2
+ 465 0014 24       		.uleb128 0x24
+ 466 0015 00       		.byte	0
+ 467 0016 0B       		.uleb128 0xb
+ 468 0017 0B       		.uleb128 0xb
+ 469 0018 3E       		.uleb128 0x3e
+ 470 0019 0B       		.uleb128 0xb
+ 471 001a 03       		.uleb128 0x3
+ 472 001b 0E       		.uleb128 0xe
+ 473 001c 00       		.byte	0
+ 474 001d 00       		.byte	0
+ 475 001e 03       		.uleb128 0x3
+ 476 001f 16       		.uleb128 0x16
+ 477 0020 00       		.byte	0
+ 478 0021 03       		.uleb128 0x3
+ 479 0022 0E       		.uleb128 0xe
+ 480 0023 3A       		.uleb128 0x3a
+ 481 0024 0B       		.uleb128 0xb
+ 482 0025 3B       		.uleb128 0x3b
+ 483 0026 0B       		.uleb128 0xb
+ 484 0027 49       		.uleb128 0x49
+ 485 0028 13       		.uleb128 0x13
+ 486 0029 00       		.byte	0
+ 487 002a 00       		.byte	0
+ 488 002b 04       		.uleb128 0x4
+ 489 002c 24       		.uleb128 0x24
+ 490 002d 00       		.byte	0
+ 491 002e 0B       		.uleb128 0xb
+ 492 002f 0B       		.uleb128 0xb
+ 493 0030 3E       		.uleb128 0x3e
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 11
+
+
+ 494 0031 0B       		.uleb128 0xb
+ 495 0032 03       		.uleb128 0x3
+ 496 0033 08       		.uleb128 0x8
+ 497 0034 00       		.byte	0
+ 498 0035 00       		.byte	0
+ 499 0036 05       		.uleb128 0x5
+ 500 0037 16       		.uleb128 0x16
+ 501 0038 00       		.byte	0
+ 502 0039 03       		.uleb128 0x3
+ 503 003a 0E       		.uleb128 0xe
+ 504 003b 3A       		.uleb128 0x3a
+ 505 003c 0B       		.uleb128 0xb
+ 506 003d 3B       		.uleb128 0x3b
+ 507 003e 05       		.uleb128 0x5
+ 508 003f 49       		.uleb128 0x49
+ 509 0040 13       		.uleb128 0x13
+ 510 0041 00       		.byte	0
+ 511 0042 00       		.byte	0
+ 512 0043 06       		.uleb128 0x6
+ 513 0044 0F       		.uleb128 0xf
+ 514 0045 00       		.byte	0
+ 515 0046 0B       		.uleb128 0xb
+ 516 0047 0B       		.uleb128 0xb
+ 517 0048 00       		.byte	0
+ 518 0049 00       		.byte	0
+ 519 004a 07       		.uleb128 0x7
+ 520 004b 2E       		.uleb128 0x2e
+ 521 004c 00       		.byte	0
+ 522 004d 3F       		.uleb128 0x3f
+ 523 004e 19       		.uleb128 0x19
+ 524 004f 03       		.uleb128 0x3
+ 525 0050 0E       		.uleb128 0xe
+ 526 0051 3A       		.uleb128 0x3a
+ 527 0052 0B       		.uleb128 0xb
+ 528 0053 3B       		.uleb128 0x3b
+ 529 0054 0B       		.uleb128 0xb
+ 530 0055 27       		.uleb128 0x27
+ 531 0056 19       		.uleb128 0x19
+ 532 0057 11       		.uleb128 0x11
+ 533 0058 01       		.uleb128 0x1
+ 534 0059 12       		.uleb128 0x12
+ 535 005a 06       		.uleb128 0x6
+ 536 005b 40       		.uleb128 0x40
+ 537 005c 18       		.uleb128 0x18
+ 538 005d 9742     		.uleb128 0x2117
+ 539 005f 19       		.uleb128 0x19
+ 540 0060 00       		.byte	0
+ 541 0061 00       		.byte	0
+ 542 0062 08       		.uleb128 0x8
+ 543 0063 2E       		.uleb128 0x2e
+ 544 0064 01       		.byte	0x1
+ 545 0065 3F       		.uleb128 0x3f
+ 546 0066 19       		.uleb128 0x19
+ 547 0067 03       		.uleb128 0x3
+ 548 0068 0E       		.uleb128 0xe
+ 549 0069 3A       		.uleb128 0x3a
+ 550 006a 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 12
+
+
+ 551 006b 3B       		.uleb128 0x3b
+ 552 006c 0B       		.uleb128 0xb
+ 553 006d 27       		.uleb128 0x27
+ 554 006e 19       		.uleb128 0x19
+ 555 006f 8701     		.uleb128 0x87
+ 556 0071 19       		.uleb128 0x19
+ 557 0072 11       		.uleb128 0x11
+ 558 0073 01       		.uleb128 0x1
+ 559 0074 12       		.uleb128 0x12
+ 560 0075 06       		.uleb128 0x6
+ 561 0076 40       		.uleb128 0x40
+ 562 0077 18       		.uleb128 0x18
+ 563 0078 9742     		.uleb128 0x2117
+ 564 007a 19       		.uleb128 0x19
+ 565 007b 01       		.uleb128 0x1
+ 566 007c 13       		.uleb128 0x13
+ 567 007d 00       		.byte	0
+ 568 007e 00       		.byte	0
+ 569 007f 09       		.uleb128 0x9
+ 570 0080 05       		.uleb128 0x5
+ 571 0081 00       		.byte	0
+ 572 0082 03       		.uleb128 0x3
+ 573 0083 0E       		.uleb128 0xe
+ 574 0084 3A       		.uleb128 0x3a
+ 575 0085 0B       		.uleb128 0xb
+ 576 0086 3B       		.uleb128 0x3b
+ 577 0087 0B       		.uleb128 0xb
+ 578 0088 49       		.uleb128 0x49
+ 579 0089 13       		.uleb128 0x13
+ 580 008a 02       		.uleb128 0x2
+ 581 008b 17       		.uleb128 0x17
+ 582 008c 00       		.byte	0
+ 583 008d 00       		.byte	0
+ 584 008e 0A       		.uleb128 0xa
+ 585 008f 34       		.uleb128 0x34
+ 586 0090 00       		.byte	0
+ 587 0091 03       		.uleb128 0x3
+ 588 0092 0E       		.uleb128 0xe
+ 589 0093 3A       		.uleb128 0x3a
+ 590 0094 0B       		.uleb128 0xb
+ 591 0095 3B       		.uleb128 0x3b
+ 592 0096 0B       		.uleb128 0xb
+ 593 0097 49       		.uleb128 0x49
+ 594 0098 13       		.uleb128 0x13
+ 595 0099 1C       		.uleb128 0x1c
+ 596 009a 0B       		.uleb128 0xb
+ 597 009b 00       		.byte	0
+ 598 009c 00       		.byte	0
+ 599 009d 0B       		.uleb128 0xb
+ 600 009e 34       		.uleb128 0x34
+ 601 009f 00       		.byte	0
+ 602 00a0 03       		.uleb128 0x3
+ 603 00a1 08       		.uleb128 0x8
+ 604 00a2 3A       		.uleb128 0x3a
+ 605 00a3 0B       		.uleb128 0xb
+ 606 00a4 3B       		.uleb128 0x3b
+ 607 00a5 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 13
+
+
+ 608 00a6 49       		.uleb128 0x49
+ 609 00a7 13       		.uleb128 0x13
+ 610 00a8 02       		.uleb128 0x2
+ 611 00a9 17       		.uleb128 0x17
+ 612 00aa 00       		.byte	0
+ 613 00ab 00       		.byte	0
+ 614 00ac 0C       		.uleb128 0xc
+ 615 00ad 34       		.uleb128 0x34
+ 616 00ae 00       		.byte	0
+ 617 00af 03       		.uleb128 0x3
+ 618 00b0 0E       		.uleb128 0xe
+ 619 00b1 3A       		.uleb128 0x3a
+ 620 00b2 0B       		.uleb128 0xb
+ 621 00b3 3B       		.uleb128 0x3b
+ 622 00b4 0B       		.uleb128 0xb
+ 623 00b5 49       		.uleb128 0x49
+ 624 00b6 13       		.uleb128 0x13
+ 625 00b7 02       		.uleb128 0x2
+ 626 00b8 17       		.uleb128 0x17
+ 627 00b9 00       		.byte	0
+ 628 00ba 00       		.byte	0
+ 629 00bb 0D       		.uleb128 0xd
+ 630 00bc 34       		.uleb128 0x34
+ 631 00bd 00       		.byte	0
+ 632 00be 03       		.uleb128 0x3
+ 633 00bf 0E       		.uleb128 0xe
+ 634 00c0 3A       		.uleb128 0x3a
+ 635 00c1 0B       		.uleb128 0xb
+ 636 00c2 3B       		.uleb128 0x3b
+ 637 00c3 0B       		.uleb128 0xb
+ 638 00c4 49       		.uleb128 0x49
+ 639 00c5 13       		.uleb128 0x13
+ 640 00c6 02       		.uleb128 0x2
+ 641 00c7 18       		.uleb128 0x18
+ 642 00c8 00       		.byte	0
+ 643 00c9 00       		.byte	0
+ 644 00ca 0E       		.uleb128 0xe
+ 645 00cb 0B       		.uleb128 0xb
+ 646 00cc 01       		.byte	0x1
+ 647 00cd 11       		.uleb128 0x11
+ 648 00ce 01       		.uleb128 0x1
+ 649 00cf 12       		.uleb128 0x12
+ 650 00d0 06       		.uleb128 0x6
+ 651 00d1 00       		.byte	0
+ 652 00d2 00       		.byte	0
+ 653 00d3 0F       		.uleb128 0xf
+ 654 00d4 2E       		.uleb128 0x2e
+ 655 00d5 01       		.byte	0x1
+ 656 00d6 3F       		.uleb128 0x3f
+ 657 00d7 19       		.uleb128 0x19
+ 658 00d8 03       		.uleb128 0x3
+ 659 00d9 0E       		.uleb128 0xe
+ 660 00da 3A       		.uleb128 0x3a
+ 661 00db 0B       		.uleb128 0xb
+ 662 00dc 3B       		.uleb128 0x3b
+ 663 00dd 0B       		.uleb128 0xb
+ 664 00de 49       		.uleb128 0x49
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 14
+
+
+ 665 00df 13       		.uleb128 0x13
+ 666 00e0 3C       		.uleb128 0x3c
+ 667 00e1 19       		.uleb128 0x19
+ 668 00e2 01       		.uleb128 0x1
+ 669 00e3 13       		.uleb128 0x13
+ 670 00e4 00       		.byte	0
+ 671 00e5 00       		.byte	0
+ 672 00e6 10       		.uleb128 0x10
+ 673 00e7 18       		.uleb128 0x18
+ 674 00e8 00       		.byte	0
+ 675 00e9 00       		.byte	0
+ 676 00ea 00       		.byte	0
+ 677 00eb 11       		.uleb128 0x11
+ 678 00ec 898201   		.uleb128 0x4109
+ 679 00ef 00       		.byte	0
+ 680 00f0 11       		.uleb128 0x11
+ 681 00f1 01       		.uleb128 0x1
+ 682 00f2 31       		.uleb128 0x31
+ 683 00f3 13       		.uleb128 0x13
+ 684 00f4 00       		.byte	0
+ 685 00f5 00       		.byte	0
+ 686 00f6 12       		.uleb128 0x12
+ 687 00f7 898201   		.uleb128 0x4109
+ 688 00fa 01       		.byte	0x1
+ 689 00fb 11       		.uleb128 0x11
+ 690 00fc 01       		.uleb128 0x1
+ 691 00fd 31       		.uleb128 0x31
+ 692 00fe 13       		.uleb128 0x13
+ 693 00ff 01       		.uleb128 0x1
+ 694 0100 13       		.uleb128 0x13
+ 695 0101 00       		.byte	0
+ 696 0102 00       		.byte	0
+ 697 0103 13       		.uleb128 0x13
+ 698 0104 8A8201   		.uleb128 0x410a
+ 699 0107 00       		.byte	0
+ 700 0108 02       		.uleb128 0x2
+ 701 0109 18       		.uleb128 0x18
+ 702 010a 9142     		.uleb128 0x2111
+ 703 010c 18       		.uleb128 0x18
+ 704 010d 00       		.byte	0
+ 705 010e 00       		.byte	0
+ 706 010f 14       		.uleb128 0x14
+ 707 0110 898201   		.uleb128 0x4109
+ 708 0113 01       		.byte	0x1
+ 709 0114 11       		.uleb128 0x11
+ 710 0115 01       		.uleb128 0x1
+ 711 0116 31       		.uleb128 0x31
+ 712 0117 13       		.uleb128 0x13
+ 713 0118 00       		.byte	0
+ 714 0119 00       		.byte	0
+ 715 011a 15       		.uleb128 0x15
+ 716 011b 26       		.uleb128 0x26
+ 717 011c 00       		.byte	0
+ 718 011d 49       		.uleb128 0x49
+ 719 011e 13       		.uleb128 0x13
+ 720 011f 00       		.byte	0
+ 721 0120 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 15
+
+
+ 722 0121 16       		.uleb128 0x16
+ 723 0122 34       		.uleb128 0x34
+ 724 0123 00       		.byte	0
+ 725 0124 03       		.uleb128 0x3
+ 726 0125 0E       		.uleb128 0xe
+ 727 0126 3A       		.uleb128 0x3a
+ 728 0127 0B       		.uleb128 0xb
+ 729 0128 3B       		.uleb128 0x3b
+ 730 0129 05       		.uleb128 0x5
+ 731 012a 49       		.uleb128 0x49
+ 732 012b 13       		.uleb128 0x13
+ 733 012c 3F       		.uleb128 0x3f
+ 734 012d 19       		.uleb128 0x19
+ 735 012e 3C       		.uleb128 0x3c
+ 736 012f 19       		.uleb128 0x19
+ 737 0130 00       		.byte	0
+ 738 0131 00       		.byte	0
+ 739 0132 17       		.uleb128 0x17
+ 740 0133 35       		.uleb128 0x35
+ 741 0134 00       		.byte	0
+ 742 0135 49       		.uleb128 0x49
+ 743 0136 13       		.uleb128 0x13
+ 744 0137 00       		.byte	0
+ 745 0138 00       		.byte	0
+ 746 0139 18       		.uleb128 0x18
+ 747 013a 34       		.uleb128 0x34
+ 748 013b 00       		.byte	0
+ 749 013c 03       		.uleb128 0x3
+ 750 013d 0E       		.uleb128 0xe
+ 751 013e 3A       		.uleb128 0x3a
+ 752 013f 0B       		.uleb128 0xb
+ 753 0140 3B       		.uleb128 0x3b
+ 754 0141 0B       		.uleb128 0xb
+ 755 0142 49       		.uleb128 0x49
+ 756 0143 13       		.uleb128 0x13
+ 757 0144 3F       		.uleb128 0x3f
+ 758 0145 19       		.uleb128 0x19
+ 759 0146 3C       		.uleb128 0x3c
+ 760 0147 19       		.uleb128 0x19
+ 761 0148 00       		.byte	0
+ 762 0149 00       		.byte	0
+ 763 014a 19       		.uleb128 0x19
+ 764 014b 2E       		.uleb128 0x2e
+ 765 014c 00       		.byte	0
+ 766 014d 3F       		.uleb128 0x3f
+ 767 014e 19       		.uleb128 0x19
+ 768 014f 3C       		.uleb128 0x3c
+ 769 0150 19       		.uleb128 0x19
+ 770 0151 6E       		.uleb128 0x6e
+ 771 0152 0E       		.uleb128 0xe
+ 772 0153 03       		.uleb128 0x3
+ 773 0154 0E       		.uleb128 0xe
+ 774 0155 3A       		.uleb128 0x3a
+ 775 0156 0B       		.uleb128 0xb
+ 776 0157 3B       		.uleb128 0x3b
+ 777 0158 0B       		.uleb128 0xb
+ 778 0159 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 16
+
+
+ 779 015a 00       		.byte	0
+ 780 015b 1A       		.uleb128 0x1a
+ 781 015c 2E       		.uleb128 0x2e
+ 782 015d 00       		.byte	0
+ 783 015e 3F       		.uleb128 0x3f
+ 784 015f 19       		.uleb128 0x19
+ 785 0160 3C       		.uleb128 0x3c
+ 786 0161 19       		.uleb128 0x19
+ 787 0162 6E       		.uleb128 0x6e
+ 788 0163 0E       		.uleb128 0xe
+ 789 0164 03       		.uleb128 0x3
+ 790 0165 0E       		.uleb128 0xe
+ 791 0166 3A       		.uleb128 0x3a
+ 792 0167 0B       		.uleb128 0xb
+ 793 0168 3B       		.uleb128 0x3b
+ 794 0169 05       		.uleb128 0x5
+ 795 016a 00       		.byte	0
+ 796 016b 00       		.byte	0
+ 797 016c 00       		.byte	0
+ 798              		.section	.debug_loc,"",%progbits
+ 799              	.Ldebug_loc0:
+ 800              	.LLST0:
+ 801 0000 00000000 		.4byte	.LVL0
+ 802 0004 0C000000 		.4byte	.LVL3
+ 803 0008 0100     		.2byte	0x1
+ 804 000a 50       		.byte	0x50
+ 805 000b 0C000000 		.4byte	.LVL3
+ 806 000f 84000000 		.4byte	.LFE65
+ 807 0013 0400     		.2byte	0x4
+ 808 0015 F3       		.byte	0xf3
+ 809 0016 01       		.uleb128 0x1
+ 810 0017 50       		.byte	0x50
+ 811 0018 9F       		.byte	0x9f
+ 812 0019 00000000 		.4byte	0
+ 813 001d 00000000 		.4byte	0
+ 814              	.LLST1:
+ 815 0021 04000000 		.4byte	.LVL1
+ 816 0025 0C000000 		.4byte	.LVL3
+ 817 0029 0200     		.2byte	0x2
+ 818 002b 30       		.byte	0x30
+ 819 002c 9F       		.byte	0x9f
+ 820 002d 1C000000 		.4byte	.LVL6
+ 821 0031 66000000 		.4byte	.LVL14
+ 822 0035 0100     		.2byte	0x1
+ 823 0037 50       		.byte	0x50
+ 824 0038 74000000 		.4byte	.LVL17
+ 825 003c 76000000 		.4byte	.LVL18
+ 826 0040 0100     		.2byte	0x1
+ 827 0042 50       		.byte	0x50
+ 828 0043 00000000 		.4byte	0
+ 829 0047 00000000 		.4byte	0
+ 830              	.LLST2:
+ 831 004b 04000000 		.4byte	.LVL1
+ 832 004f 0C000000 		.4byte	.LVL3
+ 833 0053 0200     		.2byte	0x2
+ 834 0055 30       		.byte	0x30
+ 835 0056 9F       		.byte	0x9f
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 17
+
+
+ 836 0057 0C000000 		.4byte	.LVL3
+ 837 005b 46000000 		.4byte	.LVL7
+ 838 005f 0100     		.2byte	0x1
+ 839 0061 56       		.byte	0x56
+ 840 0062 48000000 		.4byte	.LVL8
+ 841 0066 4A000000 		.4byte	.LVL9
+ 842 006a 0100     		.2byte	0x1
+ 843 006c 56       		.byte	0x56
+ 844 006d 4C000000 		.4byte	.LVL10
+ 845 0071 84000000 		.4byte	.LFE65
+ 846 0075 0100     		.2byte	0x1
+ 847 0077 56       		.byte	0x56
+ 848 0078 00000000 		.4byte	0
+ 849 007c 00000000 		.4byte	0
+ 850              	.LLST3:
+ 851 0080 0A000000 		.4byte	.LVL2
+ 852 0084 0C000000 		.4byte	.LVL3
+ 853 0088 0200     		.2byte	0x2
+ 854 008a 30       		.byte	0x30
+ 855 008b 9F       		.byte	0x9f
+ 856 008c 0C000000 		.4byte	.LVL3
+ 857 0090 50000000 		.4byte	.LVL12
+ 858 0094 0100     		.2byte	0x1
+ 859 0096 55       		.byte	0x55
+ 860 0097 52000000 		.4byte	.LVL13
+ 861 009b 6E000000 		.4byte	.LVL16
+ 862 009f 0100     		.2byte	0x1
+ 863 00a1 55       		.byte	0x55
+ 864 00a2 74000000 		.4byte	.LVL17
+ 865 00a6 84000000 		.4byte	.LFE65
+ 866 00aa 0100     		.2byte	0x1
+ 867 00ac 55       		.byte	0x55
+ 868 00ad 00000000 		.4byte	0
+ 869 00b1 00000000 		.4byte	0
+ 870              		.section	.debug_aranges,"",%progbits
+ 871 0000 24000000 		.4byte	0x24
+ 872 0004 0200     		.2byte	0x2
+ 873 0006 00000000 		.4byte	.Ldebug_info0
+ 874 000a 04       		.byte	0x4
+ 875 000b 00       		.byte	0
+ 876 000c 0000     		.2byte	0
+ 877 000e 0000     		.2byte	0
+ 878 0010 00000000 		.4byte	.LFB64
+ 879 0014 02000000 		.4byte	.LFE64-.LFB64
+ 880 0018 00000000 		.4byte	.LFB65
+ 881 001c 84000000 		.4byte	.LFE65-.LFB65
+ 882 0020 00000000 		.4byte	0
+ 883 0024 00000000 		.4byte	0
+ 884              		.section	.debug_ranges,"",%progbits
+ 885              	.Ldebug_ranges0:
+ 886 0000 00000000 		.4byte	.LFB64
+ 887 0004 02000000 		.4byte	.LFE64
+ 888 0008 00000000 		.4byte	.LFB65
+ 889 000c 84000000 		.4byte	.LFE65
+ 890 0010 00000000 		.4byte	0
+ 891 0014 00000000 		.4byte	0
+ 892              		.section	.debug_line,"",%progbits
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 18
+
+
+ 893              	.Ldebug_line0:
+ 894 0000 C8010000 		.section	.debug_str,"MS",%progbits,1
+ 894      02008201 
+ 894      00000201 
+ 894      FB0E0D00 
+ 894      01010101 
+ 895              	.LASF22:
+ 896 0000 5469636B 		.ascii	"TickType_t\000"
+ 896      54797065 
+ 896      5F7400
+ 897              	.LASF31:
+ 898 000b 78517565 		.ascii	"xQueue_ROT\000"
+ 898      75655F52 
+ 898      4F5400
+ 899              	.LASF5:
+ 900 0016 5F5F696E 		.ascii	"__int32_t\000"
+ 900      7433325F 
+ 900      7400
+ 901              	.LASF23:
+ 902 0020 51756575 		.ascii	"QueueHandle_t\000"
+ 902      6548616E 
+ 902      646C655F 
+ 902      7400
+ 903              	.LASF11:
+ 904 002e 696E7433 		.ascii	"int32_t\000"
+ 904      325F7400 
+ 905              	.LASF16:
+ 906 0036 666C6F61 		.ascii	"float\000"
+ 906      7400
+ 907              	.LASF1:
+ 908 003c 756E7369 		.ascii	"unsigned char\000"
+ 908      676E6564 
+ 908      20636861 
+ 908      7200
+ 909              	.LASF34:
+ 910 004a 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 910      43313120 
+ 910      352E342E 
+ 910      31203230 
+ 910      31363036 
+ 911 007d 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 911      20726576 
+ 911      6973696F 
+ 911      6E203233 
+ 911      37373135 
+ 912 00b0 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 912      66756E63 
+ 912      74696F6E 
+ 912      2D736563 
+ 912      74696F6E 
+ 913              	.LASF6:
+ 914 00d8 5F5F7569 		.ascii	"__uint32_t\000"
+ 914      6E743332 
+ 914      5F7400
+ 915              	.LASF7:
+ 916 00e3 6C6F6E67 		.ascii	"long unsigned int\000"
+ 916      20756E73 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 19
+
+
+ 916      69676E65 
+ 916      6420696E 
+ 916      7400
+ 917              	.LASF3:
+ 918 00f5 73686F72 		.ascii	"short unsigned int\000"
+ 918      7420756E 
+ 918      7369676E 
+ 918      65642069 
+ 918      6E7400
+ 919              	.LASF30:
+ 920 0108 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 920      52784275 
+ 920      66666572 
+ 920      00
+ 921              	.LASF28:
+ 922 0115 524F545F 		.ascii	"ROT_A_Read\000"
+ 922      415F5265 
+ 922      616400
+ 923              	.LASF17:
+ 924 0120 646F7562 		.ascii	"double\000"
+ 924      6C6500
+ 925              	.LASF2:
+ 926 0127 73686F72 		.ascii	"short int\000"
+ 926      7420696E 
+ 926      7400
+ 927              	.LASF36:
+ 928 0131 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 928      536F435F 
+ 928      43726561 
+ 928      746F725C 
+ 928      43593843 
+ 929 0161 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 929      65636569 
+ 929      7665725C 
+ 929      43593843 
+ 929      4B49542D 
+ 930              	.LASF14:
+ 931 0193 75696E74 		.ascii	"uint16\000"
+ 931      313600
+ 932              	.LASF15:
+ 933 019a 696E7438 		.ascii	"int8\000"
+ 933      00
+ 934              	.LASF38:
+ 935 019f 5461736B 		.ascii	"Task_ROT\000"
+ 935      5F524F54 
+ 935      00
+ 936              	.LASF32:
+ 937 01a8 78517565 		.ascii	"xQueueGenericSend\000"
+ 937      75654765 
+ 937      6E657269 
+ 937      6353656E 
+ 937      6400
+ 938              	.LASF10:
+ 939 01ba 756E7369 		.ascii	"unsigned int\000"
+ 939      676E6564 
+ 939      20696E74 
+ 939      00
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 20
+
+
+ 940              	.LASF9:
+ 941 01c7 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 941      206C6F6E 
+ 941      6720756E 
+ 941      7369676E 
+ 941      65642069 
+ 942              	.LASF29:
+ 943 01de 524F545F 		.ascii	"ROT_B_Read\000"
+ 943      425F5265 
+ 943      616400
+ 944              	.LASF19:
+ 945 01e9 6C6F6E67 		.ascii	"long double\000"
+ 945      20646F75 
+ 945      626C6500 
+ 946              	.LASF20:
+ 947 01f5 73697A65 		.ascii	"sizetype\000"
+ 947      74797065 
+ 947      00
+ 948              	.LASF24:
+ 949 01fe 7844656C 		.ascii	"xDelay\000"
+ 949      617900
+ 950              	.LASF8:
+ 951 0205 6C6F6E67 		.ascii	"long long int\000"
+ 951      206C6F6E 
+ 951      6720696E 
+ 951      7400
+ 952              	.LASF18:
+ 953 0213 63686172 		.ascii	"char\000"
+ 953      00
+ 954              	.LASF39:
+ 955 0218 70765061 		.ascii	"pvParameters\000"
+ 955      72616D65 
+ 955      74657273 
+ 955      00
+ 956              	.LASF26:
+ 957 0225 636F756E 		.ascii	"count\000"
+ 957      7400
+ 958              	.LASF21:
+ 959 022b 42617365 		.ascii	"BaseType_t\000"
+ 959      54797065 
+ 959      5F7400
+ 960              	.LASF37:
+ 961 0236 496E6974 		.ascii	"Init_ROT\000"
+ 961      5F524F54 
+ 961      00
+ 962              	.LASF13:
+ 963 023f 75696E74 		.ascii	"uint8\000"
+ 963      3800
+ 964              	.LASF12:
+ 965 0245 75696E74 		.ascii	"uint32_t\000"
+ 965      33325F74 
+ 965      00
+ 966              	.LASF4:
+ 967 024e 6C6F6E67 		.ascii	"long int\000"
+ 967      20696E74 
+ 967      00
+ 968              	.LASF33:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccmIoLyk.s 			page 21
+
+
+ 969 0257 76546173 		.ascii	"vTaskDelay\000"
+ 969      6B44656C 
+ 969      617900
+ 970              	.LASF35:
+ 971 0262 2E2E5C41 		.ascii	"..\\API\\rot.c\000"
+ 971      50495C72 
+ 971      6F742E63 
+ 971      00
+ 972              	.LASF27:
+ 973 026f 636E7454 		.ascii	"cntTask\000"
+ 973      61736B00 
+ 974              	.LASF0:
+ 975 0277 7369676E 		.ascii	"signed char\000"
+ 975      65642063 
+ 975      68617200 
+ 976              	.LASF25:
+ 977 0283 70726576 		.ascii	"prev\000"
+ 977      00
+ 978              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

@@ -1,0 +1,4114 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"si5351.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	__aeabi_uldivmod
+  20              		.section	.text.pll_calc,"ax",%progbits
+  21              		.align	2
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	pll_calc, %function
+  25              	pll_calc:
+  26              	.LFB5:
+  27              		.file 1 "si5351.c"
+   1:si5351.c      **** /*
+   2:si5351.c      ****  * si5351.c - Generic Si5351A3 library
+   3:si5351.c      ****  *
+   4:si5351.c      ****  * Copyright (C) 2014 Jason Milldrum <milldrum@gmail.com>
+   5:si5351.c      ****  * Copyright 2015, Dana H. Myers <k6jq@comcast.net>
+   6:si5351.c      ****  *
+   7:si5351.c      ****  * Extensive re-factoring 25 Jan 2015:
+   8:si5351.c      ****  *  - Merged multisynth_calc() into a single function that takes a PLL
+   9:si5351.c      ****  *    frequency parameter and an integer division flag. Single function
+  10:si5351.c      ****  *    can calculate maximum precision, reduced jitter, or re-calculate.
+  11:si5351.c      ****  *
+  12:si5351.c      ****  *  - si5351_init() takes reference correction and calculates corrected
+  13:si5351.c      ****  *    reference once. Also take load capacitance parameter. Initialization
+  14:si5351.c      ****  *    simulates power-on reset by clearing all registers.
+  15:si5351.c      ****  *
+  16:si5351.c      ****  *  - si5351_calibration_mode() switches pass-through of reference to CLK0
+  17:si5351.c      ****  *    output to permit direct measurement of reference
+  18:si5351.c      ****  *
+  19:si5351.c      ****  *  - Various enhancement; eliminate floating-point use, do_div() macro
+  20:si5351.c      ****  *    malloc() use, eliminates unused headers
+  21:si5351.c      ****  *
+  22:si5351.c      ****  * This program is free software: you can redistribute it and/or modify
+  23:si5351.c      ****  * it under the terms of the GNU General Public License as published by
+  24:si5351.c      ****  * the Free Software Foundation, either version 3 of the License, or
+  25:si5351.c      ****  * (at your option) any later version.
+  26:si5351.c      ****  *
+  27:si5351.c      ****  * This program is distributed in the hope that it will be useful,
+  28:si5351.c      ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  29:si5351.c      ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  30:si5351.c      ****  * GNU General Public License for more details.
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 2
+
+
+  31:si5351.c      ****  *
+  32:si5351.c      ****  * You should have received a copy of the GNU General Public License
+  33:si5351.c      ****  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  34:si5351.c      ****  */
+  35:si5351.c      **** 
+  36:si5351.c      **** //#include <stddef.h>
+  37:si5351.c      **** //#include <stdint.h>
+  38:si5351.c      **** #include "si5351.h"
+  39:si5351.c      **** 
+  40:si5351.c      **** #define RFRAC_DENOM ((1L << 20) - 1)
+  41:si5351.c      **** 
+  42:si5351.c      **** static int32_t pll_calc(int32_t, uint8_t *);
+  43:si5351.c      **** static int32_t multisynth_calc(int32_t, int32_t, uint8_t *, uint8_t *);
+  44:si5351.c      **** 
+  45:si5351.c      **** int32_t	plla_freq, pllb_freq;
+  46:si5351.c      **** int32_t    freq_ref;
+  47:si5351.c      **** uint8_t clock_control[8];
+  48:si5351.c      **** 
+  49:si5351.c      **** /*
+  50:si5351.c      ****  * n_si5351_init
+  51:si5351.c      ****  */
+  52:si5351.c      **** void si5351_init(int32_t freq_xtal, int32_t xtal_correction, int load_cap)
+  53:si5351.c      **** {
+  54:si5351.c      ****     int clock;
+  55:si5351.c      **** 
+  56:si5351.c      ****     /*
+  57:si5351.c      ****      * Wait for system init completion - occurs after power-up
+  58:si5351.c      ****      */
+  59:si5351.c      ****     while (SI5351_READ_BYTE(SI5351_DEVICE_STATUS) & SI5351_STATUS_SYS_INIT)
+  60:si5351.c      ****         ;
+  61:si5351.c      ****     
+  62:si5351.c      ****     SI5351_WRITE_BYTE(SI5351_OUTPUT_ENABLE_CTRL, 0xFF);
+  63:si5351.c      ****     SI5351_WRITE_BYTE(SI5351_CRYSTAL_LOAD, load_cap | 0x12);
+  64:si5351.c      ****     
+  65:si5351.c      ****     /* Disable and power-down clock outputs */
+  66:si5351.c      ****     clock_control[0] = SI5351_CLK_INPUT_MULTISYNTH_N;
+  67:si5351.c      ****     clock_control[1] = SI5351_CLK_INPUT_MULTISYNTH_N | SI5351_CLK_PLL_SELECT;
+  68:si5351.c      ****     clock_control[2] = SI5351_CLK_INPUT_MULTISYNTH_N | SI5351_CLK_PLL_SELECT;
+  69:si5351.c      ****     
+  70:si5351.c      ****     for (clock = SI5351_CLK0; clock <= SI5351_CLK7; clock++)
+  71:si5351.c      ****         si5351_clock_enable(clock, 0);
+  72:si5351.c      **** 
+  73:si5351.c      ****     /* Calculated corrected reference frequency */
+  74:si5351.c      ****     /* xtal_correction is Measured in parts-per-ten million */
+  75:si5351.c      ****     freq_ref = freq_xtal + (int32_t)((((((int64_t)xtal_correction) << 31) /
+  76:si5351.c      ****       10000000LL) * freq_xtal) >> 31);
+  77:si5351.c      **** }
+  78:si5351.c      **** 
+  79:si5351.c      **** // get frequency
+  80:si5351.c      **** 
+  81:si5351.c      **** /*
+  82:si5351.c      ****  * Calibration mode for the crystal
+  83:si5351.c      ****  * enabled: XTAL output appears on CLK0 output
+  84:si5351.c      ****  * disable: multisynth output appears on CLK0 output
+  85:si5351.c      ****  * note that CLK0 must be enabled, too
+  86:si5351.c      ****  */
+  87:si5351.c      **** void si5351_calibration_mode(int enable)
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 3
+
+
+  88:si5351.c      **** {
+  89:si5351.c      ****     
+  90:si5351.c      ****     if (enable) {
+  91:si5351.c      ****         SI5351_WRITE_BYTE(SI5351_FANOUT_ENABLE,
+  92:si5351.c      ****           SI5351_READ_BYTE(SI5351_FANOUT_ENABLE) | SI5351_XTAL_ENABLE);
+  93:si5351.c      ****         SI5351_WRITE_BYTE(SI5351_CLK0_CTRL,
+  94:si5351.c      ****           (SI5351_READ_BYTE(SI5351_CLK0_CTRL) & ~SI5351_CLK_INPUT_MASK) |
+  95:si5351.c      ****           SI5351_CLK_INPUT_XTAL);
+  96:si5351.c      ****     } else {
+  97:si5351.c      ****         SI5351_WRITE_BYTE(SI5351_CLK0_CTRL,
+  98:si5351.c      ****           (SI5351_READ_BYTE(SI5351_CLK0_CTRL) & ~SI5351_CLK_INPUT_MASK) |
+  99:si5351.c      ****           SI5351_CLK_INPUT_MULTISYNTH_N);
+ 100:si5351.c      ****         SI5351_WRITE_BYTE(SI5351_FANOUT_ENABLE,
+ 101:si5351.c      ****           SI5351_READ_BYTE(SI5351_FANOUT_ENABLE) & ~SI5351_XTAL_ENABLE);
+ 102:si5351.c      ****     }
+ 103:si5351.c      **** }
+ 104:si5351.c      **** 
+ 105:si5351.c      **** /*
+ 106:si5351.c      ****  * si5351_clock_enable(enum si5351_clock clk, uint8_t enable)
+ 107:si5351.c      ****  *
+ 108:si5351.c      ****  * Enable or disable a chosen clock
+ 109:si5351.c      ****  * clk - Clock output
+ 110:si5351.c      ****  *   (use the si5351_clock enum)
+ 111:si5351.c      ****  * enable - Set to 1 to enable, 0 to disable
+ 112:si5351.c      ****  */
+ 113:si5351.c      **** void si5351_clock_enable(enum si5351_clock clk, int enable)
+ 114:si5351.c      **** {
+ 115:si5351.c      ****     uint8_t reg_val;
+ 116:si5351.c      **** 
+ 117:si5351.c      ****     reg_val = SI5351_READ_BYTE(SI5351_OUTPUT_ENABLE_CTRL) |
+ 118:si5351.c      ****       (1 << (uint8_t)clk);
+ 119:si5351.c      **** 
+ 120:si5351.c      ****     if (enable) {
+ 121:si5351.c      ****         reg_val &= ~(1<<(uint8_t)clk);
+ 122:si5351.c      ****     }
+ 123:si5351.c      ****     SI5351_WRITE_BYTE(SI5351_OUTPUT_ENABLE_CTRL, reg_val);
+ 124:si5351.c      ****     
+ 125:si5351.c      ****     if (enable) {
+ 126:si5351.c      ****         clock_control[clk] &= ~SI5351_CLK_POWERDOWN;
+ 127:si5351.c      ****     } else {
+ 128:si5351.c      ****         clock_control[clk] |= SI5351_CLK_POWERDOWN;
+ 129:si5351.c      ****     }
+ 130:si5351.c      ****     
+ 131:si5351.c      ****     SI5351_WRITE_BYTE(SI5351_CLK0_CTRL + (uint8_t)clk, clock_control[clk]);
+ 132:si5351.c      **** }
+ 133:si5351.c      **** 
+ 134:si5351.c      **** /*
+ 135:si5351.c      ****  * si5351_drive_strength(enum si5351_clock clk, enum si5351_drive drive)
+ 136:si5351.c      ****  *
+ 137:si5351.c      ****  * Sets the drive strength of the specified clock output
+ 138:si5351.c      ****  *
+ 139:si5351.c      ****  * clk - Clock output
+ 140:si5351.c      ****  *   (use the si5351_clock enum)
+ 141:si5351.c      ****  * drive - Desired drive level
+ 142:si5351.c      ****  *   (use the si5351_drive enum)
+ 143:si5351.c      ****  */
+ 144:si5351.c      **** void si5351_drive_strength(enum si5351_clock clk, enum si5351_drive drive)
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 4
+
+
+ 145:si5351.c      **** {
+ 146:si5351.c      **** 
+ 147:si5351.c      ****     clock_control[clk] &= ~SI5351_CLK_DRIVE_STRENGTH_MASK;
+ 148:si5351.c      **** 
+ 149:si5351.c      ****     switch(drive) {
+ 150:si5351.c      ****     case SI5351_DRIVE_2MA:
+ 151:si5351.c      ****         clock_control[clk] |= SI5351_CLK_DRIVE_STRENGTH_2MA;
+ 152:si5351.c      ****         break;
+ 153:si5351.c      ****     case SI5351_DRIVE_4MA:
+ 154:si5351.c      ****         clock_control[clk] |= SI5351_CLK_DRIVE_STRENGTH_4MA;
+ 155:si5351.c      ****         break;
+ 156:si5351.c      ****     case SI5351_DRIVE_6MA:
+ 157:si5351.c      ****         clock_control[clk] |= SI5351_CLK_DRIVE_STRENGTH_6MA;
+ 158:si5351.c      ****         break;
+ 159:si5351.c      ****     case SI5351_DRIVE_8MA:
+ 160:si5351.c      ****         clock_control[clk] |= SI5351_CLK_DRIVE_STRENGTH_8MA;
+ 161:si5351.c      ****         break;
+ 162:si5351.c      ****     }
+ 163:si5351.c      **** 
+ 164:si5351.c      ****     SI5351_WRITE_BYTE(SI5351_CLK0_CTRL + (uint8_t)clk, clock_control[clk]);
+ 165:si5351.c      **** }
+ 166:si5351.c      **** 
+ 167:si5351.c      **** /*
+ 168:si5351.c      ****  * 
+ 169:si5351.c      ****  */
+ 170:si5351.c      **** int32_t si5351_set_frequency(int32_t freq, int32_t pll_freq,
+ 171:si5351.c      ****   enum si5351_clock clock, int reset)
+ 172:si5351.c      **** {
+ 173:si5351.c      ****     uint8_t clk_ctrl, pllregs[8], msregs[8];
+ 174:si5351.c      ****     int addr = SI5351_PLLA_PARAMETERS;
+ 175:si5351.c      ****     int pll_prog = SI5351_PLLA;
+ 176:si5351.c      ****     int program_pll = 0;
+ 177:si5351.c      ****     
+ 178:si5351.c      ****     /*
+ 179:si5351.c      ****      * if pll_freq == 0, let multisynth_calc() pick the PLL frequency
+ 180:si5351.c      ****      */
+ 181:si5351.c      ****     pll_freq = multisynth_calc(freq, pll_freq, &clk_ctrl, msregs);
+ 182:si5351.c      ****     
+ 183:si5351.c      ****      /*
+ 184:si5351.c      ****       * select PLL
+ 185:si5351.c      ****       */
+ 186:si5351.c      ****     switch (clock) {
+ 187:si5351.c      ****     case SI5351_CLK0:
+ 188:si5351.c      ****         pll_prog = SI5351_PLLA;
+ 189:si5351.c      ****         program_pll = (plla_freq != pll_freq);
+ 190:si5351.c      ****         break;
+ 191:si5351.c      ****     /* CLK1 and CLK2 share PLLB; first programmed sets PLL freq */
+ 192:si5351.c      ****     case SI5351_CLK1:
+ 193:si5351.c      ****     case SI5351_CLK2:
+ 194:si5351.c      ****         pll_prog = SI5351_PLLB;
+ 195:si5351.c      ****         if (pllb_freq != 0) {
+ 196:si5351.c      ****             pll_freq = multisynth_calc(freq, pllb_freq, &clk_ctrl, msregs);
+ 197:si5351.c      ****         } else {
+ 198:si5351.c      ****             program_pll = 1;
+ 199:si5351.c      ****         }
+ 200:si5351.c      ****         break;
+ 201:si5351.c      ****     default:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 5
+
+
+ 202:si5351.c      ****         /* XXX: */
+ 203:si5351.c      ****         break;
+ 204:si5351.c      ****     }
+ 205:si5351.c      **** 
+ 206:si5351.c      ****     if (pll_freq < 0) {
+ 207:si5351.c      ****         return (pll_freq);
+ 208:si5351.c      ****     }
+ 209:si5351.c      ****     
+ 210:si5351.c      ****     if (program_pll) {
+ 211:si5351.c      ****         pll_freq = pll_calc(pll_freq, pllregs);
+ 212:si5351.c      ****         /* keep track of PLL programming */
+ 213:si5351.c      ****         switch (pll_prog) {
+ 214:si5351.c      ****         case SI5351_PLLA:
+ 215:si5351.c      ****             plla_freq = pll_freq;
+ 216:si5351.c      ****             addr = SI5351_PLLA_PARAMETERS;
+ 217:si5351.c      ****             break;
+ 218:si5351.c      ****         case SI5351_PLLB:
+ 219:si5351.c      ****             pllb_freq = pll_freq;
+ 220:si5351.c      ****             addr = SI5351_PLLB_PARAMETERS;
+ 221:si5351.c      ****             break;
+ 222:si5351.c      ****         } 
+ 223:si5351.c      **** 
+ 224:si5351.c      ****         if (pll_freq < 0) {
+ 225:si5351.c      ****             return (pll_freq);
+ 226:si5351.c      ****         }
+ 227:si5351.c      ****     }
+ 228:si5351.c      ****     
+ 229:si5351.c      ****     clock_control[clock] = (clock_control[clock] &
+ 230:si5351.c      ****       ~SI5351_CLK_INTEGER_MODE) | clk_ctrl;
+ 231:si5351.c      ****     SI5351_WRITE_BYTE(SI5351_CLK0_CTRL + clock, clock_control[clock]);
+ 232:si5351.c      ****     if (program_pll) {
+ 233:si5351.c      ****         SI5351_WRITE_XFER(addr, (uint8_t *) pllregs, 8);
+ 234:si5351.c      ****     }
+ 235:si5351.c      ****     SI5351_WRITE_XFER(SI5351_CLK0_PARAMETERS + clock * 8, (uint8_t *) msregs, 8);
+ 236:si5351.c      ****     if (reset) {
+ 237:si5351.c      ****         SI5351_WRITE_BYTE(177, 0xac);
+ 238:si5351.c      ****     }
+ 239:si5351.c      ****     
+ 240:si5351.c      ****     return (pll_freq);
+ 241:si5351.c      **** }
+ 242:si5351.c      **** 
+ 243:si5351.c      **** static int32_t pll_calc(int32_t freq, uint8_t *regs)
+ 244:si5351.c      **** {
+  28              		.loc 1 244 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              	.LVL0:
+  33 0000 2DE9F843 		push	{r3, r4, r5, r6, r7, r8, r9, lr}
+  34              		.cfi_def_cfa_offset 32
+  35              		.cfi_offset 3, -32
+  36              		.cfi_offset 4, -28
+  37              		.cfi_offset 5, -24
+  38              		.cfi_offset 6, -20
+  39              		.cfi_offset 7, -16
+  40              		.cfi_offset 8, -12
+  41              		.cfi_offset 9, -8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 6
+
+
+  42              		.cfi_offset 14, -4
+ 245:si5351.c      ****     uint32_t a, b, c;
+ 246:si5351.c      ****     uint32_t p1, p2, p3;
+ 247:si5351.c      **** 
+ 248:si5351.c      ****     /* Determine integer part of feedback equation */
+ 249:si5351.c      ****     a = freq / freq_ref;
+  43              		.loc 1 249 0
+  44 0004 294B     		ldr	r3, .L7
+  45 0006 1A68     		ldr	r2, [r3]
+  46 0008 90FBF2F5 		sdiv	r5, r0, r2
+  47              	.LVL1:
+ 250:si5351.c      ****     if ((a < SI5351_PLL_A_MIN) || (a > SI5351_PLL_A_MAX)) {
+  48              		.loc 1 250 0
+  49 000c A5F10F03 		sub	r3, r5, #15
+  50 0010 4B2B     		cmp	r3, #75
+  51 0012 47D8     		bhi	.L4
+  52 0014 0C46     		mov	r4, r1
+ 251:si5351.c      ****         return (-1);
+ 252:si5351.c      ****     }
+ 253:si5351.c      **** 
+ 254:si5351.c      ****     b = (((uint64_t)(freq % freq_ref)) * RFRAC_DENOM) / freq_ref;
+  53              		.loc 1 254 0
+  54 0016 02FB1500 		mls	r0, r2, r5, r0
+  55              	.LVL2:
+  56 001a 8046     		mov	r8, r0
+  57 001c 4FEAE079 		asr	r9, r0, #31
+  58 0020 4FEA0953 		lsl	r3, r9, #20
+  59 0024 0605     		lsls	r6, r0, #20
+  60 0026 43EA1037 		orr	r7, r3, r0, lsr #12
+  61 002a D317     		asrs	r3, r2, #31
+  62 002c B6EB0800 		subs	r0, r6, r8
+  63 0030 67EB0901 		sbc	r1, r7, r9
+  64              	.LVL3:
+  65 0034 FFF7FEFF 		bl	__aeabi_uldivmod
+  66              	.LVL4:
+ 255:si5351.c      ****     c = b ? RFRAC_DENOM : 1;
+  67              		.loc 1 255 0
+  68 0038 08B1     		cbz	r0, .L5
+  69 003a 1D4A     		ldr	r2, .L7+4
+  70 003c 00E0     		b	.L3
+  71              	.L5:
+  72 003e 0122     		movs	r2, #1
+  73              	.L3:
+  74              	.LVL5:
+ 256:si5351.c      **** #if 0
+ 257:si5351.c      ****     if ((b > 0) && (a == SI5351_PLL_A_MAX)) {
+ 258:si5351.c      ****         return (-1);
+ 259:si5351.c      ****     }
+ 260:si5351.c      **** #endif
+ 261:si5351.c      **** 
+ 262:si5351.c      ****     p1 = 128 * a + ((128 * b) / c) - 512;
+  75              		.loc 1 262 0 discriminator 4
+  76 0040 C701     		lsls	r7, r0, #7
+  77 0042 B7FBF2F3 		udiv	r3, r7, r2
+  78 0046 03EBC516 		add	r6, r3, r5, lsl #7
+  79 004a A6F50076 		sub	r6, r6, #512
+  80              	.LVL6:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 7
+
+
+ 263:si5351.c      ****     p2 = 128 * b - c * ((128 * b) / c);
+  81              		.loc 1 263 0 discriminator 4
+  82 004e 02FB1373 		mls	r3, r2, r3, r7
+  83              	.LVL7:
+ 264:si5351.c      ****     p3 = c;
+ 265:si5351.c      ****     
+ 266:si5351.c      ****     /* Registers 26-27 */
+ 267:si5351.c      ****     regs[0] = (uint8_t) (p3 >> 8);
+  84              		.loc 1 267 0 discriminator 4
+  85 0052 C2F30727 		ubfx	r7, r2, #8, #8
+  86 0056 2770     		strb	r7, [r4]
+ 268:si5351.c      ****     regs[1] = (uint8_t) p3;
+  87              		.loc 1 268 0 discriminator 4
+  88 0058 6270     		strb	r2, [r4, #1]
+ 269:si5351.c      **** 
+ 270:si5351.c      ****     /* Register 28 */
+ 271:si5351.c      ****     regs[2] = (uint8_t) ((p1 >> 16) & 0x03);
+  89              		.loc 1 271 0 discriminator 4
+  90 005a C6F30147 		ubfx	r7, r6, #16, #2
+  91 005e A770     		strb	r7, [r4, #2]
+ 272:si5351.c      **** 
+ 273:si5351.c      ****     /* Registers 29-30 */
+ 274:si5351.c      ****     regs[3] = (uint8_t) (p1 >> 8);
+  92              		.loc 1 274 0 discriminator 4
+  93 0060 C6F30727 		ubfx	r7, r6, #8, #8
+  94 0064 E770     		strb	r7, [r4, #3]
+ 275:si5351.c      ****     regs[4] = (uint8_t) p1;
+  95              		.loc 1 275 0 discriminator 4
+  96 0066 2671     		strb	r6, [r4, #4]
+ 276:si5351.c      **** 
+ 277:si5351.c      ****     /* Register 31 */
+ 278:si5351.c      ****     regs[5] = ((uint8_t) ((p3 >> 12) & 0xF0)) |
+  97              		.loc 1 278 0 discriminator 4
+  98 0068 160B     		lsrs	r6, r2, #12
+  99              	.LVL8:
+ 100 006a 26F00F07 		bic	r7, r6, #15
+ 101 006e C3F30346 		ubfx	r6, r3, #16, #4
+ 102 0072 3E43     		orrs	r6, r6, r7
+ 103 0074 6671     		strb	r6, [r4, #5]
+ 279:si5351.c      ****       ((uint8_t) ((p2 >> 16) & 0x0F));
+ 280:si5351.c      **** 
+ 281:si5351.c      ****     /* Registers 32-33 */
+ 282:si5351.c      ****     regs[6] = (uint8_t) (p2 >> 8);
+ 104              		.loc 1 282 0 discriminator 4
+ 105 0076 C3F30726 		ubfx	r6, r3, #8, #8
+ 106 007a A671     		strb	r6, [r4, #6]
+ 283:si5351.c      ****     regs[7] = (uint8_t) p2;
+ 107              		.loc 1 283 0 discriminator 4
+ 108 007c E371     		strb	r3, [r4, #7]
+ 284:si5351.c      **** 
+ 285:si5351.c      ****     
+ 286:si5351.c      ****     /* avoid loss of precision here */
+ 287:si5351.c      ****     freq = a * freq_ref + (((uint64_t)b) * freq_ref) / c;
+ 109              		.loc 1 287 0 discriminator 4
+ 110 007e 0B4B     		ldr	r3, .L7
+ 111              	.LVL9:
+ 112 0080 1B68     		ldr	r3, [r3]
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 8
+
+
+ 113 0082 03FB05F5 		mul	r5, r3, r5
+ 114              	.LVL10:
+ 115 0086 0021     		movs	r1, #0
+ 116 0088 DF17     		asrs	r7, r3, #31
+ 117 008a 00FB07F4 		mul	r4, r0, r7
+ 118              	.LVL11:
+ 119 008e 03FB0144 		mla	r4, r3, r1, r4
+ 120 0092 A0FB0301 		umull	r0, r1, r0, r3
+ 121              	.LVL12:
+ 122 0096 2144     		add	r1, r1, r4
+ 123 0098 0023     		movs	r3, #0
+ 124 009a FFF7FEFF 		bl	__aeabi_uldivmod
+ 125              	.LVL13:
+ 126 009e 2844     		add	r0, r0, r5
+ 127              	.LVL14:
+ 288:si5351.c      **** #if 0
+ 289:si5351.c      ****     if ((freq < SI5351_PLL_VCO_MIN) || (freq > SI5351_PLL_VCO_MAX)) {
+ 290:si5351.c      ****         freq = -1;
+ 291:si5351.c      ****     }
+ 292:si5351.c      **** #endif
+ 293:si5351.c      ****     
+ 294:si5351.c      ****     return (freq);
+ 128              		.loc 1 294 0 discriminator 4
+ 129 00a0 BDE8F883 		pop	{r3, r4, r5, r6, r7, r8, r9, pc}
+ 130              	.LVL15:
+ 131              	.L4:
+ 251:si5351.c      ****     }
+ 132              		.loc 1 251 0
+ 133 00a4 4FF0FF30 		mov	r0, #-1
+ 134              	.LVL16:
+ 295:si5351.c      **** }
+ 135              		.loc 1 295 0
+ 136 00a8 BDE8F883 		pop	{r3, r4, r5, r6, r7, r8, r9, pc}
+ 137              	.LVL17:
+ 138              	.L8:
+ 139              		.align	2
+ 140              	.L7:
+ 141 00ac 00000000 		.word	freq_ref
+ 142 00b0 FFFF0F00 		.word	1048575
+ 143              		.cfi_endproc
+ 144              	.LFE5:
+ 145              		.size	pll_calc, .-pll_calc
+ 146              		.section	.text.multisynth_calc,"ax",%progbits
+ 147              		.align	2
+ 148              		.thumb
+ 149              		.thumb_func
+ 150              		.type	multisynth_calc, %function
+ 151              	multisynth_calc:
+ 152              	.LFB6:
+ 296:si5351.c      **** 
+ 297:si5351.c      **** static int32_t multisynth_calc(int32_t freq, int32_t pll_freq, uint8_t *clk_ctrl, uint8_t *regs)
+ 298:si5351.c      **** {
+ 153              		.loc 1 298 0
+ 154              		.cfi_startproc
+ 155              		@ args = 0, pretend = 0, frame = 0
+ 156              		@ frame_needed = 0, uses_anonymous_args = 0
+ 157              	.LVL18:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 9
+
+
+ 158 0000 2DE9F047 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
+ 159              		.cfi_def_cfa_offset 32
+ 160              		.cfi_offset 4, -32
+ 161              		.cfi_offset 5, -28
+ 162              		.cfi_offset 6, -24
+ 163              		.cfi_offset 7, -20
+ 164              		.cfi_offset 8, -16
+ 165              		.cfi_offset 9, -12
+ 166              		.cfi_offset 10, -8
+ 167              		.cfi_offset 14, -4
+ 168 0004 1746     		mov	r7, r2
+ 169 0006 1E46     		mov	r6, r3
+ 299:si5351.c      ****     int32_t a, b, c;
+ 300:si5351.c      ****     uint32_t p1, p2, p3;
+ 301:si5351.c      ****     int r0, divby4, ms_int;
+ 302:si5351.c      ****     int32_t target_pll_freq;
+ 303:si5351.c      **** 
+ 304:si5351.c      ****     /* Calculate parameters */
+ 305:si5351.c      ****     if (freq >= SI5351_MULTISYNTH_DIVBY4_FREQ) {
+ 170              		.loc 1 305 0
+ 171 0008 474B     		ldr	r3, .L33
+ 172              	.LVL19:
+ 173 000a 9842     		cmp	r0, r3
+ 174 000c 08DD     		ble	.L10
+ 306:si5351.c      ****         pll_freq = 4 * freq;
+ 175              		.loc 1 306 0
+ 176 000e 8500     		lsls	r5, r0, #2
+ 177              	.LVL20:
+ 307:si5351.c      ****         p1 = 0;
+ 308:si5351.c      ****         p2 = 0;
+ 309:si5351.c      ****         p3 = 1;
+ 310:si5351.c      ****         ms_int = 1;
+ 178              		.loc 1 310 0
+ 179 0010 0122     		movs	r2, #1
+ 180              	.LVL21:
+ 311:si5351.c      ****         divby4 = 3;
+ 181              		.loc 1 311 0
+ 182 0012 4FF0030E 		mov	lr, #3
+ 312:si5351.c      ****         r0 = 0;
+ 183              		.loc 1 312 0
+ 184 0016 0024     		movs	r4, #0
+ 309:si5351.c      ****         ms_int = 1;
+ 185              		.loc 1 309 0
+ 186 0018 1346     		mov	r3, r2
+ 308:si5351.c      ****         p3 = 1;
+ 187              		.loc 1 308 0
+ 188 001a 2046     		mov	r0, r4
+ 189              	.LVL22:
+ 307:si5351.c      ****         p2 = 0;
+ 190              		.loc 1 307 0
+ 191 001c 2146     		mov	r1, r4
+ 192 001e 55E0     		b	.L11
+ 193              	.LVL23:
+ 194              	.L10:
+ 195 0020 8E46     		mov	lr, r1
+ 313:si5351.c      ****     } else{
+ 314:si5351.c      ****         target_pll_freq = pll_freq ? pll_freq : SI5351_PLL_VCO_MAX;        
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 10
+
+
+ 196              		.loc 1 314 0
+ 197 0022 09B9     		cbnz	r1, .L24
+ 198 0024 414D     		ldr	r5, .L33+4
+ 199 0026 00E0     		b	.L12
+ 200              	.L24:
+ 201 0028 0D46     		mov	r5, r1
+ 202              	.L12:
+ 203              	.LVL24:
+ 315:si5351.c      ****         r0 = 0;
+ 204              		.loc 1 315 0 discriminator 4
+ 205 002a 0024     		movs	r4, #0
+ 206              	.LVL25:
+ 207              	.L19:
+ 316:si5351.c      ****         for (;;) {
+ 317:si5351.c      ****             a = target_pll_freq / (freq << r0);
+ 208              		.loc 1 317 0
+ 209 002c 00FA04F2 		lsl	r2, r0, r4
+ 210 0030 95FBF2F3 		sdiv	r3, r5, r2
+ 211              	.LVL26:
+ 318:si5351.c      ****             b = target_pll_freq % (freq << r0);
+ 212              		.loc 1 318 0
+ 213 0034 02FB1351 		mls	r1, r2, r3, r5
+ 214              	.LVL27:
+ 319:si5351.c      ****                 
+ 320:si5351.c      ****             if ((a >= SI5351_MULTISYNTH_A_MIN) &&
+ 215              		.loc 1 320 0
+ 216 0038 052B     		cmp	r3, #5
+ 217 003a 0EDD     		ble	.L13
+ 218              		.loc 1 320 0 is_stmt 0 discriminator 1
+ 219 003c B3F5E16F 		cmp	r3, #1800
+ 220 0040 01DB     		blt	.L14
+ 321:si5351.c      ****               ((a < SI5351_MULTISYNTH_A_MAX) ||
+ 221              		.loc 1 321 0 is_stmt 1
+ 222 0042 0AD1     		bne	.L13
+ 322:si5351.c      ****               ((a == SI5351_MULTISYNTH_A_MAX) && (b == 0)))) {
+ 223              		.loc 1 322 0
+ 224 0044 49B9     		cbnz	r1, .L13
+ 225              	.L14:
+ 323:si5351.c      ****                 if (pll_freq == 0) {
+ 226              		.loc 1 323 0
+ 227 0046 BEF1000F 		cmp	lr, #0
+ 228 004a 10D1     		bne	.L15
+ 324:si5351.c      ****                     /* make even and remain in range */
+ 325:si5351.c      ****                     if (a & 1) {
+ 229              		.loc 1 325 0
+ 230 004c 13F0010F 		tst	r3, #1
+ 231 0050 00D0     		beq	.L16
+ 326:si5351.c      ****                         a--;
+ 232              		.loc 1 326 0
+ 233 0052 013B     		subs	r3, r3, #1
+ 234              	.LVL28:
+ 235              	.L16:
+ 327:si5351.c      ****                     }
+ 328:si5351.c      ****                     target_pll_freq = a * (freq << r0);
+ 236              		.loc 1 328 0
+ 237 0054 02FB03F5 		mul	r5, r2, r3
+ 238              	.LVL29:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 11
+
+
+ 239 0058 09E0     		b	.L15
+ 240              	.L13:
+ 329:si5351.c      ****                 }
+ 330:si5351.c      ****                 break;
+ 331:si5351.c      ****             }
+ 332:si5351.c      ****                 
+ 333:si5351.c      ****             if ((a > SI5351_MULTISYNTH_A_MAX) ||
+ 241              		.loc 1 333 0
+ 242 005a B3F5E16F 		cmp	r3, #1800
+ 243 005e 02DC     		bgt	.L17
+ 244              		.loc 1 333 0 is_stmt 0 discriminator 1
+ 245 0060 56D1     		bne	.L25
+ 334:si5351.c      ****               ((a == SI5351_MULTISYNTH_A_MAX) && (b != 0))) {
+ 246              		.loc 1 334 0 is_stmt 1
+ 247 0062 0029     		cmp	r1, #0
+ 248 0064 58D0     		beq	.L26
+ 249              	.L17:
+ 335:si5351.c      ****                 /* too high a value of A */
+ 336:si5351.c      ****                 if (++r0 > 7) {
+ 250              		.loc 1 336 0
+ 251 0066 0134     		adds	r4, r4, #1
+ 252              	.LVL30:
+ 253 0068 072C     		cmp	r4, #7
+ 254 006a DFDD     		ble	.L19
+ 255 006c 58E0     		b	.L27
+ 256              	.L15:
+ 337:si5351.c      ****                     /* R0 out of range; error  */
+ 338:si5351.c      ****                     return (-1);
+ 339:si5351.c      ****                 }
+ 340:si5351.c      ****                 continue;
+ 341:si5351.c      ****             }
+ 342:si5351.c      ****             
+ 343:si5351.c      ****             /* too low a value of A */
+ 344:si5351.c      ****             /* XXX: think this is always an error */
+ 345:si5351.c      ****             return (-1);
+ 346:si5351.c      ****         }
+ 347:si5351.c      ****         
+ 348:si5351.c      ****         if (pll_freq == 0)
+ 257              		.loc 1 348 0
+ 258 006e BEF1000F 		cmp	lr, #0
+ 259 0072 00D0     		beq	.L20
+ 260 0074 7546     		mov	r5, lr
+ 261              	.LVL31:
+ 262              	.L20:
+ 349:si5351.c      ****             pll_freq = target_pll_freq;
+ 350:si5351.c      ****         /* PLL chosen */
+ 351:si5351.c      **** 
+ 352:si5351.c      ****         a = pll_freq / (freq << r0);
+ 263              		.loc 1 352 0
+ 264 0076 95FBF2FA 		sdiv	r10, r5, r2
+ 265              	.LVL32:
+ 353:si5351.c      ****         b = ((uint64_t)(pll_freq % (freq << r0)) * RFRAC_DENOM) /
+ 266              		.loc 1 353 0
+ 267 007a 02FB1A53 		mls	r3, r2, r10, r5
+ 268 007e 9846     		mov	r8, r3
+ 269 0080 4FEAE379 		asr	r9, r3, #31
+ 270 0084 4FEA095E 		lsl	lr, r9, #20
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 12
+
+
+ 271 0088 1805     		lsls	r0, r3, #20
+ 272              	.LVL33:
+ 273 008a 4EEA1331 		orr	r1, lr, r3, lsr #12
+ 274              	.LVL34:
+ 275 008e D317     		asrs	r3, r2, #31
+ 276 0090 B0EB0800 		subs	r0, r0, r8
+ 277 0094 61EB0901 		sbc	r1, r1, r9
+ 278 0098 FFF7FEFF 		bl	__aeabi_uldivmod
+ 279              	.LVL35:
+ 354:si5351.c      ****           (freq << r0);
+ 355:si5351.c      ****         ms_int = ((a % 2) == 0) && (b == 0);
+ 280              		.loc 1 355 0
+ 281 009c 1AF0010F 		tst	r10, #1
+ 282 00a0 02D1     		bne	.L28
+ 283              		.loc 1 355 0 is_stmt 0 discriminator 1
+ 284 00a2 18B1     		cbz	r0, .L29
+ 285              		.loc 1 355 0
+ 286 00a4 0022     		movs	r2, #0
+ 287 00a6 02E0     		b	.L21
+ 288              	.L28:
+ 289 00a8 0022     		movs	r2, #0
+ 290 00aa 00E0     		b	.L21
+ 291              	.L29:
+ 292 00ac 0122     		movs	r2, #1
+ 293              	.L21:
+ 294              	.LVL36:
+ 356:si5351.c      ****         c = b ? RFRAC_DENOM : 1;
+ 295              		.loc 1 356 0 is_stmt 1 discriminator 6
+ 296 00ae 08B1     		cbz	r0, .L30
+ 297              		.loc 1 356 0 is_stmt 0
+ 298 00b0 1F4B     		ldr	r3, .L33+8
+ 299 00b2 00E0     		b	.L22
+ 300              	.L30:
+ 301 00b4 0123     		movs	r3, #1
+ 302              	.L22:
+ 303              	.LVL37:
+ 357:si5351.c      ****         
+ 358:si5351.c      ****         p1 = 128 * a + ((128 * b) / c) - 512;
+ 304              		.loc 1 358 0 is_stmt 1 discriminator 4
+ 305 00b6 C001     		lsls	r0, r0, #7
+ 306              	.LVL38:
+ 307 00b8 90FBF3FE 		sdiv	lr, r0, r3
+ 308 00bc 0EEBCA11 		add	r1, lr, r10, lsl #7
+ 309 00c0 A1F50071 		sub	r1, r1, #512
+ 310              	.LVL39:
+ 359:si5351.c      ****         p2 = 128 * b - c * ((128 * b) / c);
+ 311              		.loc 1 359 0 discriminator 4
+ 312 00c4 03FB1E00 		mls	r0, r3, lr, r0
+ 313              	.LVL40:
+ 360:si5351.c      ****         p3 = c;
+ 361:si5351.c      ****         divby4 = 0;
+ 314              		.loc 1 361 0 discriminator 4
+ 315 00c8 4FF0000E 		mov	lr, #0
+ 316              	.LVL41:
+ 317              	.L11:
+ 362:si5351.c      **** 
+ 363:si5351.c      ****     }
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 13
+
+
+ 364:si5351.c      ****     
+ 365:si5351.c      ****     *clk_ctrl = ms_int ? SI5351_CLK_INTEGER_MODE : 0;
+ 318              		.loc 1 365 0
+ 319 00cc 0AB1     		cbz	r2, .L31
+ 320 00ce 4022     		movs	r2, #64
+ 321              	.LVL42:
+ 322 00d0 00E0     		b	.L23
+ 323              	.LVL43:
+ 324              	.L31:
+ 325 00d2 0022     		movs	r2, #0
+ 326              	.LVL44:
+ 327              	.L23:
+ 328              		.loc 1 365 0 is_stmt 0 discriminator 4
+ 329 00d4 3A70     		strb	r2, [r7]
+ 366:si5351.c      ****     
+ 367:si5351.c      ****     /* Registers 42-43 */
+ 368:si5351.c      ****     regs[0] = (uint8_t) (p3 >> 8);
+ 330              		.loc 1 368 0 is_stmt 1 discriminator 4
+ 331 00d6 C3F30722 		ubfx	r2, r3, #8, #8
+ 332 00da 3270     		strb	r2, [r6]
+ 369:si5351.c      ****     regs[1] = (uint8_t) p3;
+ 333              		.loc 1 369 0 discriminator 4
+ 334 00dc 7370     		strb	r3, [r6, #1]
+ 370:si5351.c      **** 
+ 371:si5351.c      ****     /* Register 44 */
+ 372:si5351.c      ****     regs[2] = (uint8_t) ((p1 >> 16) & 0x03) |
+ 335              		.loc 1 372 0 discriminator 4
+ 336 00de C1F30142 		ubfx	r2, r1, #16, #2
+ 337 00e2 42EA0414 		orr	r4, r2, r4, lsl #4
+ 338              	.LVL45:
+ 339 00e6 44EA8E04 		orr	r4, r4, lr, lsl #2
+ 340 00ea B470     		strb	r4, [r6, #2]
+ 373:si5351.c      ****       (r0 << 4) | (divby4 << 2);
+ 374:si5351.c      **** 
+ 375:si5351.c      ****     /* Registers 45-46 */
+ 376:si5351.c      ****     regs[3] = (uint8_t) (p1 >> 8);
+ 341              		.loc 1 376 0 discriminator 4
+ 342 00ec C1F30722 		ubfx	r2, r1, #8, #8
+ 343 00f0 F270     		strb	r2, [r6, #3]
+ 377:si5351.c      ****     regs[4] = (uint8_t) p1;
+ 344              		.loc 1 377 0 discriminator 4
+ 345 00f2 3171     		strb	r1, [r6, #4]
+ 378:si5351.c      **** 
+ 379:si5351.c      ****     /* Register 47 */
+ 380:si5351.c      ****     regs[5] = (uint8_t) ((p3 >> 12) & 0xF0) |
+ 346              		.loc 1 380 0 discriminator 4
+ 347 00f4 1B0B     		lsrs	r3, r3, #12
+ 348              	.LVL46:
+ 349 00f6 23F00F03 		bic	r3, r3, #15
+ 350 00fa C0F30342 		ubfx	r2, r0, #16, #4
+ 351 00fe 1343     		orrs	r3, r3, r2
+ 352 0100 7371     		strb	r3, [r6, #5]
+ 381:si5351.c      ****       ((p2 >> 16) & 0x0F);
+ 382:si5351.c      **** 
+ 383:si5351.c      ****     /* Registers 48-49 */
+ 384:si5351.c      ****     regs[6] = (uint8_t) (p2 >> 8);
+ 353              		.loc 1 384 0 discriminator 4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 14
+
+
+ 354 0102 C0F30723 		ubfx	r3, r0, #8, #8
+ 355 0106 B371     		strb	r3, [r6, #6]
+ 385:si5351.c      ****     regs[7] = (uint8_t) p2;
+ 356              		.loc 1 385 0 discriminator 4
+ 357 0108 F071     		strb	r0, [r6, #7]
+ 386:si5351.c      **** 
+ 387:si5351.c      ****     return (pll_freq);
+ 358              		.loc 1 387 0 discriminator 4
+ 359 010a 2846     		mov	r0, r5
+ 360              	.LVL47:
+ 361 010c BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 362              	.LVL48:
+ 363              	.L25:
+ 345:si5351.c      ****         }
+ 364              		.loc 1 345 0
+ 365 0110 4FF0FF30 		mov	r0, #-1
+ 366              	.LVL49:
+ 367 0114 BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 368              	.LVL50:
+ 369              	.L26:
+ 370 0118 4FF0FF30 		mov	r0, #-1
+ 371              	.LVL51:
+ 372 011c BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 373              	.LVL52:
+ 374              	.L27:
+ 338:si5351.c      ****                 }
+ 375              		.loc 1 338 0
+ 376 0120 4FF0FF30 		mov	r0, #-1
+ 377              	.LVL53:
+ 388:si5351.c      **** }
+ 378              		.loc 1 388 0
+ 379 0124 BDE8F087 		pop	{r4, r5, r6, r7, r8, r9, r10, pc}
+ 380              	.LVL54:
+ 381              	.L34:
+ 382              		.align	2
+ 383              	.L33:
+ 384 0128 7FD1F008 		.word	149999999
+ 385 012c 00E9A435 		.word	900000000
+ 386 0130 FFFF0F00 		.word	1048575
+ 387              		.cfi_endproc
+ 388              	.LFE6:
+ 389              		.size	multisynth_calc, .-multisynth_calc
+ 390              		.section	.text.si5351_calibration_mode,"ax",%progbits
+ 391              		.align	2
+ 392              		.global	si5351_calibration_mode
+ 393              		.thumb
+ 394              		.thumb_func
+ 395              		.type	si5351_calibration_mode, %function
+ 396              	si5351_calibration_mode:
+ 397              	.LFB1:
+  88:si5351.c      ****     
+ 398              		.loc 1 88 0
+ 399              		.cfi_startproc
+ 400              		@ args = 0, pretend = 0, frame = 0
+ 401              		@ frame_needed = 0, uses_anonymous_args = 0
+ 402              	.LVL55:
+ 403 0000 08B5     		push	{r3, lr}
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 15
+
+
+ 404              		.cfi_def_cfa_offset 8
+ 405              		.cfi_offset 3, -8
+ 406              		.cfi_offset 14, -4
+  90:si5351.c      ****         SI5351_WRITE_BYTE(SI5351_FANOUT_ENABLE,
+ 407              		.loc 1 90 0
+ 408 0002 88B1     		cbz	r0, .L36
+  92:si5351.c      ****         SI5351_WRITE_BYTE(SI5351_CLK0_CTRL,
+ 409              		.loc 1 92 0
+ 410 0004 BB20     		movs	r0, #187
+ 411              	.LVL56:
+ 412 0006 FFF7FEFF 		bl	si5351_read_byte
+ 413              	.LVL57:
+  91:si5351.c      ****           SI5351_READ_BYTE(SI5351_FANOUT_ENABLE) | SI5351_XTAL_ENABLE);
+ 414              		.loc 1 91 0
+ 415 000a 40F04001 		orr	r1, r0, #64
+ 416 000e C9B2     		uxtb	r1, r1
+ 417 0010 BB20     		movs	r0, #187
+ 418 0012 FFF7FEFF 		bl	si5351_write_byte
+ 419              	.LVL58:
+  94:si5351.c      ****           SI5351_CLK_INPUT_XTAL);
+ 420              		.loc 1 94 0
+ 421 0016 1020     		movs	r0, #16
+ 422 0018 FFF7FEFF 		bl	si5351_read_byte
+ 423              	.LVL59:
+  93:si5351.c      ****           (SI5351_READ_BYTE(SI5351_CLK0_CTRL) & ~SI5351_CLK_INPUT_MASK) |
+ 424              		.loc 1 93 0
+ 425 001c 00F0F301 		and	r1, r0, #243
+ 426 0020 1020     		movs	r0, #16
+ 427 0022 FFF7FEFF 		bl	si5351_write_byte
+ 428              	.LVL60:
+ 429 0026 08BD     		pop	{r3, pc}
+ 430              	.LVL61:
+ 431              	.L36:
+  98:si5351.c      ****           SI5351_CLK_INPUT_MULTISYNTH_N);
+ 432              		.loc 1 98 0
+ 433 0028 1020     		movs	r0, #16
+ 434              	.LVL62:
+ 435 002a FFF7FEFF 		bl	si5351_read_byte
+ 436              	.LVL63:
+  97:si5351.c      ****           (SI5351_READ_BYTE(SI5351_CLK0_CTRL) & ~SI5351_CLK_INPUT_MASK) |
+ 437              		.loc 1 97 0
+ 438 002e 40F00C01 		orr	r1, r0, #12
+ 439 0032 C9B2     		uxtb	r1, r1
+ 440 0034 1020     		movs	r0, #16
+ 441 0036 FFF7FEFF 		bl	si5351_write_byte
+ 442              	.LVL64:
+ 101:si5351.c      ****     }
+ 443              		.loc 1 101 0
+ 444 003a BB20     		movs	r0, #187
+ 445 003c FFF7FEFF 		bl	si5351_read_byte
+ 446              	.LVL65:
+ 100:si5351.c      ****           SI5351_READ_BYTE(SI5351_FANOUT_ENABLE) & ~SI5351_XTAL_ENABLE);
+ 447              		.loc 1 100 0
+ 448 0040 00F0BF01 		and	r1, r0, #191
+ 449 0044 BB20     		movs	r0, #187
+ 450 0046 FFF7FEFF 		bl	si5351_write_byte
+ 451              	.LVL66:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 16
+
+
+ 452 004a 08BD     		pop	{r3, pc}
+ 453              		.cfi_endproc
+ 454              	.LFE1:
+ 455              		.size	si5351_calibration_mode, .-si5351_calibration_mode
+ 456              		.section	.text.si5351_clock_enable,"ax",%progbits
+ 457              		.align	2
+ 458              		.global	si5351_clock_enable
+ 459              		.thumb
+ 460              		.thumb_func
+ 461              		.type	si5351_clock_enable, %function
+ 462              	si5351_clock_enable:
+ 463              	.LFB2:
+ 114:si5351.c      ****     uint8_t reg_val;
+ 464              		.loc 1 114 0
+ 465              		.cfi_startproc
+ 466              		@ args = 0, pretend = 0, frame = 0
+ 467              		@ frame_needed = 0, uses_anonymous_args = 0
+ 468              	.LVL67:
+ 469 0000 38B5     		push	{r3, r4, r5, lr}
+ 470              		.cfi_def_cfa_offset 16
+ 471              		.cfi_offset 3, -16
+ 472              		.cfi_offset 4, -12
+ 473              		.cfi_offset 5, -8
+ 474              		.cfi_offset 14, -4
+ 475 0002 0446     		mov	r4, r0
+ 476 0004 0D46     		mov	r5, r1
+ 117:si5351.c      ****       (1 << (uint8_t)clk);
+ 477              		.loc 1 117 0
+ 478 0006 0320     		movs	r0, #3
+ 479              	.LVL68:
+ 480 0008 FFF7FEFF 		bl	si5351_read_byte
+ 481              	.LVL69:
+ 118:si5351.c      **** 
+ 482              		.loc 1 118 0
+ 483 000c 0123     		movs	r3, #1
+ 484 000e A340     		lsls	r3, r3, r4
+ 117:si5351.c      ****       (1 << (uint8_t)clk);
+ 485              		.loc 1 117 0
+ 486 0010 5BB2     		sxtb	r3, r3
+ 487 0012 1843     		orrs	r0, r0, r3
+ 488 0014 40B2     		sxtb	r0, r0
+ 489 0016 C1B2     		uxtb	r1, r0
+ 490              	.LVL70:
+ 120:si5351.c      ****         reg_val &= ~(1<<(uint8_t)clk);
+ 491              		.loc 1 120 0
+ 492 0018 15B1     		cbz	r5, .L40
+ 121:si5351.c      ****     }
+ 493              		.loc 1 121 0
+ 494 001a 20EA0300 		bic	r0, r0, r3
+ 495 001e C1B2     		uxtb	r1, r0
+ 496              	.LVL71:
+ 497              	.L40:
+ 123:si5351.c      ****     
+ 498              		.loc 1 123 0
+ 499 0020 0320     		movs	r0, #3
+ 500 0022 FFF7FEFF 		bl	si5351_write_byte
+ 501              	.LVL72:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 17
+
+
+ 125:si5351.c      ****         clock_control[clk] &= ~SI5351_CLK_POWERDOWN;
+ 502              		.loc 1 125 0
+ 503 0026 2DB1     		cbz	r5, .L41
+ 126:si5351.c      ****     } else {
+ 504              		.loc 1 126 0
+ 505 0028 094A     		ldr	r2, .L44
+ 506 002a 135D     		ldrb	r3, [r2, r4]	@ zero_extendqisi2
+ 507 002c 03F07F03 		and	r3, r3, #127
+ 508 0030 1355     		strb	r3, [r2, r4]
+ 509 0032 04E0     		b	.L42
+ 510              	.L41:
+ 128:si5351.c      ****     }
+ 511              		.loc 1 128 0
+ 512 0034 064A     		ldr	r2, .L44
+ 513 0036 135D     		ldrb	r3, [r2, r4]	@ zero_extendqisi2
+ 514 0038 63F07F03 		orn	r3, r3, #127
+ 515 003c 1355     		strb	r3, [r2, r4]
+ 516              	.L42:
+ 131:si5351.c      **** }
+ 517              		.loc 1 131 0
+ 518 003e 04F11000 		add	r0, r4, #16
+ 519 0042 034B     		ldr	r3, .L44
+ 520 0044 195D     		ldrb	r1, [r3, r4]	@ zero_extendqisi2
+ 521 0046 C0B2     		uxtb	r0, r0
+ 522 0048 FFF7FEFF 		bl	si5351_write_byte
+ 523              	.LVL73:
+ 524 004c 38BD     		pop	{r3, r4, r5, pc}
+ 525              	.LVL74:
+ 526              	.L45:
+ 527 004e 00BF     		.align	2
+ 528              	.L44:
+ 529 0050 00000000 		.word	clock_control
+ 530              		.cfi_endproc
+ 531              	.LFE2:
+ 532              		.size	si5351_clock_enable, .-si5351_clock_enable
+ 533              		.global	__aeabi_ldivmod
+ 534              		.section	.text.si5351_init,"ax",%progbits
+ 535              		.align	2
+ 536              		.global	si5351_init
+ 537              		.thumb
+ 538              		.thumb_func
+ 539              		.type	si5351_init, %function
+ 540              	si5351_init:
+ 541              	.LFB0:
+  53:si5351.c      ****     int clock;
+ 542              		.loc 1 53 0
+ 543              		.cfi_startproc
+ 544              		@ args = 0, pretend = 0, frame = 0
+ 545              		@ frame_needed = 0, uses_anonymous_args = 0
+ 546              	.LVL75:
+ 547 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 548              		.cfi_def_cfa_offset 24
+ 549              		.cfi_offset 3, -24
+ 550              		.cfi_offset 4, -20
+ 551              		.cfi_offset 5, -16
+ 552              		.cfi_offset 6, -12
+ 553              		.cfi_offset 7, -8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 18
+
+
+ 554              		.cfi_offset 14, -4
+ 555 0002 0546     		mov	r5, r0
+ 556 0004 0E46     		mov	r6, r1
+ 557 0006 1446     		mov	r4, r2
+ 558              	.LVL76:
+ 559              	.L47:
+  59:si5351.c      ****         ;
+ 560              		.loc 1 59 0 discriminator 1
+ 561 0008 0020     		movs	r0, #0
+ 562 000a FFF7FEFF 		bl	si5351_read_byte
+ 563              	.LVL77:
+ 564 000e 10F0800F 		tst	r0, #128
+ 565 0012 F9D1     		bne	.L47
+  62:si5351.c      ****     SI5351_WRITE_BYTE(SI5351_CRYSTAL_LOAD, load_cap | 0x12);
+ 566              		.loc 1 62 0
+ 567 0014 FF21     		movs	r1, #255
+ 568 0016 0320     		movs	r0, #3
+ 569 0018 FFF7FEFF 		bl	si5351_write_byte
+ 570              	.LVL78:
+  63:si5351.c      ****     
+ 571              		.loc 1 63 0
+ 572 001c 44F01201 		orr	r1, r4, #18
+ 573 0020 C9B2     		uxtb	r1, r1
+ 574 0022 B720     		movs	r0, #183
+ 575 0024 FFF7FEFF 		bl	si5351_write_byte
+ 576              	.LVL79:
+  66:si5351.c      ****     clock_control[1] = SI5351_CLK_INPUT_MULTISYNTH_N | SI5351_CLK_PLL_SELECT;
+ 577              		.loc 1 66 0
+ 578 0028 134B     		ldr	r3, .L51
+ 579 002a 0C22     		movs	r2, #12
+ 580 002c 1A70     		strb	r2, [r3]
+  67:si5351.c      ****     clock_control[2] = SI5351_CLK_INPUT_MULTISYNTH_N | SI5351_CLK_PLL_SELECT;
+ 581              		.loc 1 67 0
+ 582 002e 2C22     		movs	r2, #44
+ 583 0030 5A70     		strb	r2, [r3, #1]
+  68:si5351.c      ****     
+ 584              		.loc 1 68 0
+ 585 0032 9A70     		strb	r2, [r3, #2]
+ 586              	.LVL80:
+  70:si5351.c      ****         si5351_clock_enable(clock, 0);
+ 587              		.loc 1 70 0
+ 588 0034 0024     		movs	r4, #0
+ 589              	.LVL81:
+ 590 0036 04E0     		b	.L48
+ 591              	.LVL82:
+ 592              	.L49:
+  71:si5351.c      **** 
+ 593              		.loc 1 71 0 discriminator 3
+ 594 0038 0021     		movs	r1, #0
+ 595 003a E0B2     		uxtb	r0, r4
+ 596 003c FFF7FEFF 		bl	si5351_clock_enable
+ 597              	.LVL83:
+  70:si5351.c      ****         si5351_clock_enable(clock, 0);
+ 598              		.loc 1 70 0 discriminator 3
+ 599 0040 0134     		adds	r4, r4, #1
+ 600              	.LVL84:
+ 601              	.L48:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 19
+
+
+  70:si5351.c      ****         si5351_clock_enable(clock, 0);
+ 602              		.loc 1 70 0 is_stmt 0 discriminator 1
+ 603 0042 072C     		cmp	r4, #7
+ 604 0044 F8DD     		ble	.L49
+  75:si5351.c      ****       10000000LL) * freq_xtal) >> 31);
+ 605              		.loc 1 75 0 is_stmt 1
+ 606 0046 F317     		asrs	r3, r6, #31
+ 607 0048 D907     		lsls	r1, r3, #31
+ 608 004a 0C4A     		ldr	r2, .L51+4
+ 609 004c 0023     		movs	r3, #0
+ 610 004e F007     		lsls	r0, r6, #31
+ 611 0050 41EA5601 		orr	r1, r1, r6, lsr #1
+ 612 0054 FFF7FEFF 		bl	__aeabi_ldivmod
+ 613              	.LVL85:
+  76:si5351.c      **** }
+ 614              		.loc 1 76 0
+ 615 0058 EF17     		asrs	r7, r5, #31
+ 616 005a 05FB01F3 		mul	r3, r5, r1
+ 617 005e 00FB0733 		mla	r3, r0, r7, r3
+ 618 0062 A5FB0001 		umull	r0, r1, r5, r0
+ 619 0066 1944     		add	r1, r1, r3
+ 620 0068 C30F     		lsrs	r3, r0, #31
+ 621 006a 43EA4103 		orr	r3, r3, r1, lsl #1
+  75:si5351.c      ****       10000000LL) * freq_xtal) >> 31);
+ 622              		.loc 1 75 0
+ 623 006e 2B44     		add	r3, r3, r5
+ 624 0070 034A     		ldr	r2, .L51+8
+ 625 0072 1360     		str	r3, [r2]
+ 626 0074 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 627              	.LVL86:
+ 628              	.L52:
+ 629 0076 00BF     		.align	2
+ 630              	.L51:
+ 631 0078 00000000 		.word	clock_control
+ 632 007c 80969800 		.word	10000000
+ 633 0080 00000000 		.word	freq_ref
+ 634              		.cfi_endproc
+ 635              	.LFE0:
+ 636              		.size	si5351_init, .-si5351_init
+ 637              		.section	.text.si5351_drive_strength,"ax",%progbits
+ 638              		.align	2
+ 639              		.global	si5351_drive_strength
+ 640              		.thumb
+ 641              		.thumb_func
+ 642              		.type	si5351_drive_strength, %function
+ 643              	si5351_drive_strength:
+ 644              	.LFB3:
+ 145:si5351.c      **** 
+ 645              		.loc 1 145 0
+ 646              		.cfi_startproc
+ 647              		@ args = 0, pretend = 0, frame = 0
+ 648              		@ frame_needed = 0, uses_anonymous_args = 0
+ 649              	.LVL87:
+ 650 0000 08B5     		push	{r3, lr}
+ 651              		.cfi_def_cfa_offset 8
+ 652              		.cfi_offset 3, -8
+ 653              		.cfi_offset 14, -4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 20
+
+
+ 147:si5351.c      **** 
+ 654              		.loc 1 147 0
+ 655 0002 104A     		ldr	r2, .L59
+ 656 0004 135C     		ldrb	r3, [r2, r0]	@ zero_extendqisi2
+ 657 0006 03F0FC03 		and	r3, r3, #252
+ 658 000a 1354     		strb	r3, [r2, r0]
+ 149:si5351.c      ****     case SI5351_DRIVE_2MA:
+ 659              		.loc 1 149 0
+ 660 000c 0229     		cmp	r1, #2
+ 661 000e 07D0     		beq	.L55
+ 662 0010 0329     		cmp	r1, #3
+ 663 0012 0AD0     		beq	.L56
+ 664 0014 0129     		cmp	r1, #1
+ 665 0016 0CD1     		bne	.L54
+ 154:si5351.c      ****         break;
+ 666              		.loc 1 154 0
+ 667 0018 43F00103 		orr	r3, r3, #1
+ 668 001c 1354     		strb	r3, [r2, r0]
+ 155:si5351.c      ****     case SI5351_DRIVE_6MA:
+ 669              		.loc 1 155 0
+ 670 001e 08E0     		b	.L54
+ 671              	.L55:
+ 157:si5351.c      ****         break;
+ 672              		.loc 1 157 0
+ 673 0020 43F00203 		orr	r3, r3, #2
+ 674 0024 074A     		ldr	r2, .L59
+ 675 0026 1354     		strb	r3, [r2, r0]
+ 158:si5351.c      ****     case SI5351_DRIVE_8MA:
+ 676              		.loc 1 158 0
+ 677 0028 03E0     		b	.L54
+ 678              	.L56:
+ 160:si5351.c      ****         break;
+ 679              		.loc 1 160 0
+ 680 002a 43F00303 		orr	r3, r3, #3
+ 681 002e 054A     		ldr	r2, .L59
+ 682 0030 1354     		strb	r3, [r2, r0]
+ 683              	.L54:
+ 164:si5351.c      **** }
+ 684              		.loc 1 164 0
+ 685 0032 00F11003 		add	r3, r0, #16
+ 686 0036 034A     		ldr	r2, .L59
+ 687 0038 115C     		ldrb	r1, [r2, r0]	@ zero_extendqisi2
+ 688              	.LVL88:
+ 689 003a D8B2     		uxtb	r0, r3
+ 690              	.LVL89:
+ 691 003c FFF7FEFF 		bl	si5351_write_byte
+ 692              	.LVL90:
+ 693 0040 08BD     		pop	{r3, pc}
+ 694              	.L60:
+ 695 0042 00BF     		.align	2
+ 696              	.L59:
+ 697 0044 00000000 		.word	clock_control
+ 698              		.cfi_endproc
+ 699              	.LFE3:
+ 700              		.size	si5351_drive_strength, .-si5351_drive_strength
+ 701              		.section	.text.si5351_set_frequency,"ax",%progbits
+ 702              		.align	2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 21
+
+
+ 703              		.global	si5351_set_frequency
+ 704              		.thumb
+ 705              		.thumb_func
+ 706              		.type	si5351_set_frequency, %function
+ 707              	si5351_set_frequency:
+ 708              	.LFB4:
+ 172:si5351.c      ****     uint8_t clk_ctrl, pllregs[8], msregs[8];
+ 709              		.loc 1 172 0
+ 710              		.cfi_startproc
+ 711              		@ args = 0, pretend = 0, frame = 24
+ 712              		@ frame_needed = 0, uses_anonymous_args = 0
+ 713              	.LVL91:
+ 714 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 715              		.cfi_def_cfa_offset 24
+ 716              		.cfi_offset 4, -24
+ 717              		.cfi_offset 5, -20
+ 718              		.cfi_offset 6, -16
+ 719              		.cfi_offset 7, -12
+ 720              		.cfi_offset 8, -8
+ 721              		.cfi_offset 14, -4
+ 722 0004 86B0     		sub	sp, sp, #24
+ 723              		.cfi_def_cfa_offset 48
+ 724 0006 0646     		mov	r6, r0
+ 725 0008 1446     		mov	r4, r2
+ 726 000a 1F46     		mov	r7, r3
+ 727              	.LVL92:
+ 181:si5351.c      ****     
+ 728              		.loc 1 181 0
+ 729 000c 01AB     		add	r3, sp, #4
+ 730              	.LVL93:
+ 731 000e 0DF11702 		add	r2, sp, #23
+ 732              	.LVL94:
+ 733 0012 FFF7FEFF 		bl	multisynth_calc
+ 734              	.LVL95:
+ 735 0016 0546     		mov	r5, r0
+ 736              	.LVL96:
+ 186:si5351.c      ****     case SI5351_CLK0:
+ 737              		.loc 1 186 0
+ 738 0018 14B1     		cbz	r4, .L63
+ 739 001a 022C     		cmp	r4, #2
+ 740 001c 16D8     		bhi	.L71
+ 741 001e 07E0     		b	.L75
+ 742              	.L63:
+ 189:si5351.c      ****         break;
+ 743              		.loc 1 189 0
+ 744 0020 2F4B     		ldr	r3, .L78
+ 745 0022 1E68     		ldr	r6, [r3]
+ 746              	.LVL97:
+ 747 0024 361A     		subs	r6, r6, r0
+ 748 0026 18BF     		it	ne
+ 749 0028 0126     		movne	r6, #1
+ 750              	.LVL98:
+ 188:si5351.c      ****         program_pll = (plla_freq != pll_freq);
+ 751              		.loc 1 188 0
+ 752 002a 4FF00008 		mov	r8, #0
+ 190:si5351.c      ****     /* CLK1 and CLK2 share PLLB; first programmed sets PLL freq */
+ 753              		.loc 1 190 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 22
+
+
+ 754 002e 12E0     		b	.L62
+ 755              	.LVL99:
+ 756              	.L75:
+ 195:si5351.c      ****             pll_freq = multisynth_calc(freq, pllb_freq, &clk_ctrl, msregs);
+ 757              		.loc 1 195 0
+ 758 0030 2C4B     		ldr	r3, .L78+4
+ 759 0032 1968     		ldr	r1, [r3]
+ 760 0034 69B1     		cbz	r1, .L72
+ 196:si5351.c      ****         } else {
+ 761              		.loc 1 196 0
+ 762 0036 01AB     		add	r3, sp, #4
+ 763 0038 0DF11702 		add	r2, sp, #23
+ 764 003c 3046     		mov	r0, r6
+ 765              	.LVL100:
+ 766 003e FFF7FEFF 		bl	multisynth_calc
+ 767              	.LVL101:
+ 768 0042 0546     		mov	r5, r0
+ 769              	.LVL102:
+ 176:si5351.c      ****     
+ 770              		.loc 1 176 0
+ 771 0044 0026     		movs	r6, #0
+ 772              	.LVL103:
+ 194:si5351.c      ****         if (pllb_freq != 0) {
+ 773              		.loc 1 194 0
+ 774 0046 4FF00108 		mov	r8, #1
+ 775 004a 04E0     		b	.L62
+ 776              	.LVL104:
+ 777              	.L71:
+ 176:si5351.c      ****     
+ 778              		.loc 1 176 0
+ 779 004c 0026     		movs	r6, #0
+ 780              	.LVL105:
+ 175:si5351.c      ****     int program_pll = 0;
+ 781              		.loc 1 175 0
+ 782 004e B046     		mov	r8, r6
+ 783 0050 01E0     		b	.L62
+ 784              	.LVL106:
+ 785              	.L72:
+ 198:si5351.c      ****         }
+ 786              		.loc 1 198 0
+ 787 0052 0126     		movs	r6, #1
+ 788              	.LVL107:
+ 194:si5351.c      ****         if (pllb_freq != 0) {
+ 789              		.loc 1 194 0
+ 790 0054 B046     		mov	r8, r6
+ 791              	.LVL108:
+ 792              	.L62:
+ 206:si5351.c      ****         return (pll_freq);
+ 793              		.loc 1 206 0
+ 794 0056 002D     		cmp	r5, #0
+ 795 0058 3DDB     		blt	.L65
+ 210:si5351.c      ****         pll_freq = pll_calc(pll_freq, pllregs);
+ 796              		.loc 1 210 0
+ 797 005a D6B1     		cbz	r6, .L73
+ 211:si5351.c      ****         /* keep track of PLL programming */
+ 798              		.loc 1 211 0
+ 799 005c 03A9     		add	r1, sp, #12
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 23
+
+
+ 800 005e 2846     		mov	r0, r5
+ 801 0060 FFF7FEFF 		bl	pll_calc
+ 802              	.LVL109:
+ 803 0064 0546     		mov	r5, r0
+ 804              	.LVL110:
+ 213:si5351.c      ****         case SI5351_PLLA:
+ 805              		.loc 1 213 0
+ 806 0066 B8F1000F 		cmp	r8, #0
+ 807 006a 03D0     		beq	.L68
+ 808 006c B8F1000F 		cmp	r8, #0
+ 809 0070 05D1     		bne	.L69
+ 810 0072 09E0     		b	.L76
+ 811              	.L68:
+ 215:si5351.c      ****             addr = SI5351_PLLA_PARAMETERS;
+ 812              		.loc 1 215 0
+ 813 0074 1A4B     		ldr	r3, .L78
+ 814 0076 1860     		str	r0, [r3]
+ 216:si5351.c      ****             break;
+ 815              		.loc 1 216 0
+ 816 0078 4FF01A08 		mov	r8, #26
+ 817              	.LVL111:
+ 217:si5351.c      ****         case SI5351_PLLB:
+ 818              		.loc 1 217 0
+ 819 007c 06E0     		b	.L67
+ 820              	.LVL112:
+ 821              	.L69:
+ 219:si5351.c      ****             addr = SI5351_PLLB_PARAMETERS;
+ 822              		.loc 1 219 0
+ 823 007e 194B     		ldr	r3, .L78+4
+ 824 0080 1860     		str	r0, [r3]
+ 825              	.LVL113:
+ 220:si5351.c      ****             break;
+ 826              		.loc 1 220 0
+ 827 0082 4FF02208 		mov	r8, #34
+ 828              	.LVL114:
+ 221:si5351.c      ****         } 
+ 829              		.loc 1 221 0
+ 830 0086 01E0     		b	.L67
+ 831              	.LVL115:
+ 832              	.L76:
+ 174:si5351.c      ****     int pll_prog = SI5351_PLLA;
+ 833              		.loc 1 174 0
+ 834 0088 4FF01A08 		mov	r8, #26
+ 835              	.LVL116:
+ 836              	.L67:
+ 224:si5351.c      ****             return (pll_freq);
+ 837              		.loc 1 224 0
+ 838 008c 002D     		cmp	r5, #0
+ 839 008e 02DA     		bge	.L66
+ 840 0090 21E0     		b	.L65
+ 841              	.LVL117:
+ 842              	.L73:
+ 174:si5351.c      ****     int pll_prog = SI5351_PLLA;
+ 843              		.loc 1 174 0
+ 844 0092 4FF01A08 		mov	r8, #26
+ 845              	.LVL118:
+ 846              	.L66:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 24
+
+
+ 229:si5351.c      ****       ~SI5351_CLK_INTEGER_MODE) | clk_ctrl;
+ 847              		.loc 1 229 0
+ 848 0096 144A     		ldr	r2, .L78+8
+ 849 0098 115D     		ldrb	r1, [r2, r4]	@ zero_extendqisi2
+ 850 009a 21F04001 		bic	r1, r1, #64
+ 851 009e 9DF81730 		ldrb	r3, [sp, #23]	@ zero_extendqisi2
+ 852 00a2 1943     		orrs	r1, r1, r3
+ 853 00a4 1155     		strb	r1, [r2, r4]
+ 231:si5351.c      ****     if (program_pll) {
+ 854              		.loc 1 231 0
+ 855 00a6 04F11000 		add	r0, r4, #16
+ 856              	.LVL119:
+ 857 00aa C0B2     		uxtb	r0, r0
+ 858 00ac FFF7FEFF 		bl	si5351_write_byte
+ 859              	.LVL120:
+ 232:si5351.c      ****         SI5351_WRITE_XFER(addr, (uint8_t *) pllregs, 8);
+ 860              		.loc 1 232 0
+ 861 00b0 26B1     		cbz	r6, .L70
+ 233:si5351.c      ****     }
+ 862              		.loc 1 233 0
+ 863 00b2 0822     		movs	r2, #8
+ 864 00b4 03A9     		add	r1, sp, #12
+ 865 00b6 4046     		mov	r0, r8
+ 866 00b8 FFF7FEFF 		bl	si5351_write_xfer
+ 867              	.LVL121:
+ 868              	.L70:
+ 235:si5351.c      ****     if (reset) {
+ 869              		.loc 1 235 0
+ 870 00bc E000     		lsls	r0, r4, #3
+ 871 00be 2A30     		adds	r0, r0, #42
+ 872 00c0 0822     		movs	r2, #8
+ 873 00c2 01A9     		add	r1, sp, #4
+ 874 00c4 00F0FE00 		and	r0, r0, #254
+ 875 00c8 FFF7FEFF 		bl	si5351_write_xfer
+ 876              	.LVL122:
+ 236:si5351.c      ****         SI5351_WRITE_BYTE(177, 0xac);
+ 877              		.loc 1 236 0
+ 878 00cc 1FB1     		cbz	r7, .L65
+ 237:si5351.c      ****     }
+ 879              		.loc 1 237 0
+ 880 00ce AC21     		movs	r1, #172
+ 881 00d0 B120     		movs	r0, #177
+ 882 00d2 FFF7FEFF 		bl	si5351_write_byte
+ 883              	.LVL123:
+ 884              	.L65:
+ 241:si5351.c      **** 
+ 885              		.loc 1 241 0
+ 886 00d6 2846     		mov	r0, r5
+ 887 00d8 06B0     		add	sp, sp, #24
+ 888              		.cfi_def_cfa_offset 24
+ 889              		@ sp needed
+ 890 00da BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 891              	.LVL124:
+ 892              	.L79:
+ 893 00de 00BF     		.align	2
+ 894              	.L78:
+ 895 00e0 00000000 		.word	plla_freq
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 25
+
+
+ 896 00e4 00000000 		.word	pllb_freq
+ 897 00e8 00000000 		.word	clock_control
+ 898              		.cfi_endproc
+ 899              	.LFE4:
+ 900              		.size	si5351_set_frequency, .-si5351_set_frequency
+ 901              		.comm	clock_control,8,4
+ 902              		.comm	freq_ref,4,4
+ 903              		.comm	pllb_freq,4,4
+ 904              		.comm	plla_freq,4,4
+ 905              		.text
+ 906              	.Letext0:
+ 907              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.1\\psoc creator\\import\\gnu\\arm\\5.4.
+ 908              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.1\\psoc creator\\import\\gnu\\arm\\5.4.
+ 909              		.file 4 "si5351.h"
+ 910              		.section	.debug_info,"",%progbits
+ 911              	.Ldebug_info0:
+ 912 0000 01070000 		.4byte	0x701
+ 913 0004 0400     		.2byte	0x4
+ 914 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 915 000a 04       		.byte	0x4
+ 916 000b 01       		.uleb128 0x1
+ 917 000c B8030000 		.4byte	.LASF71
+ 918 0010 0C       		.byte	0xc
+ 919 0011 AF030000 		.4byte	.LASF72
+ 920 0015 EB000000 		.4byte	.LASF73
+ 921 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 922 001d 00000000 		.4byte	0
+ 923 0021 00000000 		.4byte	.Ldebug_line0
+ 924 0025 02       		.uleb128 0x2
+ 925 0026 04       		.byte	0x4
+ 926 0027 07       		.byte	0x7
+ 927 0028 E5010000 		.4byte	.LASF0
+ 928 002c 03       		.uleb128 0x3
+ 929 002d 04       		.byte	0x4
+ 930 002e 05       		.byte	0x5
+ 931 002f 696E7400 		.ascii	"int\000"
+ 932 0033 02       		.uleb128 0x2
+ 933 0034 08       		.byte	0x8
+ 934 0035 05       		.byte	0x5
+ 935 0036 DD000000 		.4byte	.LASF1
+ 936 003a 02       		.uleb128 0x2
+ 937 003b 08       		.byte	0x8
+ 938 003c 04       		.byte	0x4
+ 939 003d 86010000 		.4byte	.LASF2
+ 940 0041 02       		.uleb128 0x2
+ 941 0042 01       		.byte	0x1
+ 942 0043 06       		.byte	0x6
+ 943 0044 B9010000 		.4byte	.LASF3
+ 944 0048 04       		.uleb128 0x4
+ 945 0049 76010000 		.4byte	.LASF7
+ 946 004d 02       		.byte	0x2
+ 947 004e 1D       		.byte	0x1d
+ 948 004f 53000000 		.4byte	0x53
+ 949 0053 02       		.uleb128 0x2
+ 950 0054 01       		.byte	0x1
+ 951 0055 08       		.byte	0x8
+ 952 0056 9B010000 		.4byte	.LASF4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 26
+
+
+ 953 005a 02       		.uleb128 0x2
+ 954 005b 02       		.byte	0x2
+ 955 005c 05       		.byte	0x5
+ 956 005d 1D000000 		.4byte	.LASF5
+ 957 0061 02       		.uleb128 0x2
+ 958 0062 02       		.byte	0x2
+ 959 0063 07       		.byte	0x7
+ 960 0064 1B020000 		.4byte	.LASF6
+ 961 0068 04       		.uleb128 0x4
+ 962 0069 23030000 		.4byte	.LASF8
+ 963 006d 02       		.byte	0x2
+ 964 006e 3F       		.byte	0x3f
+ 965 006f 73000000 		.4byte	0x73
+ 966 0073 02       		.uleb128 0x2
+ 967 0074 04       		.byte	0x4
+ 968 0075 05       		.byte	0x5
+ 969 0076 5E010000 		.4byte	.LASF9
+ 970 007a 04       		.uleb128 0x4
+ 971 007b 56000000 		.4byte	.LASF10
+ 972 007f 02       		.byte	0x2
+ 973 0080 41       		.byte	0x41
+ 974 0081 85000000 		.4byte	0x85
+ 975 0085 02       		.uleb128 0x2
+ 976 0086 04       		.byte	0x4
+ 977 0087 07       		.byte	0x7
+ 978 0088 C7020000 		.4byte	.LASF11
+ 979 008c 04       		.uleb128 0x4
+ 980 008d 67010000 		.4byte	.LASF12
+ 981 0091 02       		.byte	0x2
+ 982 0092 59       		.byte	0x59
+ 983 0093 33000000 		.4byte	0x33
+ 984 0097 04       		.uleb128 0x4
+ 985 0098 7D020000 		.4byte	.LASF13
+ 986 009c 02       		.byte	0x2
+ 987 009d 5B       		.byte	0x5b
+ 988 009e A2000000 		.4byte	0xa2
+ 989 00a2 02       		.uleb128 0x2
+ 990 00a3 08       		.byte	0x8
+ 991 00a4 07       		.byte	0x7
+ 992 00a5 C5010000 		.4byte	.LASF14
+ 993 00a9 04       		.uleb128 0x4
+ 994 00aa B7000000 		.4byte	.LASF15
+ 995 00ae 03       		.byte	0x3
+ 996 00af 18       		.byte	0x18
+ 997 00b0 48000000 		.4byte	0x48
+ 998 00b4 04       		.uleb128 0x4
+ 999 00b5 4A020000 		.4byte	.LASF16
+ 1000 00b9 03       		.byte	0x3
+ 1001 00ba 2C       		.byte	0x2c
+ 1002 00bb 68000000 		.4byte	0x68
+ 1003 00bf 04       		.uleb128 0x4
+ 1004 00c0 DC010000 		.4byte	.LASF17
+ 1005 00c4 03       		.byte	0x3
+ 1006 00c5 30       		.byte	0x30
+ 1007 00c6 7A000000 		.4byte	0x7a
+ 1008 00ca 04       		.uleb128 0x4
+ 1009 00cb 8F000000 		.4byte	.LASF18
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 27
+
+
+ 1010 00cf 03       		.byte	0x3
+ 1011 00d0 38       		.byte	0x38
+ 1012 00d1 8C000000 		.4byte	0x8c
+ 1013 00d5 04       		.uleb128 0x4
+ 1014 00d6 14000000 		.4byte	.LASF19
+ 1015 00da 03       		.byte	0x3
+ 1016 00db 3C       		.byte	0x3c
+ 1017 00dc 97000000 		.4byte	0x97
+ 1018 00e0 05       		.uleb128 0x5
+ 1019 00e1 07000000 		.4byte	.LASF28
+ 1020 00e5 01       		.byte	0x1
+ 1021 00e6 53000000 		.4byte	0x53
+ 1022 00ea 04       		.byte	0x4
+ 1023 00eb C7       		.byte	0xc7
+ 1024 00ec 21010000 		.4byte	0x121
+ 1025 00f0 06       		.uleb128 0x6
+ 1026 00f1 4F030000 		.4byte	.LASF20
+ 1027 00f5 00       		.byte	0
+ 1028 00f6 06       		.uleb128 0x6
+ 1029 00f7 5B030000 		.4byte	.LASF21
+ 1030 00fb 01       		.byte	0x1
+ 1031 00fc 06       		.uleb128 0x6
+ 1032 00fd 67030000 		.4byte	.LASF22
+ 1033 0101 02       		.byte	0x2
+ 1034 0102 06       		.uleb128 0x6
+ 1035 0103 73030000 		.4byte	.LASF23
+ 1036 0107 03       		.byte	0x3
+ 1037 0108 06       		.uleb128 0x6
+ 1038 0109 7F030000 		.4byte	.LASF24
+ 1039 010d 04       		.byte	0x4
+ 1040 010e 06       		.uleb128 0x6
+ 1041 010f 8B030000 		.4byte	.LASF25
+ 1042 0113 05       		.byte	0x5
+ 1043 0114 06       		.uleb128 0x6
+ 1044 0115 97030000 		.4byte	.LASF26
+ 1045 0119 06       		.byte	0x6
+ 1046 011a 06       		.uleb128 0x6
+ 1047 011b A3030000 		.4byte	.LASF27
+ 1048 011f 07       		.byte	0x7
+ 1049 0120 00       		.byte	0
+ 1050 0121 05       		.uleb128 0x5
+ 1051 0122 12030000 		.4byte	.LASF29
+ 1052 0126 01       		.byte	0x1
+ 1053 0127 53000000 		.4byte	0x53
+ 1054 012b 04       		.byte	0x4
+ 1055 012c CA       		.byte	0xca
+ 1056 012d 3E010000 		.4byte	0x13e
+ 1057 0131 06       		.uleb128 0x6
+ 1058 0132 03020000 		.4byte	.LASF30
+ 1059 0136 00       		.byte	0
+ 1060 0137 06       		.uleb128 0x6
+ 1061 0138 0F020000 		.4byte	.LASF31
+ 1062 013c 01       		.byte	0x1
+ 1063 013d 00       		.byte	0
+ 1064 013e 05       		.uleb128 0x5
+ 1065 013f 88020000 		.4byte	.LASF32
+ 1066 0143 01       		.byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 28
+
+
+ 1067 0144 53000000 		.4byte	0x53
+ 1068 0148 04       		.byte	0x4
+ 1069 0149 CC       		.byte	0xcc
+ 1070 014a 67010000 		.4byte	0x167
+ 1071 014e 06       		.uleb128 0x6
+ 1072 014f 61000000 		.4byte	.LASF33
+ 1073 0153 00       		.byte	0
+ 1074 0154 06       		.uleb128 0x6
+ 1075 0155 F2010000 		.4byte	.LASF34
+ 1076 0159 01       		.byte	0x1
+ 1077 015a 06       		.uleb128 0x6
+ 1078 015b 4D010000 		.4byte	.LASF35
+ 1079 015f 02       		.byte	0x2
+ 1080 0160 06       		.uleb128 0x6
+ 1081 0161 30000000 		.4byte	.LASF36
+ 1082 0165 03       		.byte	0x3
+ 1083 0166 00       		.byte	0
+ 1084 0167 07       		.uleb128 0x7
+ 1085 0168 A9010000 		.4byte	.LASF39
+ 1086 016c 01       		.byte	0x1
+ 1087 016d F3       		.byte	0xf3
+ 1088 016e B4000000 		.4byte	0xb4
+ 1089 0172 00000000 		.4byte	.LFB5
+ 1090 0176 B4000000 		.4byte	.LFE5-.LFB5
+ 1091 017a 01       		.uleb128 0x1
+ 1092 017b 9C       		.byte	0x9c
+ 1093 017c F0010000 		.4byte	0x1f0
+ 1094 0180 08       		.uleb128 0x8
+ 1095 0181 D8000000 		.4byte	.LASF37
+ 1096 0185 01       		.byte	0x1
+ 1097 0186 F3       		.byte	0xf3
+ 1098 0187 B4000000 		.4byte	0xb4
+ 1099 018b 00000000 		.4byte	.LLST0
+ 1100 018f 08       		.uleb128 0x8
+ 1101 0190 46040000 		.4byte	.LASF38
+ 1102 0194 01       		.byte	0x1
+ 1103 0195 F3       		.byte	0xf3
+ 1104 0196 F0010000 		.4byte	0x1f0
+ 1105 019a 3A000000 		.4byte	.LLST1
+ 1106 019e 09       		.uleb128 0x9
+ 1107 019f 6100     		.ascii	"a\000"
+ 1108 01a1 01       		.byte	0x1
+ 1109 01a2 F5       		.byte	0xf5
+ 1110 01a3 BF000000 		.4byte	0xbf
+ 1111 01a7 71000000 		.4byte	.LLST2
+ 1112 01ab 09       		.uleb128 0x9
+ 1113 01ac 6200     		.ascii	"b\000"
+ 1114 01ae 01       		.byte	0x1
+ 1115 01af F5       		.byte	0xf5
+ 1116 01b0 BF000000 		.4byte	0xbf
+ 1117 01b4 A0000000 		.4byte	.LLST3
+ 1118 01b8 09       		.uleb128 0x9
+ 1119 01b9 6300     		.ascii	"c\000"
+ 1120 01bb 01       		.byte	0x1
+ 1121 01bc F5       		.byte	0xf5
+ 1122 01bd BF000000 		.4byte	0xbf
+ 1123 01c1 B3000000 		.4byte	.LLST4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 29
+
+
+ 1124 01c5 09       		.uleb128 0x9
+ 1125 01c6 703100   		.ascii	"p1\000"
+ 1126 01c9 01       		.byte	0x1
+ 1127 01ca F6       		.byte	0xf6
+ 1128 01cb BF000000 		.4byte	0xbf
+ 1129 01cf C6000000 		.4byte	.LLST5
+ 1130 01d3 09       		.uleb128 0x9
+ 1131 01d4 703200   		.ascii	"p2\000"
+ 1132 01d7 01       		.byte	0x1
+ 1133 01d8 F6       		.byte	0xf6
+ 1134 01d9 BF000000 		.4byte	0xbf
+ 1135 01dd FA000000 		.4byte	.LLST6
+ 1136 01e1 09       		.uleb128 0x9
+ 1137 01e2 703300   		.ascii	"p3\000"
+ 1138 01e5 01       		.byte	0x1
+ 1139 01e6 F6       		.byte	0xf6
+ 1140 01e7 BF000000 		.4byte	0xbf
+ 1141 01eb 2D010000 		.4byte	.LLST7
+ 1142 01ef 00       		.byte	0
+ 1143 01f0 0A       		.uleb128 0xa
+ 1144 01f1 04       		.byte	0x4
+ 1145 01f2 A9000000 		.4byte	0xa9
+ 1146 01f6 0B       		.uleb128 0xb
+ 1147 01f7 C8000000 		.4byte	.LASF40
+ 1148 01fb 01       		.byte	0x1
+ 1149 01fc 2901     		.2byte	0x129
+ 1150 01fe B4000000 		.4byte	0xb4
+ 1151 0202 00000000 		.4byte	.LFB6
+ 1152 0206 34010000 		.4byte	.LFE6-.LFB6
+ 1153 020a 01       		.uleb128 0x1
+ 1154 020b 9C       		.byte	0x9c
+ 1155 020c E7020000 		.4byte	0x2e7
+ 1156 0210 0C       		.uleb128 0xc
+ 1157 0211 D8000000 		.4byte	.LASF37
+ 1158 0215 01       		.byte	0x1
+ 1159 0216 2901     		.2byte	0x129
+ 1160 0218 B4000000 		.4byte	0xb4
+ 1161 021c 40010000 		.4byte	.LLST8
+ 1162 0220 0C       		.uleb128 0xc
+ 1163 0221 4B040000 		.4byte	.LASF41
+ 1164 0225 01       		.byte	0x1
+ 1165 0226 2901     		.2byte	0x129
+ 1166 0228 B4000000 		.4byte	0xb4
+ 1167 022c C5010000 		.4byte	.LLST9
+ 1168 0230 0C       		.uleb128 0xc
+ 1169 0231 92010000 		.4byte	.LASF42
+ 1170 0235 01       		.byte	0x1
+ 1171 0236 2901     		.2byte	0x129
+ 1172 0238 F0010000 		.4byte	0x1f0
+ 1173 023c 0F020000 		.4byte	.LLST10
+ 1174 0240 0C       		.uleb128 0xc
+ 1175 0241 46040000 		.4byte	.LASF38
+ 1176 0245 01       		.byte	0x1
+ 1177 0246 2901     		.2byte	0x129
+ 1178 0248 F0010000 		.4byte	0x1f0
+ 1179 024c 51020000 		.4byte	.LLST11
+ 1180 0250 0D       		.uleb128 0xd
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 30
+
+
+ 1181 0251 6100     		.ascii	"a\000"
+ 1182 0253 01       		.byte	0x1
+ 1183 0254 2B01     		.2byte	0x12b
+ 1184 0256 B4000000 		.4byte	0xb4
+ 1185 025a 7D020000 		.4byte	.LLST12
+ 1186 025e 0D       		.uleb128 0xd
+ 1187 025f 6200     		.ascii	"b\000"
+ 1188 0261 01       		.byte	0x1
+ 1189 0262 2B01     		.2byte	0x12b
+ 1190 0264 B4000000 		.4byte	0xb4
+ 1191 0268 A6020000 		.4byte	.LLST13
+ 1192 026c 0D       		.uleb128 0xd
+ 1193 026d 6300     		.ascii	"c\000"
+ 1194 026f 01       		.byte	0x1
+ 1195 0270 2B01     		.2byte	0x12b
+ 1196 0272 B4000000 		.4byte	0xb4
+ 1197 0276 CF020000 		.4byte	.LLST14
+ 1198 027a 0D       		.uleb128 0xd
+ 1199 027b 703100   		.ascii	"p1\000"
+ 1200 027e 01       		.byte	0x1
+ 1201 027f 2C01     		.2byte	0x12c
+ 1202 0281 BF000000 		.4byte	0xbf
+ 1203 0285 E2020000 		.4byte	.LLST15
+ 1204 0289 0D       		.uleb128 0xd
+ 1205 028a 703200   		.ascii	"p2\000"
+ 1206 028d 01       		.byte	0x1
+ 1207 028e 2C01     		.2byte	0x12c
+ 1208 0290 BF000000 		.4byte	0xbf
+ 1209 0294 01030000 		.4byte	.LLST16
+ 1210 0298 0D       		.uleb128 0xd
+ 1211 0299 703300   		.ascii	"p3\000"
+ 1212 029c 01       		.byte	0x1
+ 1213 029d 2C01     		.2byte	0x12c
+ 1214 029f BF000000 		.4byte	0xbf
+ 1215 02a3 20030000 		.4byte	.LLST17
+ 1216 02a7 0D       		.uleb128 0xd
+ 1217 02a8 723000   		.ascii	"r0\000"
+ 1218 02ab 01       		.byte	0x1
+ 1219 02ac 2D01     		.2byte	0x12d
+ 1220 02ae 2C000000 		.4byte	0x2c
+ 1221 02b2 3F030000 		.4byte	.LLST18
+ 1222 02b6 0E       		.uleb128 0xe
+ 1223 02b7 88000000 		.4byte	.LASF43
+ 1224 02bb 01       		.byte	0x1
+ 1225 02bc 2D01     		.2byte	0x12d
+ 1226 02be 2C000000 		.4byte	0x2c
+ 1227 02c2 75030000 		.4byte	.LLST19
+ 1228 02c6 0E       		.uleb128 0xe
+ 1229 02c7 A8000000 		.4byte	.LASF44
+ 1230 02cb 01       		.byte	0x1
+ 1231 02cc 2D01     		.2byte	0x12d
+ 1232 02ce 2C000000 		.4byte	0x2c
+ 1233 02d2 A0030000 		.4byte	.LLST20
+ 1234 02d6 0E       		.uleb128 0xe
+ 1235 02d7 A9020000 		.4byte	.LASF45
+ 1236 02db 01       		.byte	0x1
+ 1237 02dc 2E01     		.2byte	0x12e
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 31
+
+
+ 1238 02de B4000000 		.4byte	0xb4
+ 1239 02e2 CA030000 		.4byte	.LLST21
+ 1240 02e6 00       		.byte	0
+ 1241 02e7 0F       		.uleb128 0xf
+ 1242 02e8 E7020000 		.4byte	.LASF47
+ 1243 02ec 01       		.byte	0x1
+ 1244 02ed 57       		.byte	0x57
+ 1245 02ee 00000000 		.4byte	.LFB1
+ 1246 02f2 4C000000 		.4byte	.LFE1-.LFB1
+ 1247 02f6 01       		.uleb128 0x1
+ 1248 02f7 9C       		.byte	0x9c
+ 1249 02f8 A4030000 		.4byte	0x3a4
+ 1250 02fc 08       		.uleb128 0x8
+ 1251 02fd 00000000 		.4byte	.LASF46
+ 1252 0301 01       		.byte	0x1
+ 1253 0302 57       		.byte	0x57
+ 1254 0303 2C000000 		.4byte	0x2c
+ 1255 0307 E8030000 		.4byte	.LLST22
+ 1256 030b 10       		.uleb128 0x10
+ 1257 030c 0A000000 		.4byte	.LVL57
+ 1258 0310 E1060000 		.4byte	0x6e1
+ 1259 0314 1F030000 		.4byte	0x31f
+ 1260 0318 11       		.uleb128 0x11
+ 1261 0319 01       		.uleb128 0x1
+ 1262 031a 50       		.byte	0x50
+ 1263 031b 02       		.uleb128 0x2
+ 1264 031c 09       		.byte	0x9
+ 1265 031d BB       		.byte	0xbb
+ 1266 031e 00       		.byte	0
+ 1267 031f 10       		.uleb128 0x10
+ 1268 0320 16000000 		.4byte	.LVL58
+ 1269 0324 ED060000 		.4byte	0x6ed
+ 1270 0328 33030000 		.4byte	0x333
+ 1271 032c 11       		.uleb128 0x11
+ 1272 032d 01       		.uleb128 0x1
+ 1273 032e 50       		.byte	0x50
+ 1274 032f 02       		.uleb128 0x2
+ 1275 0330 09       		.byte	0x9
+ 1276 0331 BB       		.byte	0xbb
+ 1277 0332 00       		.byte	0
+ 1278 0333 10       		.uleb128 0x10
+ 1279 0334 1C000000 		.4byte	.LVL59
+ 1280 0338 E1060000 		.4byte	0x6e1
+ 1281 033c 46030000 		.4byte	0x346
+ 1282 0340 11       		.uleb128 0x11
+ 1283 0341 01       		.uleb128 0x1
+ 1284 0342 50       		.byte	0x50
+ 1285 0343 01       		.uleb128 0x1
+ 1286 0344 40       		.byte	0x40
+ 1287 0345 00       		.byte	0
+ 1288 0346 10       		.uleb128 0x10
+ 1289 0347 26000000 		.4byte	.LVL60
+ 1290 034b ED060000 		.4byte	0x6ed
+ 1291 034f 59030000 		.4byte	0x359
+ 1292 0353 11       		.uleb128 0x11
+ 1293 0354 01       		.uleb128 0x1
+ 1294 0355 50       		.byte	0x50
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 32
+
+
+ 1295 0356 01       		.uleb128 0x1
+ 1296 0357 40       		.byte	0x40
+ 1297 0358 00       		.byte	0
+ 1298 0359 10       		.uleb128 0x10
+ 1299 035a 2E000000 		.4byte	.LVL63
+ 1300 035e E1060000 		.4byte	0x6e1
+ 1301 0362 6C030000 		.4byte	0x36c
+ 1302 0366 11       		.uleb128 0x11
+ 1303 0367 01       		.uleb128 0x1
+ 1304 0368 50       		.byte	0x50
+ 1305 0369 01       		.uleb128 0x1
+ 1306 036a 40       		.byte	0x40
+ 1307 036b 00       		.byte	0
+ 1308 036c 10       		.uleb128 0x10
+ 1309 036d 3A000000 		.4byte	.LVL64
+ 1310 0371 ED060000 		.4byte	0x6ed
+ 1311 0375 7F030000 		.4byte	0x37f
+ 1312 0379 11       		.uleb128 0x11
+ 1313 037a 01       		.uleb128 0x1
+ 1314 037b 50       		.byte	0x50
+ 1315 037c 01       		.uleb128 0x1
+ 1316 037d 40       		.byte	0x40
+ 1317 037e 00       		.byte	0
+ 1318 037f 10       		.uleb128 0x10
+ 1319 0380 40000000 		.4byte	.LVL65
+ 1320 0384 E1060000 		.4byte	0x6e1
+ 1321 0388 93030000 		.4byte	0x393
+ 1322 038c 11       		.uleb128 0x11
+ 1323 038d 01       		.uleb128 0x1
+ 1324 038e 50       		.byte	0x50
+ 1325 038f 02       		.uleb128 0x2
+ 1326 0390 09       		.byte	0x9
+ 1327 0391 BB       		.byte	0xbb
+ 1328 0392 00       		.byte	0
+ 1329 0393 12       		.uleb128 0x12
+ 1330 0394 4A000000 		.4byte	.LVL66
+ 1331 0398 ED060000 		.4byte	0x6ed
+ 1332 039c 11       		.uleb128 0x11
+ 1333 039d 01       		.uleb128 0x1
+ 1334 039e 50       		.byte	0x50
+ 1335 039f 02       		.uleb128 0x2
+ 1336 03a0 09       		.byte	0x9
+ 1337 03a1 BB       		.byte	0xbb
+ 1338 03a2 00       		.byte	0
+ 1339 03a3 00       		.byte	0
+ 1340 03a4 0F       		.uleb128 0xf
+ 1341 03a5 95020000 		.4byte	.LASF48
+ 1342 03a9 01       		.byte	0x1
+ 1343 03aa 71       		.byte	0x71
+ 1344 03ab 00000000 		.4byte	.LFB2
+ 1345 03af 54000000 		.4byte	.LFE2-.LFB2
+ 1346 03b3 01       		.uleb128 0x1
+ 1347 03b4 9C       		.byte	0x9c
+ 1348 03b5 1D040000 		.4byte	0x41d
+ 1349 03b9 13       		.uleb128 0x13
+ 1350 03ba 636C6B00 		.ascii	"clk\000"
+ 1351 03be 01       		.byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 33
+
+
+ 1352 03bf 71       		.byte	0x71
+ 1353 03c0 E0000000 		.4byte	0xe0
+ 1354 03c4 22040000 		.4byte	.LLST23
+ 1355 03c8 08       		.uleb128 0x8
+ 1356 03c9 00000000 		.4byte	.LASF46
+ 1357 03cd 01       		.byte	0x1
+ 1358 03ce 71       		.byte	0x71
+ 1359 03cf 2C000000 		.4byte	0x2c
+ 1360 03d3 43040000 		.4byte	.LLST24
+ 1361 03d7 14       		.uleb128 0x14
+ 1362 03d8 DF020000 		.4byte	.LASF49
+ 1363 03dc 01       		.byte	0x1
+ 1364 03dd 73       		.byte	0x73
+ 1365 03de A9000000 		.4byte	0xa9
+ 1366 03e2 6F040000 		.4byte	.LLST25
+ 1367 03e6 10       		.uleb128 0x10
+ 1368 03e7 0C000000 		.4byte	.LVL69
+ 1369 03eb E1060000 		.4byte	0x6e1
+ 1370 03ef F9030000 		.4byte	0x3f9
+ 1371 03f3 11       		.uleb128 0x11
+ 1372 03f4 01       		.uleb128 0x1
+ 1373 03f5 50       		.byte	0x50
+ 1374 03f6 01       		.uleb128 0x1
+ 1375 03f7 33       		.byte	0x33
+ 1376 03f8 00       		.byte	0
+ 1377 03f9 10       		.uleb128 0x10
+ 1378 03fa 26000000 		.4byte	.LVL72
+ 1379 03fe ED060000 		.4byte	0x6ed
+ 1380 0402 0C040000 		.4byte	0x40c
+ 1381 0406 11       		.uleb128 0x11
+ 1382 0407 01       		.uleb128 0x1
+ 1383 0408 50       		.byte	0x50
+ 1384 0409 01       		.uleb128 0x1
+ 1385 040a 33       		.byte	0x33
+ 1386 040b 00       		.byte	0
+ 1387 040c 12       		.uleb128 0x12
+ 1388 040d 4C000000 		.4byte	.LVL73
+ 1389 0411 ED060000 		.4byte	0x6ed
+ 1390 0415 11       		.uleb128 0x11
+ 1391 0416 01       		.uleb128 0x1
+ 1392 0417 50       		.byte	0x50
+ 1393 0418 02       		.uleb128 0x2
+ 1394 0419 74       		.byte	0x74
+ 1395 041a 10       		.sleb128 16
+ 1396 041b 00       		.byte	0
+ 1397 041c 00       		.byte	0
+ 1398 041d 15       		.uleb128 0x15
+ 1399 041e 39030000 		.4byte	.LASF50
+ 1400 0422 01       		.byte	0x1
+ 1401 0423 34       		.byte	0x34
+ 1402 0424 00000000 		.4byte	.LFB0
+ 1403 0428 84000000 		.4byte	.LFE0-.LFB0
+ 1404 042c 01       		.uleb128 0x1
+ 1405 042d 9C       		.byte	0x9c
+ 1406 042e CC040000 		.4byte	0x4cc
+ 1407 0432 08       		.uleb128 0x8
+ 1408 0433 FF020000 		.4byte	.LASF51
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 34
+
+
+ 1409 0437 01       		.byte	0x1
+ 1410 0438 34       		.byte	0x34
+ 1411 0439 B4000000 		.4byte	0xb4
+ 1412 043d 82040000 		.4byte	.LLST26
+ 1413 0441 08       		.uleb128 0x8
+ 1414 0442 52020000 		.4byte	.LASF52
+ 1415 0446 01       		.byte	0x1
+ 1416 0447 34       		.byte	0x34
+ 1417 0448 B4000000 		.4byte	0xb4
+ 1418 044c AE040000 		.4byte	.LLST27
+ 1419 0450 08       		.uleb128 0x8
+ 1420 0451 BF000000 		.4byte	.LASF53
+ 1421 0455 01       		.byte	0x1
+ 1422 0456 34       		.byte	0x34
+ 1423 0457 2C000000 		.4byte	0x2c
+ 1424 045b DA040000 		.4byte	.LLST28
+ 1425 045f 14       		.uleb128 0x14
+ 1426 0460 D9020000 		.4byte	.LASF54
+ 1427 0464 01       		.byte	0x1
+ 1428 0465 36       		.byte	0x36
+ 1429 0466 2C000000 		.4byte	0x2c
+ 1430 046a 06050000 		.4byte	.LLST29
+ 1431 046e 10       		.uleb128 0x10
+ 1432 046f 0E000000 		.4byte	.LVL77
+ 1433 0473 E1060000 		.4byte	0x6e1
+ 1434 0477 81040000 		.4byte	0x481
+ 1435 047b 11       		.uleb128 0x11
+ 1436 047c 01       		.uleb128 0x1
+ 1437 047d 50       		.byte	0x50
+ 1438 047e 01       		.uleb128 0x1
+ 1439 047f 30       		.byte	0x30
+ 1440 0480 00       		.byte	0
+ 1441 0481 10       		.uleb128 0x10
+ 1442 0482 1C000000 		.4byte	.LVL78
+ 1443 0486 ED060000 		.4byte	0x6ed
+ 1444 048a 9A040000 		.4byte	0x49a
+ 1445 048e 11       		.uleb128 0x11
+ 1446 048f 01       		.uleb128 0x1
+ 1447 0490 50       		.byte	0x50
+ 1448 0491 01       		.uleb128 0x1
+ 1449 0492 33       		.byte	0x33
+ 1450 0493 11       		.uleb128 0x11
+ 1451 0494 01       		.uleb128 0x1
+ 1452 0495 51       		.byte	0x51
+ 1453 0496 02       		.uleb128 0x2
+ 1454 0497 09       		.byte	0x9
+ 1455 0498 FF       		.byte	0xff
+ 1456 0499 00       		.byte	0
+ 1457 049a 10       		.uleb128 0x10
+ 1458 049b 28000000 		.4byte	.LVL79
+ 1459 049f ED060000 		.4byte	0x6ed
+ 1460 04a3 B6040000 		.4byte	0x4b6
+ 1461 04a7 11       		.uleb128 0x11
+ 1462 04a8 01       		.uleb128 0x1
+ 1463 04a9 50       		.byte	0x50
+ 1464 04aa 02       		.uleb128 0x2
+ 1465 04ab 09       		.byte	0x9
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 35
+
+
+ 1466 04ac B7       		.byte	0xb7
+ 1467 04ad 11       		.uleb128 0x11
+ 1468 04ae 01       		.uleb128 0x1
+ 1469 04af 51       		.byte	0x51
+ 1470 04b0 04       		.uleb128 0x4
+ 1471 04b1 74       		.byte	0x74
+ 1472 04b2 00       		.sleb128 0
+ 1473 04b3 42       		.byte	0x42
+ 1474 04b4 21       		.byte	0x21
+ 1475 04b5 00       		.byte	0
+ 1476 04b6 12       		.uleb128 0x12
+ 1477 04b7 40000000 		.4byte	.LVL83
+ 1478 04bb A4030000 		.4byte	0x3a4
+ 1479 04bf 11       		.uleb128 0x11
+ 1480 04c0 01       		.uleb128 0x1
+ 1481 04c1 50       		.byte	0x50
+ 1482 04c2 02       		.uleb128 0x2
+ 1483 04c3 74       		.byte	0x74
+ 1484 04c4 00       		.sleb128 0
+ 1485 04c5 11       		.uleb128 0x11
+ 1486 04c6 01       		.uleb128 0x1
+ 1487 04c7 51       		.byte	0x51
+ 1488 04c8 01       		.uleb128 0x1
+ 1489 04c9 30       		.byte	0x30
+ 1490 04ca 00       		.byte	0
+ 1491 04cb 00       		.byte	0
+ 1492 04cc 0F       		.uleb128 0xf
+ 1493 04cd 72000000 		.4byte	.LASF55
+ 1494 04d1 01       		.byte	0x1
+ 1495 04d2 90       		.byte	0x90
+ 1496 04d3 00000000 		.4byte	.LFB3
+ 1497 04d7 48000000 		.4byte	.LFE3-.LFB3
+ 1498 04db 01       		.uleb128 0x1
+ 1499 04dc 9C       		.byte	0x9c
+ 1500 04dd 09050000 		.4byte	0x509
+ 1501 04e1 13       		.uleb128 0x13
+ 1502 04e2 636C6B00 		.ascii	"clk\000"
+ 1503 04e6 01       		.byte	0x1
+ 1504 04e7 90       		.byte	0x90
+ 1505 04e8 E0000000 		.4byte	0xe0
+ 1506 04ec 25050000 		.4byte	.LLST30
+ 1507 04f0 08       		.uleb128 0x8
+ 1508 04f1 80010000 		.4byte	.LASF56
+ 1509 04f5 01       		.byte	0x1
+ 1510 04f6 90       		.byte	0x90
+ 1511 04f7 3E010000 		.4byte	0x13e
+ 1512 04fb 46050000 		.4byte	.LLST31
+ 1513 04ff 16       		.uleb128 0x16
+ 1514 0500 40000000 		.4byte	.LVL90
+ 1515 0504 ED060000 		.4byte	0x6ed
+ 1516 0508 00       		.byte	0
+ 1517 0509 17       		.uleb128 0x17
+ 1518 050a 41000000 		.4byte	.LASF74
+ 1519 050e 01       		.byte	0x1
+ 1520 050f AA       		.byte	0xaa
+ 1521 0510 B4000000 		.4byte	0xb4
+ 1522 0514 00000000 		.4byte	.LFB4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 36
+
+
+ 1523 0518 EC000000 		.4byte	.LFE4-.LFB4
+ 1524 051c 01       		.uleb128 0x1
+ 1525 051d 9C       		.byte	0x9c
+ 1526 051e 86060000 		.4byte	0x686
+ 1527 0522 08       		.uleb128 0x8
+ 1528 0523 D8000000 		.4byte	.LASF37
+ 1529 0527 01       		.byte	0x1
+ 1530 0528 AA       		.byte	0xaa
+ 1531 0529 B4000000 		.4byte	0xb4
+ 1532 052d 67050000 		.4byte	.LLST32
+ 1533 0531 08       		.uleb128 0x8
+ 1534 0532 4B040000 		.4byte	.LASF41
+ 1535 0536 01       		.byte	0x1
+ 1536 0537 AA       		.byte	0xaa
+ 1537 0538 B4000000 		.4byte	0xb4
+ 1538 053c DE050000 		.4byte	.LLST33
+ 1539 0540 08       		.uleb128 0x8
+ 1540 0541 D9020000 		.4byte	.LASF54
+ 1541 0545 01       		.byte	0x1
+ 1542 0546 AB       		.byte	0xab
+ 1543 0547 E0000000 		.4byte	0xe0
+ 1544 054b 4C060000 		.4byte	.LLST34
+ 1545 054f 08       		.uleb128 0x8
+ 1546 0550 1D030000 		.4byte	.LASF57
+ 1547 0554 01       		.byte	0x1
+ 1548 0555 AB       		.byte	0xab
+ 1549 0556 2C000000 		.4byte	0x2c
+ 1550 055a 6D060000 		.4byte	.LLST35
+ 1551 055e 18       		.uleb128 0x18
+ 1552 055f 92010000 		.4byte	.LASF42
+ 1553 0563 01       		.byte	0x1
+ 1554 0564 AD       		.byte	0xad
+ 1555 0565 A9000000 		.4byte	0xa9
+ 1556 0569 02       		.uleb128 0x2
+ 1557 056a 91       		.byte	0x91
+ 1558 056b 67       		.sleb128 -25
+ 1559 056c 18       		.uleb128 0x18
+ 1560 056d AF000000 		.4byte	.LASF58
+ 1561 0571 01       		.byte	0x1
+ 1562 0572 AD       		.byte	0xad
+ 1563 0573 86060000 		.4byte	0x686
+ 1564 0577 02       		.uleb128 0x2
+ 1565 0578 91       		.byte	0x91
+ 1566 0579 5C       		.sleb128 -36
+ 1567 057a 18       		.uleb128 0x18
+ 1568 057b B2010000 		.4byte	.LASF59
+ 1569 057f 01       		.byte	0x1
+ 1570 0580 AD       		.byte	0xad
+ 1571 0581 86060000 		.4byte	0x686
+ 1572 0585 02       		.uleb128 0x2
+ 1573 0586 91       		.byte	0x91
+ 1574 0587 54       		.sleb128 -44
+ 1575 0588 14       		.uleb128 0x14
+ 1576 0589 71010000 		.4byte	.LASF60
+ 1577 058d 01       		.byte	0x1
+ 1578 058e AE       		.byte	0xae
+ 1579 058f 2C000000 		.4byte	0x2c
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 37
+
+
+ 1580 0593 99060000 		.4byte	.LLST36
+ 1581 0597 14       		.uleb128 0x14
+ 1582 0598 62020000 		.4byte	.LASF61
+ 1583 059c 01       		.byte	0x1
+ 1584 059d AF       		.byte	0xaf
+ 1585 059e 2C000000 		.4byte	0x2c
+ 1586 05a2 E8060000 		.4byte	.LLST37
+ 1587 05a6 14       		.uleb128 0x14
+ 1588 05a7 2D030000 		.4byte	.LASF62
+ 1589 05ab 01       		.byte	0x1
+ 1590 05ac B0       		.byte	0xb0
+ 1591 05ad 2C000000 		.4byte	0x2c
+ 1592 05b1 4C070000 		.4byte	.LLST38
+ 1593 05b5 10       		.uleb128 0x10
+ 1594 05b6 16000000 		.4byte	.LVL95
+ 1595 05ba F6010000 		.4byte	0x1f6
+ 1596 05be DC050000 		.4byte	0x5dc
+ 1597 05c2 11       		.uleb128 0x11
+ 1598 05c3 01       		.uleb128 0x1
+ 1599 05c4 50       		.byte	0x50
+ 1600 05c5 02       		.uleb128 0x2
+ 1601 05c6 76       		.byte	0x76
+ 1602 05c7 00       		.sleb128 0
+ 1603 05c8 11       		.uleb128 0x11
+ 1604 05c9 01       		.uleb128 0x1
+ 1605 05ca 51       		.byte	0x51
+ 1606 05cb 03       		.uleb128 0x3
+ 1607 05cc F3       		.byte	0xf3
+ 1608 05cd 01       		.uleb128 0x1
+ 1609 05ce 51       		.byte	0x51
+ 1610 05cf 11       		.uleb128 0x11
+ 1611 05d0 01       		.uleb128 0x1
+ 1612 05d1 52       		.byte	0x52
+ 1613 05d2 02       		.uleb128 0x2
+ 1614 05d3 91       		.byte	0x91
+ 1615 05d4 67       		.sleb128 -25
+ 1616 05d5 11       		.uleb128 0x11
+ 1617 05d6 01       		.uleb128 0x1
+ 1618 05d7 53       		.byte	0x53
+ 1619 05d8 02       		.uleb128 0x2
+ 1620 05d9 91       		.byte	0x91
+ 1621 05da 54       		.sleb128 -44
+ 1622 05db 00       		.byte	0
+ 1623 05dc 10       		.uleb128 0x10
+ 1624 05dd 42000000 		.4byte	.LVL101
+ 1625 05e1 F6010000 		.4byte	0x1f6
+ 1626 05e5 FC050000 		.4byte	0x5fc
+ 1627 05e9 11       		.uleb128 0x11
+ 1628 05ea 01       		.uleb128 0x1
+ 1629 05eb 50       		.byte	0x50
+ 1630 05ec 02       		.uleb128 0x2
+ 1631 05ed 76       		.byte	0x76
+ 1632 05ee 00       		.sleb128 0
+ 1633 05ef 11       		.uleb128 0x11
+ 1634 05f0 01       		.uleb128 0x1
+ 1635 05f1 52       		.byte	0x52
+ 1636 05f2 02       		.uleb128 0x2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 38
+
+
+ 1637 05f3 91       		.byte	0x91
+ 1638 05f4 67       		.sleb128 -25
+ 1639 05f5 11       		.uleb128 0x11
+ 1640 05f6 01       		.uleb128 0x1
+ 1641 05f7 53       		.byte	0x53
+ 1642 05f8 02       		.uleb128 0x2
+ 1643 05f9 91       		.byte	0x91
+ 1644 05fa 54       		.sleb128 -44
+ 1645 05fb 00       		.byte	0
+ 1646 05fc 10       		.uleb128 0x10
+ 1647 05fd 64000000 		.4byte	.LVL109
+ 1648 0601 67010000 		.4byte	0x167
+ 1649 0605 16060000 		.4byte	0x616
+ 1650 0609 11       		.uleb128 0x11
+ 1651 060a 01       		.uleb128 0x1
+ 1652 060b 50       		.byte	0x50
+ 1653 060c 02       		.uleb128 0x2
+ 1654 060d 75       		.byte	0x75
+ 1655 060e 00       		.sleb128 0
+ 1656 060f 11       		.uleb128 0x11
+ 1657 0610 01       		.uleb128 0x1
+ 1658 0611 51       		.byte	0x51
+ 1659 0612 02       		.uleb128 0x2
+ 1660 0613 91       		.byte	0x91
+ 1661 0614 5C       		.sleb128 -36
+ 1662 0615 00       		.byte	0
+ 1663 0616 10       		.uleb128 0x10
+ 1664 0617 B0000000 		.4byte	.LVL120
+ 1665 061b ED060000 		.4byte	0x6ed
+ 1666 061f 2A060000 		.4byte	0x62a
+ 1667 0623 11       		.uleb128 0x11
+ 1668 0624 01       		.uleb128 0x1
+ 1669 0625 50       		.byte	0x50
+ 1670 0626 02       		.uleb128 0x2
+ 1671 0627 74       		.byte	0x74
+ 1672 0628 10       		.sleb128 16
+ 1673 0629 00       		.byte	0
+ 1674 062a 10       		.uleb128 0x10
+ 1675 062b BC000000 		.4byte	.LVL121
+ 1676 062f F9060000 		.4byte	0x6f9
+ 1677 0633 49060000 		.4byte	0x649
+ 1678 0637 11       		.uleb128 0x11
+ 1679 0638 01       		.uleb128 0x1
+ 1680 0639 50       		.byte	0x50
+ 1681 063a 02       		.uleb128 0x2
+ 1682 063b 78       		.byte	0x78
+ 1683 063c 00       		.sleb128 0
+ 1684 063d 11       		.uleb128 0x11
+ 1685 063e 01       		.uleb128 0x1
+ 1686 063f 51       		.byte	0x51
+ 1687 0640 02       		.uleb128 0x2
+ 1688 0641 91       		.byte	0x91
+ 1689 0642 5C       		.sleb128 -36
+ 1690 0643 11       		.uleb128 0x11
+ 1691 0644 01       		.uleb128 0x1
+ 1692 0645 52       		.byte	0x52
+ 1693 0646 01       		.uleb128 0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 39
+
+
+ 1694 0647 38       		.byte	0x38
+ 1695 0648 00       		.byte	0
+ 1696 0649 10       		.uleb128 0x10
+ 1697 064a CC000000 		.4byte	.LVL122
+ 1698 064e F9060000 		.4byte	0x6f9
+ 1699 0652 6F060000 		.4byte	0x66f
+ 1700 0656 11       		.uleb128 0x11
+ 1701 0657 01       		.uleb128 0x1
+ 1702 0658 50       		.byte	0x50
+ 1703 0659 09       		.uleb128 0x9
+ 1704 065a 74       		.byte	0x74
+ 1705 065b 00       		.sleb128 0
+ 1706 065c 33       		.byte	0x33
+ 1707 065d 24       		.byte	0x24
+ 1708 065e 23       		.byte	0x23
+ 1709 065f 2A       		.uleb128 0x2a
+ 1710 0660 08       		.byte	0x8
+ 1711 0661 FE       		.byte	0xfe
+ 1712 0662 1A       		.byte	0x1a
+ 1713 0663 11       		.uleb128 0x11
+ 1714 0664 01       		.uleb128 0x1
+ 1715 0665 51       		.byte	0x51
+ 1716 0666 02       		.uleb128 0x2
+ 1717 0667 91       		.byte	0x91
+ 1718 0668 54       		.sleb128 -44
+ 1719 0669 11       		.uleb128 0x11
+ 1720 066a 01       		.uleb128 0x1
+ 1721 066b 52       		.byte	0x52
+ 1722 066c 01       		.uleb128 0x1
+ 1723 066d 38       		.byte	0x38
+ 1724 066e 00       		.byte	0
+ 1725 066f 12       		.uleb128 0x12
+ 1726 0670 D6000000 		.4byte	.LVL123
+ 1727 0674 ED060000 		.4byte	0x6ed
+ 1728 0678 11       		.uleb128 0x11
+ 1729 0679 01       		.uleb128 0x1
+ 1730 067a 50       		.byte	0x50
+ 1731 067b 02       		.uleb128 0x2
+ 1732 067c 09       		.byte	0x9
+ 1733 067d B1       		.byte	0xb1
+ 1734 067e 11       		.uleb128 0x11
+ 1735 067f 01       		.uleb128 0x1
+ 1736 0680 51       		.byte	0x51
+ 1737 0681 02       		.uleb128 0x2
+ 1738 0682 09       		.byte	0x9
+ 1739 0683 AC       		.byte	0xac
+ 1740 0684 00       		.byte	0
+ 1741 0685 00       		.byte	0
+ 1742 0686 19       		.uleb128 0x19
+ 1743 0687 A9000000 		.4byte	0xa9
+ 1744 068b 96060000 		.4byte	0x696
+ 1745 068f 1A       		.uleb128 0x1a
+ 1746 0690 96060000 		.4byte	0x696
+ 1747 0694 07       		.byte	0x7
+ 1748 0695 00       		.byte	0
+ 1749 0696 02       		.uleb128 0x2
+ 1750 0697 04       		.byte	0x4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 40
+
+
+ 1751 0698 07       		.byte	0x7
+ 1752 0699 27000000 		.4byte	.LASF63
+ 1753 069d 1B       		.uleb128 0x1b
+ 1754 069e 40020000 		.4byte	.LASF64
+ 1755 06a2 01       		.byte	0x1
+ 1756 06a3 2D       		.byte	0x2d
+ 1757 06a4 B4000000 		.4byte	0xb4
+ 1758 06a8 05       		.uleb128 0x5
+ 1759 06a9 03       		.byte	0x3
+ 1760 06aa 00000000 		.4byte	plla_freq
+ 1761 06ae 1B       		.uleb128 0x1b
+ 1762 06af 45030000 		.4byte	.LASF65
+ 1763 06b3 01       		.byte	0x1
+ 1764 06b4 2D       		.byte	0x2d
+ 1765 06b5 B4000000 		.4byte	0xb4
+ 1766 06b9 05       		.uleb128 0x5
+ 1767 06ba 03       		.byte	0x3
+ 1768 06bb 00000000 		.4byte	pllb_freq
+ 1769 06bf 1B       		.uleb128 0x1b
+ 1770 06c0 09030000 		.4byte	.LASF66
+ 1771 06c4 01       		.byte	0x1
+ 1772 06c5 2E       		.byte	0x2e
+ 1773 06c6 B4000000 		.4byte	0xb4
+ 1774 06ca 05       		.uleb128 0x5
+ 1775 06cb 03       		.byte	0x3
+ 1776 06cc 00000000 		.4byte	freq_ref
+ 1777 06d0 1B       		.uleb128 0x1b
+ 1778 06d1 B9020000 		.4byte	.LASF67
+ 1779 06d5 01       		.byte	0x1
+ 1780 06d6 2F       		.byte	0x2f
+ 1781 06d7 86060000 		.4byte	0x686
+ 1782 06db 05       		.uleb128 0x5
+ 1783 06dc 03       		.byte	0x3
+ 1784 06dd 00000000 		.4byte	clock_control
+ 1785 06e1 1C       		.uleb128 0x1c
+ 1786 06e2 97000000 		.4byte	.LASF68
+ 1787 06e6 97000000 		.4byte	.LASF68
+ 1788 06ea 04       		.byte	0x4
+ 1789 06eb 0101     		.2byte	0x101
+ 1790 06ed 1C       		.uleb128 0x1c
+ 1791 06ee 6B020000 		.4byte	.LASF69
+ 1792 06f2 6B020000 		.4byte	.LASF69
+ 1793 06f6 04       		.byte	0x4
+ 1794 06f7 0001     		.2byte	0x100
+ 1795 06f9 1D       		.uleb128 0x1d
+ 1796 06fa 2E020000 		.4byte	.LASF70
+ 1797 06fe 2E020000 		.4byte	.LASF70
+ 1798 0702 04       		.byte	0x4
+ 1799 0703 FE       		.byte	0xfe
+ 1800 0704 00       		.byte	0
+ 1801              		.section	.debug_abbrev,"",%progbits
+ 1802              	.Ldebug_abbrev0:
+ 1803 0000 01       		.uleb128 0x1
+ 1804 0001 11       		.uleb128 0x11
+ 1805 0002 01       		.byte	0x1
+ 1806 0003 25       		.uleb128 0x25
+ 1807 0004 0E       		.uleb128 0xe
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 41
+
+
+ 1808 0005 13       		.uleb128 0x13
+ 1809 0006 0B       		.uleb128 0xb
+ 1810 0007 03       		.uleb128 0x3
+ 1811 0008 0E       		.uleb128 0xe
+ 1812 0009 1B       		.uleb128 0x1b
+ 1813 000a 0E       		.uleb128 0xe
+ 1814 000b 55       		.uleb128 0x55
+ 1815 000c 17       		.uleb128 0x17
+ 1816 000d 11       		.uleb128 0x11
+ 1817 000e 01       		.uleb128 0x1
+ 1818 000f 10       		.uleb128 0x10
+ 1819 0010 17       		.uleb128 0x17
+ 1820 0011 00       		.byte	0
+ 1821 0012 00       		.byte	0
+ 1822 0013 02       		.uleb128 0x2
+ 1823 0014 24       		.uleb128 0x24
+ 1824 0015 00       		.byte	0
+ 1825 0016 0B       		.uleb128 0xb
+ 1826 0017 0B       		.uleb128 0xb
+ 1827 0018 3E       		.uleb128 0x3e
+ 1828 0019 0B       		.uleb128 0xb
+ 1829 001a 03       		.uleb128 0x3
+ 1830 001b 0E       		.uleb128 0xe
+ 1831 001c 00       		.byte	0
+ 1832 001d 00       		.byte	0
+ 1833 001e 03       		.uleb128 0x3
+ 1834 001f 24       		.uleb128 0x24
+ 1835 0020 00       		.byte	0
+ 1836 0021 0B       		.uleb128 0xb
+ 1837 0022 0B       		.uleb128 0xb
+ 1838 0023 3E       		.uleb128 0x3e
+ 1839 0024 0B       		.uleb128 0xb
+ 1840 0025 03       		.uleb128 0x3
+ 1841 0026 08       		.uleb128 0x8
+ 1842 0027 00       		.byte	0
+ 1843 0028 00       		.byte	0
+ 1844 0029 04       		.uleb128 0x4
+ 1845 002a 16       		.uleb128 0x16
+ 1846 002b 00       		.byte	0
+ 1847 002c 03       		.uleb128 0x3
+ 1848 002d 0E       		.uleb128 0xe
+ 1849 002e 3A       		.uleb128 0x3a
+ 1850 002f 0B       		.uleb128 0xb
+ 1851 0030 3B       		.uleb128 0x3b
+ 1852 0031 0B       		.uleb128 0xb
+ 1853 0032 49       		.uleb128 0x49
+ 1854 0033 13       		.uleb128 0x13
+ 1855 0034 00       		.byte	0
+ 1856 0035 00       		.byte	0
+ 1857 0036 05       		.uleb128 0x5
+ 1858 0037 04       		.uleb128 0x4
+ 1859 0038 01       		.byte	0x1
+ 1860 0039 03       		.uleb128 0x3
+ 1861 003a 0E       		.uleb128 0xe
+ 1862 003b 0B       		.uleb128 0xb
+ 1863 003c 0B       		.uleb128 0xb
+ 1864 003d 49       		.uleb128 0x49
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 42
+
+
+ 1865 003e 13       		.uleb128 0x13
+ 1866 003f 3A       		.uleb128 0x3a
+ 1867 0040 0B       		.uleb128 0xb
+ 1868 0041 3B       		.uleb128 0x3b
+ 1869 0042 0B       		.uleb128 0xb
+ 1870 0043 01       		.uleb128 0x1
+ 1871 0044 13       		.uleb128 0x13
+ 1872 0045 00       		.byte	0
+ 1873 0046 00       		.byte	0
+ 1874 0047 06       		.uleb128 0x6
+ 1875 0048 28       		.uleb128 0x28
+ 1876 0049 00       		.byte	0
+ 1877 004a 03       		.uleb128 0x3
+ 1878 004b 0E       		.uleb128 0xe
+ 1879 004c 1C       		.uleb128 0x1c
+ 1880 004d 0B       		.uleb128 0xb
+ 1881 004e 00       		.byte	0
+ 1882 004f 00       		.byte	0
+ 1883 0050 07       		.uleb128 0x7
+ 1884 0051 2E       		.uleb128 0x2e
+ 1885 0052 01       		.byte	0x1
+ 1886 0053 03       		.uleb128 0x3
+ 1887 0054 0E       		.uleb128 0xe
+ 1888 0055 3A       		.uleb128 0x3a
+ 1889 0056 0B       		.uleb128 0xb
+ 1890 0057 3B       		.uleb128 0x3b
+ 1891 0058 0B       		.uleb128 0xb
+ 1892 0059 27       		.uleb128 0x27
+ 1893 005a 19       		.uleb128 0x19
+ 1894 005b 49       		.uleb128 0x49
+ 1895 005c 13       		.uleb128 0x13
+ 1896 005d 11       		.uleb128 0x11
+ 1897 005e 01       		.uleb128 0x1
+ 1898 005f 12       		.uleb128 0x12
+ 1899 0060 06       		.uleb128 0x6
+ 1900 0061 40       		.uleb128 0x40
+ 1901 0062 18       		.uleb128 0x18
+ 1902 0063 9642     		.uleb128 0x2116
+ 1903 0065 19       		.uleb128 0x19
+ 1904 0066 01       		.uleb128 0x1
+ 1905 0067 13       		.uleb128 0x13
+ 1906 0068 00       		.byte	0
+ 1907 0069 00       		.byte	0
+ 1908 006a 08       		.uleb128 0x8
+ 1909 006b 05       		.uleb128 0x5
+ 1910 006c 00       		.byte	0
+ 1911 006d 03       		.uleb128 0x3
+ 1912 006e 0E       		.uleb128 0xe
+ 1913 006f 3A       		.uleb128 0x3a
+ 1914 0070 0B       		.uleb128 0xb
+ 1915 0071 3B       		.uleb128 0x3b
+ 1916 0072 0B       		.uleb128 0xb
+ 1917 0073 49       		.uleb128 0x49
+ 1918 0074 13       		.uleb128 0x13
+ 1919 0075 02       		.uleb128 0x2
+ 1920 0076 17       		.uleb128 0x17
+ 1921 0077 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 43
+
+
+ 1922 0078 00       		.byte	0
+ 1923 0079 09       		.uleb128 0x9
+ 1924 007a 34       		.uleb128 0x34
+ 1925 007b 00       		.byte	0
+ 1926 007c 03       		.uleb128 0x3
+ 1927 007d 08       		.uleb128 0x8
+ 1928 007e 3A       		.uleb128 0x3a
+ 1929 007f 0B       		.uleb128 0xb
+ 1930 0080 3B       		.uleb128 0x3b
+ 1931 0081 0B       		.uleb128 0xb
+ 1932 0082 49       		.uleb128 0x49
+ 1933 0083 13       		.uleb128 0x13
+ 1934 0084 02       		.uleb128 0x2
+ 1935 0085 17       		.uleb128 0x17
+ 1936 0086 00       		.byte	0
+ 1937 0087 00       		.byte	0
+ 1938 0088 0A       		.uleb128 0xa
+ 1939 0089 0F       		.uleb128 0xf
+ 1940 008a 00       		.byte	0
+ 1941 008b 0B       		.uleb128 0xb
+ 1942 008c 0B       		.uleb128 0xb
+ 1943 008d 49       		.uleb128 0x49
+ 1944 008e 13       		.uleb128 0x13
+ 1945 008f 00       		.byte	0
+ 1946 0090 00       		.byte	0
+ 1947 0091 0B       		.uleb128 0xb
+ 1948 0092 2E       		.uleb128 0x2e
+ 1949 0093 01       		.byte	0x1
+ 1950 0094 03       		.uleb128 0x3
+ 1951 0095 0E       		.uleb128 0xe
+ 1952 0096 3A       		.uleb128 0x3a
+ 1953 0097 0B       		.uleb128 0xb
+ 1954 0098 3B       		.uleb128 0x3b
+ 1955 0099 05       		.uleb128 0x5
+ 1956 009a 27       		.uleb128 0x27
+ 1957 009b 19       		.uleb128 0x19
+ 1958 009c 49       		.uleb128 0x49
+ 1959 009d 13       		.uleb128 0x13
+ 1960 009e 11       		.uleb128 0x11
+ 1961 009f 01       		.uleb128 0x1
+ 1962 00a0 12       		.uleb128 0x12
+ 1963 00a1 06       		.uleb128 0x6
+ 1964 00a2 40       		.uleb128 0x40
+ 1965 00a3 18       		.uleb128 0x18
+ 1966 00a4 9642     		.uleb128 0x2116
+ 1967 00a6 19       		.uleb128 0x19
+ 1968 00a7 01       		.uleb128 0x1
+ 1969 00a8 13       		.uleb128 0x13
+ 1970 00a9 00       		.byte	0
+ 1971 00aa 00       		.byte	0
+ 1972 00ab 0C       		.uleb128 0xc
+ 1973 00ac 05       		.uleb128 0x5
+ 1974 00ad 00       		.byte	0
+ 1975 00ae 03       		.uleb128 0x3
+ 1976 00af 0E       		.uleb128 0xe
+ 1977 00b0 3A       		.uleb128 0x3a
+ 1978 00b1 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 44
+
+
+ 1979 00b2 3B       		.uleb128 0x3b
+ 1980 00b3 05       		.uleb128 0x5
+ 1981 00b4 49       		.uleb128 0x49
+ 1982 00b5 13       		.uleb128 0x13
+ 1983 00b6 02       		.uleb128 0x2
+ 1984 00b7 17       		.uleb128 0x17
+ 1985 00b8 00       		.byte	0
+ 1986 00b9 00       		.byte	0
+ 1987 00ba 0D       		.uleb128 0xd
+ 1988 00bb 34       		.uleb128 0x34
+ 1989 00bc 00       		.byte	0
+ 1990 00bd 03       		.uleb128 0x3
+ 1991 00be 08       		.uleb128 0x8
+ 1992 00bf 3A       		.uleb128 0x3a
+ 1993 00c0 0B       		.uleb128 0xb
+ 1994 00c1 3B       		.uleb128 0x3b
+ 1995 00c2 05       		.uleb128 0x5
+ 1996 00c3 49       		.uleb128 0x49
+ 1997 00c4 13       		.uleb128 0x13
+ 1998 00c5 02       		.uleb128 0x2
+ 1999 00c6 17       		.uleb128 0x17
+ 2000 00c7 00       		.byte	0
+ 2001 00c8 00       		.byte	0
+ 2002 00c9 0E       		.uleb128 0xe
+ 2003 00ca 34       		.uleb128 0x34
+ 2004 00cb 00       		.byte	0
+ 2005 00cc 03       		.uleb128 0x3
+ 2006 00cd 0E       		.uleb128 0xe
+ 2007 00ce 3A       		.uleb128 0x3a
+ 2008 00cf 0B       		.uleb128 0xb
+ 2009 00d0 3B       		.uleb128 0x3b
+ 2010 00d1 05       		.uleb128 0x5
+ 2011 00d2 49       		.uleb128 0x49
+ 2012 00d3 13       		.uleb128 0x13
+ 2013 00d4 02       		.uleb128 0x2
+ 2014 00d5 17       		.uleb128 0x17
+ 2015 00d6 00       		.byte	0
+ 2016 00d7 00       		.byte	0
+ 2017 00d8 0F       		.uleb128 0xf
+ 2018 00d9 2E       		.uleb128 0x2e
+ 2019 00da 01       		.byte	0x1
+ 2020 00db 3F       		.uleb128 0x3f
+ 2021 00dc 19       		.uleb128 0x19
+ 2022 00dd 03       		.uleb128 0x3
+ 2023 00de 0E       		.uleb128 0xe
+ 2024 00df 3A       		.uleb128 0x3a
+ 2025 00e0 0B       		.uleb128 0xb
+ 2026 00e1 3B       		.uleb128 0x3b
+ 2027 00e2 0B       		.uleb128 0xb
+ 2028 00e3 27       		.uleb128 0x27
+ 2029 00e4 19       		.uleb128 0x19
+ 2030 00e5 11       		.uleb128 0x11
+ 2031 00e6 01       		.uleb128 0x1
+ 2032 00e7 12       		.uleb128 0x12
+ 2033 00e8 06       		.uleb128 0x6
+ 2034 00e9 40       		.uleb128 0x40
+ 2035 00ea 18       		.uleb128 0x18
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 45
+
+
+ 2036 00eb 9742     		.uleb128 0x2117
+ 2037 00ed 19       		.uleb128 0x19
+ 2038 00ee 01       		.uleb128 0x1
+ 2039 00ef 13       		.uleb128 0x13
+ 2040 00f0 00       		.byte	0
+ 2041 00f1 00       		.byte	0
+ 2042 00f2 10       		.uleb128 0x10
+ 2043 00f3 898201   		.uleb128 0x4109
+ 2044 00f6 01       		.byte	0x1
+ 2045 00f7 11       		.uleb128 0x11
+ 2046 00f8 01       		.uleb128 0x1
+ 2047 00f9 31       		.uleb128 0x31
+ 2048 00fa 13       		.uleb128 0x13
+ 2049 00fb 01       		.uleb128 0x1
+ 2050 00fc 13       		.uleb128 0x13
+ 2051 00fd 00       		.byte	0
+ 2052 00fe 00       		.byte	0
+ 2053 00ff 11       		.uleb128 0x11
+ 2054 0100 8A8201   		.uleb128 0x410a
+ 2055 0103 00       		.byte	0
+ 2056 0104 02       		.uleb128 0x2
+ 2057 0105 18       		.uleb128 0x18
+ 2058 0106 9142     		.uleb128 0x2111
+ 2059 0108 18       		.uleb128 0x18
+ 2060 0109 00       		.byte	0
+ 2061 010a 00       		.byte	0
+ 2062 010b 12       		.uleb128 0x12
+ 2063 010c 898201   		.uleb128 0x4109
+ 2064 010f 01       		.byte	0x1
+ 2065 0110 11       		.uleb128 0x11
+ 2066 0111 01       		.uleb128 0x1
+ 2067 0112 31       		.uleb128 0x31
+ 2068 0113 13       		.uleb128 0x13
+ 2069 0114 00       		.byte	0
+ 2070 0115 00       		.byte	0
+ 2071 0116 13       		.uleb128 0x13
+ 2072 0117 05       		.uleb128 0x5
+ 2073 0118 00       		.byte	0
+ 2074 0119 03       		.uleb128 0x3
+ 2075 011a 08       		.uleb128 0x8
+ 2076 011b 3A       		.uleb128 0x3a
+ 2077 011c 0B       		.uleb128 0xb
+ 2078 011d 3B       		.uleb128 0x3b
+ 2079 011e 0B       		.uleb128 0xb
+ 2080 011f 49       		.uleb128 0x49
+ 2081 0120 13       		.uleb128 0x13
+ 2082 0121 02       		.uleb128 0x2
+ 2083 0122 17       		.uleb128 0x17
+ 2084 0123 00       		.byte	0
+ 2085 0124 00       		.byte	0
+ 2086 0125 14       		.uleb128 0x14
+ 2087 0126 34       		.uleb128 0x34
+ 2088 0127 00       		.byte	0
+ 2089 0128 03       		.uleb128 0x3
+ 2090 0129 0E       		.uleb128 0xe
+ 2091 012a 3A       		.uleb128 0x3a
+ 2092 012b 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 46
+
+
+ 2093 012c 3B       		.uleb128 0x3b
+ 2094 012d 0B       		.uleb128 0xb
+ 2095 012e 49       		.uleb128 0x49
+ 2096 012f 13       		.uleb128 0x13
+ 2097 0130 02       		.uleb128 0x2
+ 2098 0131 17       		.uleb128 0x17
+ 2099 0132 00       		.byte	0
+ 2100 0133 00       		.byte	0
+ 2101 0134 15       		.uleb128 0x15
+ 2102 0135 2E       		.uleb128 0x2e
+ 2103 0136 01       		.byte	0x1
+ 2104 0137 3F       		.uleb128 0x3f
+ 2105 0138 19       		.uleb128 0x19
+ 2106 0139 03       		.uleb128 0x3
+ 2107 013a 0E       		.uleb128 0xe
+ 2108 013b 3A       		.uleb128 0x3a
+ 2109 013c 0B       		.uleb128 0xb
+ 2110 013d 3B       		.uleb128 0x3b
+ 2111 013e 0B       		.uleb128 0xb
+ 2112 013f 27       		.uleb128 0x27
+ 2113 0140 19       		.uleb128 0x19
+ 2114 0141 11       		.uleb128 0x11
+ 2115 0142 01       		.uleb128 0x1
+ 2116 0143 12       		.uleb128 0x12
+ 2117 0144 06       		.uleb128 0x6
+ 2118 0145 40       		.uleb128 0x40
+ 2119 0146 18       		.uleb128 0x18
+ 2120 0147 9642     		.uleb128 0x2116
+ 2121 0149 19       		.uleb128 0x19
+ 2122 014a 01       		.uleb128 0x1
+ 2123 014b 13       		.uleb128 0x13
+ 2124 014c 00       		.byte	0
+ 2125 014d 00       		.byte	0
+ 2126 014e 16       		.uleb128 0x16
+ 2127 014f 898201   		.uleb128 0x4109
+ 2128 0152 00       		.byte	0
+ 2129 0153 11       		.uleb128 0x11
+ 2130 0154 01       		.uleb128 0x1
+ 2131 0155 31       		.uleb128 0x31
+ 2132 0156 13       		.uleb128 0x13
+ 2133 0157 00       		.byte	0
+ 2134 0158 00       		.byte	0
+ 2135 0159 17       		.uleb128 0x17
+ 2136 015a 2E       		.uleb128 0x2e
+ 2137 015b 01       		.byte	0x1
+ 2138 015c 3F       		.uleb128 0x3f
+ 2139 015d 19       		.uleb128 0x19
+ 2140 015e 03       		.uleb128 0x3
+ 2141 015f 0E       		.uleb128 0xe
+ 2142 0160 3A       		.uleb128 0x3a
+ 2143 0161 0B       		.uleb128 0xb
+ 2144 0162 3B       		.uleb128 0x3b
+ 2145 0163 0B       		.uleb128 0xb
+ 2146 0164 27       		.uleb128 0x27
+ 2147 0165 19       		.uleb128 0x19
+ 2148 0166 49       		.uleb128 0x49
+ 2149 0167 13       		.uleb128 0x13
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 47
+
+
+ 2150 0168 11       		.uleb128 0x11
+ 2151 0169 01       		.uleb128 0x1
+ 2152 016a 12       		.uleb128 0x12
+ 2153 016b 06       		.uleb128 0x6
+ 2154 016c 40       		.uleb128 0x40
+ 2155 016d 18       		.uleb128 0x18
+ 2156 016e 9742     		.uleb128 0x2117
+ 2157 0170 19       		.uleb128 0x19
+ 2158 0171 01       		.uleb128 0x1
+ 2159 0172 13       		.uleb128 0x13
+ 2160 0173 00       		.byte	0
+ 2161 0174 00       		.byte	0
+ 2162 0175 18       		.uleb128 0x18
+ 2163 0176 34       		.uleb128 0x34
+ 2164 0177 00       		.byte	0
+ 2165 0178 03       		.uleb128 0x3
+ 2166 0179 0E       		.uleb128 0xe
+ 2167 017a 3A       		.uleb128 0x3a
+ 2168 017b 0B       		.uleb128 0xb
+ 2169 017c 3B       		.uleb128 0x3b
+ 2170 017d 0B       		.uleb128 0xb
+ 2171 017e 49       		.uleb128 0x49
+ 2172 017f 13       		.uleb128 0x13
+ 2173 0180 02       		.uleb128 0x2
+ 2174 0181 18       		.uleb128 0x18
+ 2175 0182 00       		.byte	0
+ 2176 0183 00       		.byte	0
+ 2177 0184 19       		.uleb128 0x19
+ 2178 0185 01       		.uleb128 0x1
+ 2179 0186 01       		.byte	0x1
+ 2180 0187 49       		.uleb128 0x49
+ 2181 0188 13       		.uleb128 0x13
+ 2182 0189 01       		.uleb128 0x1
+ 2183 018a 13       		.uleb128 0x13
+ 2184 018b 00       		.byte	0
+ 2185 018c 00       		.byte	0
+ 2186 018d 1A       		.uleb128 0x1a
+ 2187 018e 21       		.uleb128 0x21
+ 2188 018f 00       		.byte	0
+ 2189 0190 49       		.uleb128 0x49
+ 2190 0191 13       		.uleb128 0x13
+ 2191 0192 2F       		.uleb128 0x2f
+ 2192 0193 0B       		.uleb128 0xb
+ 2193 0194 00       		.byte	0
+ 2194 0195 00       		.byte	0
+ 2195 0196 1B       		.uleb128 0x1b
+ 2196 0197 34       		.uleb128 0x34
+ 2197 0198 00       		.byte	0
+ 2198 0199 03       		.uleb128 0x3
+ 2199 019a 0E       		.uleb128 0xe
+ 2200 019b 3A       		.uleb128 0x3a
+ 2201 019c 0B       		.uleb128 0xb
+ 2202 019d 3B       		.uleb128 0x3b
+ 2203 019e 0B       		.uleb128 0xb
+ 2204 019f 49       		.uleb128 0x49
+ 2205 01a0 13       		.uleb128 0x13
+ 2206 01a1 3F       		.uleb128 0x3f
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 48
+
+
+ 2207 01a2 19       		.uleb128 0x19
+ 2208 01a3 02       		.uleb128 0x2
+ 2209 01a4 18       		.uleb128 0x18
+ 2210 01a5 00       		.byte	0
+ 2211 01a6 00       		.byte	0
+ 2212 01a7 1C       		.uleb128 0x1c
+ 2213 01a8 2E       		.uleb128 0x2e
+ 2214 01a9 00       		.byte	0
+ 2215 01aa 3F       		.uleb128 0x3f
+ 2216 01ab 19       		.uleb128 0x19
+ 2217 01ac 3C       		.uleb128 0x3c
+ 2218 01ad 19       		.uleb128 0x19
+ 2219 01ae 6E       		.uleb128 0x6e
+ 2220 01af 0E       		.uleb128 0xe
+ 2221 01b0 03       		.uleb128 0x3
+ 2222 01b1 0E       		.uleb128 0xe
+ 2223 01b2 3A       		.uleb128 0x3a
+ 2224 01b3 0B       		.uleb128 0xb
+ 2225 01b4 3B       		.uleb128 0x3b
+ 2226 01b5 05       		.uleb128 0x5
+ 2227 01b6 00       		.byte	0
+ 2228 01b7 00       		.byte	0
+ 2229 01b8 1D       		.uleb128 0x1d
+ 2230 01b9 2E       		.uleb128 0x2e
+ 2231 01ba 00       		.byte	0
+ 2232 01bb 3F       		.uleb128 0x3f
+ 2233 01bc 19       		.uleb128 0x19
+ 2234 01bd 3C       		.uleb128 0x3c
+ 2235 01be 19       		.uleb128 0x19
+ 2236 01bf 6E       		.uleb128 0x6e
+ 2237 01c0 0E       		.uleb128 0xe
+ 2238 01c1 03       		.uleb128 0x3
+ 2239 01c2 0E       		.uleb128 0xe
+ 2240 01c3 3A       		.uleb128 0x3a
+ 2241 01c4 0B       		.uleb128 0xb
+ 2242 01c5 3B       		.uleb128 0x3b
+ 2243 01c6 0B       		.uleb128 0xb
+ 2244 01c7 00       		.byte	0
+ 2245 01c8 00       		.byte	0
+ 2246 01c9 00       		.byte	0
+ 2247              		.section	.debug_loc,"",%progbits
+ 2248              	.Ldebug_loc0:
+ 2249              	.LLST0:
+ 2250 0000 00000000 		.4byte	.LVL0
+ 2251 0004 1A000000 		.4byte	.LVL2
+ 2252 0008 0100     		.2byte	0x1
+ 2253 000a 50       		.byte	0x50
+ 2254 000b 1A000000 		.4byte	.LVL2
+ 2255 000f A0000000 		.4byte	.LVL14
+ 2256 0013 0400     		.2byte	0x4
+ 2257 0015 F3       		.byte	0xf3
+ 2258 0016 01       		.uleb128 0x1
+ 2259 0017 50       		.byte	0x50
+ 2260 0018 9F       		.byte	0x9f
+ 2261 0019 A4000000 		.4byte	.LVL15
+ 2262 001d A8000000 		.4byte	.LVL16
+ 2263 0021 0100     		.2byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 49
+
+
+ 2264 0023 50       		.byte	0x50
+ 2265 0024 A8000000 		.4byte	.LVL16
+ 2266 0028 B4000000 		.4byte	.LFE5
+ 2267 002c 0400     		.2byte	0x4
+ 2268 002e F3       		.byte	0xf3
+ 2269 002f 01       		.uleb128 0x1
+ 2270 0030 50       		.byte	0x50
+ 2271 0031 9F       		.byte	0x9f
+ 2272 0032 00000000 		.4byte	0
+ 2273 0036 00000000 		.4byte	0
+ 2274              	.LLST1:
+ 2275 003a 00000000 		.4byte	.LVL0
+ 2276 003e 34000000 		.4byte	.LVL3
+ 2277 0042 0100     		.2byte	0x1
+ 2278 0044 51       		.byte	0x51
+ 2279 0045 34000000 		.4byte	.LVL3
+ 2280 0049 8E000000 		.4byte	.LVL11
+ 2281 004d 0100     		.2byte	0x1
+ 2282 004f 54       		.byte	0x54
+ 2283 0050 8E000000 		.4byte	.LVL11
+ 2284 0054 A4000000 		.4byte	.LVL15
+ 2285 0058 0400     		.2byte	0x4
+ 2286 005a F3       		.byte	0xf3
+ 2287 005b 01       		.uleb128 0x1
+ 2288 005c 51       		.byte	0x51
+ 2289 005d 9F       		.byte	0x9f
+ 2290 005e A4000000 		.4byte	.LVL15
+ 2291 0062 B4000000 		.4byte	.LFE5
+ 2292 0066 0100     		.2byte	0x1
+ 2293 0068 51       		.byte	0x51
+ 2294 0069 00000000 		.4byte	0
+ 2295 006d 00000000 		.4byte	0
+ 2296              	.LLST2:
+ 2297 0071 0C000000 		.4byte	.LVL1
+ 2298 0075 86000000 		.4byte	.LVL10
+ 2299 0079 0100     		.2byte	0x1
+ 2300 007b 55       		.byte	0x55
+ 2301 007c A4000000 		.4byte	.LVL15
+ 2302 0080 AC000000 		.4byte	.LVL17
+ 2303 0084 0100     		.2byte	0x1
+ 2304 0086 55       		.byte	0x55
+ 2305 0087 AC000000 		.4byte	.LVL17
+ 2306 008b B4000000 		.4byte	.LFE5
+ 2307 008f 0700     		.2byte	0x7
+ 2308 0091 F3       		.byte	0xf3
+ 2309 0092 01       		.uleb128 0x1
+ 2310 0093 50       		.byte	0x50
+ 2311 0094 72       		.byte	0x72
+ 2312 0095 00       		.sleb128 0
+ 2313 0096 1B       		.byte	0x1b
+ 2314 0097 9F       		.byte	0x9f
+ 2315 0098 00000000 		.4byte	0
+ 2316 009c 00000000 		.4byte	0
+ 2317              	.LLST3:
+ 2318 00a0 38000000 		.4byte	.LVL4
+ 2319 00a4 96000000 		.4byte	.LVL12
+ 2320 00a8 0100     		.2byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 50
+
+
+ 2321 00aa 50       		.byte	0x50
+ 2322 00ab 00000000 		.4byte	0
+ 2323 00af 00000000 		.4byte	0
+ 2324              	.LLST4:
+ 2325 00b3 40000000 		.4byte	.LVL5
+ 2326 00b7 9D000000 		.4byte	.LVL13-1
+ 2327 00bb 0100     		.2byte	0x1
+ 2328 00bd 52       		.byte	0x52
+ 2329 00be 00000000 		.4byte	0
+ 2330 00c2 00000000 		.4byte	0
+ 2331              	.LLST5:
+ 2332 00c6 4E000000 		.4byte	.LVL6
+ 2333 00ca 6A000000 		.4byte	.LVL8
+ 2334 00ce 0100     		.2byte	0x1
+ 2335 00d0 56       		.byte	0x56
+ 2336 00d1 6A000000 		.4byte	.LVL8
+ 2337 00d5 86000000 		.4byte	.LVL10
+ 2338 00d9 1700     		.2byte	0x17
+ 2339 00db 75       		.byte	0x75
+ 2340 00dc 00       		.sleb128 0
+ 2341 00dd 37       		.byte	0x37
+ 2342 00de 24       		.byte	0x24
+ 2343 00df 70       		.byte	0x70
+ 2344 00e0 00       		.sleb128 0
+ 2345 00e1 37       		.byte	0x37
+ 2346 00e2 24       		.byte	0x24
+ 2347 00e3 F7       		.byte	0xf7
+ 2348 00e4 25       		.uleb128 0x25
+ 2349 00e5 72       		.byte	0x72
+ 2350 00e6 00       		.sleb128 0
+ 2351 00e7 F7       		.byte	0xf7
+ 2352 00e8 25       		.uleb128 0x25
+ 2353 00e9 1B       		.byte	0x1b
+ 2354 00ea F7       		.byte	0xf7
+ 2355 00eb 00       		.uleb128 0
+ 2356 00ec 22       		.byte	0x22
+ 2357 00ed 0A       		.byte	0xa
+ 2358 00ee 0002     		.2byte	0x200
+ 2359 00f0 1C       		.byte	0x1c
+ 2360 00f1 9F       		.byte	0x9f
+ 2361 00f2 00000000 		.4byte	0
+ 2362 00f6 00000000 		.4byte	0
+ 2363              	.LLST6:
+ 2364 00fa 52000000 		.4byte	.LVL7
+ 2365 00fe 80000000 		.4byte	.LVL9
+ 2366 0102 0100     		.2byte	0x1
+ 2367 0104 53       		.byte	0x53
+ 2368 0105 80000000 		.4byte	.LVL9
+ 2369 0109 96000000 		.4byte	.LVL12
+ 2370 010d 1600     		.2byte	0x16
+ 2371 010f 70       		.byte	0x70
+ 2372 0110 00       		.sleb128 0
+ 2373 0111 37       		.byte	0x37
+ 2374 0112 24       		.byte	0x24
+ 2375 0113 70       		.byte	0x70
+ 2376 0114 00       		.sleb128 0
+ 2377 0115 37       		.byte	0x37
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 51
+
+
+ 2378 0116 24       		.byte	0x24
+ 2379 0117 F7       		.byte	0xf7
+ 2380 0118 25       		.uleb128 0x25
+ 2381 0119 72       		.byte	0x72
+ 2382 011a 00       		.sleb128 0
+ 2383 011b F7       		.byte	0xf7
+ 2384 011c 25       		.uleb128 0x25
+ 2385 011d 1B       		.byte	0x1b
+ 2386 011e F7       		.byte	0xf7
+ 2387 011f 00       		.uleb128 0
+ 2388 0120 72       		.byte	0x72
+ 2389 0121 00       		.sleb128 0
+ 2390 0122 1E       		.byte	0x1e
+ 2391 0123 1C       		.byte	0x1c
+ 2392 0124 9F       		.byte	0x9f
+ 2393 0125 00000000 		.4byte	0
+ 2394 0129 00000000 		.4byte	0
+ 2395              	.LLST7:
+ 2396 012d 52000000 		.4byte	.LVL7
+ 2397 0131 9D000000 		.4byte	.LVL13-1
+ 2398 0135 0100     		.2byte	0x1
+ 2399 0137 52       		.byte	0x52
+ 2400 0138 00000000 		.4byte	0
+ 2401 013c 00000000 		.4byte	0
+ 2402              	.LLST8:
+ 2403 0140 00000000 		.4byte	.LVL18
+ 2404 0144 1C000000 		.4byte	.LVL22
+ 2405 0148 0100     		.2byte	0x1
+ 2406 014a 50       		.byte	0x50
+ 2407 014b 1C000000 		.4byte	.LVL22
+ 2408 014f 20000000 		.4byte	.LVL23
+ 2409 0153 0400     		.2byte	0x4
+ 2410 0155 F3       		.byte	0xf3
+ 2411 0156 01       		.uleb128 0x1
+ 2412 0157 50       		.byte	0x50
+ 2413 0158 9F       		.byte	0x9f
+ 2414 0159 20000000 		.4byte	.LVL23
+ 2415 015d 8A000000 		.4byte	.LVL33
+ 2416 0161 0100     		.2byte	0x1
+ 2417 0163 50       		.byte	0x50
+ 2418 0164 8A000000 		.4byte	.LVL33
+ 2419 0168 10010000 		.4byte	.LVL48
+ 2420 016c 0400     		.2byte	0x4
+ 2421 016e F3       		.byte	0xf3
+ 2422 016f 01       		.uleb128 0x1
+ 2423 0170 50       		.byte	0x50
+ 2424 0171 9F       		.byte	0x9f
+ 2425 0172 10010000 		.4byte	.LVL48
+ 2426 0176 14010000 		.4byte	.LVL49
+ 2427 017a 0100     		.2byte	0x1
+ 2428 017c 50       		.byte	0x50
+ 2429 017d 14010000 		.4byte	.LVL49
+ 2430 0181 18010000 		.4byte	.LVL50
+ 2431 0185 0400     		.2byte	0x4
+ 2432 0187 F3       		.byte	0xf3
+ 2433 0188 01       		.uleb128 0x1
+ 2434 0189 50       		.byte	0x50
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 52
+
+
+ 2435 018a 9F       		.byte	0x9f
+ 2436 018b 18010000 		.4byte	.LVL50
+ 2437 018f 1C010000 		.4byte	.LVL51
+ 2438 0193 0100     		.2byte	0x1
+ 2439 0195 50       		.byte	0x50
+ 2440 0196 1C010000 		.4byte	.LVL51
+ 2441 019a 20010000 		.4byte	.LVL52
+ 2442 019e 0400     		.2byte	0x4
+ 2443 01a0 F3       		.byte	0xf3
+ 2444 01a1 01       		.uleb128 0x1
+ 2445 01a2 50       		.byte	0x50
+ 2446 01a3 9F       		.byte	0x9f
+ 2447 01a4 20010000 		.4byte	.LVL52
+ 2448 01a8 24010000 		.4byte	.LVL53
+ 2449 01ac 0100     		.2byte	0x1
+ 2450 01ae 50       		.byte	0x50
+ 2451 01af 24010000 		.4byte	.LVL53
+ 2452 01b3 34010000 		.4byte	.LFE6
+ 2453 01b7 0400     		.2byte	0x4
+ 2454 01b9 F3       		.byte	0xf3
+ 2455 01ba 01       		.uleb128 0x1
+ 2456 01bb 50       		.byte	0x50
+ 2457 01bc 9F       		.byte	0x9f
+ 2458 01bd 00000000 		.4byte	0
+ 2459 01c1 00000000 		.4byte	0
+ 2460              	.LLST9:
+ 2461 01c5 00000000 		.4byte	.LVL18
+ 2462 01c9 10000000 		.4byte	.LVL20
+ 2463 01cd 0100     		.2byte	0x1
+ 2464 01cf 51       		.byte	0x51
+ 2465 01d0 10000000 		.4byte	.LVL20
+ 2466 01d4 20000000 		.4byte	.LVL23
+ 2467 01d8 0100     		.2byte	0x1
+ 2468 01da 55       		.byte	0x55
+ 2469 01db 20000000 		.4byte	.LVL23
+ 2470 01df 2C000000 		.4byte	.LVL25
+ 2471 01e3 0100     		.2byte	0x1
+ 2472 01e5 51       		.byte	0x51
+ 2473 01e6 2C000000 		.4byte	.LVL25
+ 2474 01ea 76000000 		.4byte	.LVL31
+ 2475 01ee 0100     		.2byte	0x1
+ 2476 01f0 5E       		.byte	0x5e
+ 2477 01f1 76000000 		.4byte	.LVL31
+ 2478 01f5 10010000 		.4byte	.LVL48
+ 2479 01f9 0100     		.2byte	0x1
+ 2480 01fb 55       		.byte	0x55
+ 2481 01fc 10010000 		.4byte	.LVL48
+ 2482 0200 34010000 		.4byte	.LFE6
+ 2483 0204 0100     		.2byte	0x1
+ 2484 0206 5E       		.byte	0x5e
+ 2485 0207 00000000 		.4byte	0
+ 2486 020b 00000000 		.4byte	0
+ 2487              	.LLST10:
+ 2488 020f 00000000 		.4byte	.LVL18
+ 2489 0213 12000000 		.4byte	.LVL21
+ 2490 0217 0100     		.2byte	0x1
+ 2491 0219 52       		.byte	0x52
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 53
+
+
+ 2492 021a 12000000 		.4byte	.LVL21
+ 2493 021e 20000000 		.4byte	.LVL23
+ 2494 0222 0100     		.2byte	0x1
+ 2495 0224 57       		.byte	0x57
+ 2496 0225 20000000 		.4byte	.LVL23
+ 2497 0229 2C000000 		.4byte	.LVL25
+ 2498 022d 0100     		.2byte	0x1
+ 2499 022f 52       		.byte	0x52
+ 2500 0230 2C000000 		.4byte	.LVL25
+ 2501 0234 28010000 		.4byte	.LVL54
+ 2502 0238 0100     		.2byte	0x1
+ 2503 023a 57       		.byte	0x57
+ 2504 023b 28010000 		.4byte	.LVL54
+ 2505 023f 34010000 		.4byte	.LFE6
+ 2506 0243 0400     		.2byte	0x4
+ 2507 0245 F3       		.byte	0xf3
+ 2508 0246 01       		.uleb128 0x1
+ 2509 0247 52       		.byte	0x52
+ 2510 0248 9F       		.byte	0x9f
+ 2511 0249 00000000 		.4byte	0
+ 2512 024d 00000000 		.4byte	0
+ 2513              	.LLST11:
+ 2514 0251 00000000 		.4byte	.LVL18
+ 2515 0255 0A000000 		.4byte	.LVL19
+ 2516 0259 0100     		.2byte	0x1
+ 2517 025b 53       		.byte	0x53
+ 2518 025c 0A000000 		.4byte	.LVL19
+ 2519 0260 28010000 		.4byte	.LVL54
+ 2520 0264 0100     		.2byte	0x1
+ 2521 0266 56       		.byte	0x56
+ 2522 0267 28010000 		.4byte	.LVL54
+ 2523 026b 34010000 		.4byte	.LFE6
+ 2524 026f 0400     		.2byte	0x4
+ 2525 0271 F3       		.byte	0xf3
+ 2526 0272 01       		.uleb128 0x1
+ 2527 0273 53       		.byte	0x53
+ 2528 0274 9F       		.byte	0x9f
+ 2529 0275 00000000 		.4byte	0
+ 2530 0279 00000000 		.4byte	0
+ 2531              	.LLST12:
+ 2532 027d 34000000 		.4byte	.LVL26
+ 2533 0281 7A000000 		.4byte	.LVL32
+ 2534 0285 0100     		.2byte	0x1
+ 2535 0287 53       		.byte	0x53
+ 2536 0288 7A000000 		.4byte	.LVL32
+ 2537 028c CC000000 		.4byte	.LVL41
+ 2538 0290 0100     		.2byte	0x1
+ 2539 0292 5A       		.byte	0x5a
+ 2540 0293 10010000 		.4byte	.LVL48
+ 2541 0297 34010000 		.4byte	.LFE6
+ 2542 029b 0100     		.2byte	0x1
+ 2543 029d 53       		.byte	0x53
+ 2544 029e 00000000 		.4byte	0
+ 2545 02a2 00000000 		.4byte	0
+ 2546              	.LLST13:
+ 2547 02a6 38000000 		.4byte	.LVL27
+ 2548 02aa 8E000000 		.4byte	.LVL34
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 54
+
+
+ 2549 02ae 0100     		.2byte	0x1
+ 2550 02b0 51       		.byte	0x51
+ 2551 02b1 9C000000 		.4byte	.LVL35
+ 2552 02b5 B8000000 		.4byte	.LVL38
+ 2553 02b9 0100     		.2byte	0x1
+ 2554 02bb 50       		.byte	0x50
+ 2555 02bc 10010000 		.4byte	.LVL48
+ 2556 02c0 34010000 		.4byte	.LFE6
+ 2557 02c4 0100     		.2byte	0x1
+ 2558 02c6 51       		.byte	0x51
+ 2559 02c7 00000000 		.4byte	0
+ 2560 02cb 00000000 		.4byte	0
+ 2561              	.LLST14:
+ 2562 02cf B6000000 		.4byte	.LVL37
+ 2563 02d3 CC000000 		.4byte	.LVL41
+ 2564 02d7 0100     		.2byte	0x1
+ 2565 02d9 53       		.byte	0x53
+ 2566 02da 00000000 		.4byte	0
+ 2567 02de 00000000 		.4byte	0
+ 2568              	.LLST15:
+ 2569 02e2 10000000 		.4byte	.LVL20
+ 2570 02e6 20000000 		.4byte	.LVL23
+ 2571 02ea 0200     		.2byte	0x2
+ 2572 02ec 30       		.byte	0x30
+ 2573 02ed 9F       		.byte	0x9f
+ 2574 02ee C4000000 		.4byte	.LVL39
+ 2575 02f2 10010000 		.4byte	.LVL48
+ 2576 02f6 0100     		.2byte	0x1
+ 2577 02f8 51       		.byte	0x51
+ 2578 02f9 00000000 		.4byte	0
+ 2579 02fd 00000000 		.4byte	0
+ 2580              	.LLST16:
+ 2581 0301 10000000 		.4byte	.LVL20
+ 2582 0305 20000000 		.4byte	.LVL23
+ 2583 0309 0200     		.2byte	0x2
+ 2584 030b 30       		.byte	0x30
+ 2585 030c 9F       		.byte	0x9f
+ 2586 030d C8000000 		.4byte	.LVL40
+ 2587 0311 0C010000 		.4byte	.LVL47
+ 2588 0315 0100     		.2byte	0x1
+ 2589 0317 50       		.byte	0x50
+ 2590 0318 00000000 		.4byte	0
+ 2591 031c 00000000 		.4byte	0
+ 2592              	.LLST17:
+ 2593 0320 10000000 		.4byte	.LVL20
+ 2594 0324 20000000 		.4byte	.LVL23
+ 2595 0328 0200     		.2byte	0x2
+ 2596 032a 31       		.byte	0x31
+ 2597 032b 9F       		.byte	0x9f
+ 2598 032c C8000000 		.4byte	.LVL40
+ 2599 0330 F6000000 		.4byte	.LVL46
+ 2600 0334 0100     		.2byte	0x1
+ 2601 0336 53       		.byte	0x53
+ 2602 0337 00000000 		.4byte	0
+ 2603 033b 00000000 		.4byte	0
+ 2604              	.LLST18:
+ 2605 033f 10000000 		.4byte	.LVL20
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 55
+
+
+ 2606 0343 20000000 		.4byte	.LVL23
+ 2607 0347 0200     		.2byte	0x2
+ 2608 0349 30       		.byte	0x30
+ 2609 034a 9F       		.byte	0x9f
+ 2610 034b 2A000000 		.4byte	.LVL24
+ 2611 034f 2C000000 		.4byte	.LVL25
+ 2612 0353 0200     		.2byte	0x2
+ 2613 0355 30       		.byte	0x30
+ 2614 0356 9F       		.byte	0x9f
+ 2615 0357 2C000000 		.4byte	.LVL25
+ 2616 035b E6000000 		.4byte	.LVL45
+ 2617 035f 0100     		.2byte	0x1
+ 2618 0361 54       		.byte	0x54
+ 2619 0362 10010000 		.4byte	.LVL48
+ 2620 0366 28010000 		.4byte	.LVL54
+ 2621 036a 0100     		.2byte	0x1
+ 2622 036c 54       		.byte	0x54
+ 2623 036d 00000000 		.4byte	0
+ 2624 0371 00000000 		.4byte	0
+ 2625              	.LLST19:
+ 2626 0375 10000000 		.4byte	.LVL20
+ 2627 0379 20000000 		.4byte	.LVL23
+ 2628 037d 0200     		.2byte	0x2
+ 2629 037f 33       		.byte	0x33
+ 2630 0380 9F       		.byte	0x9f
+ 2631 0381 C8000000 		.4byte	.LVL40
+ 2632 0385 CC000000 		.4byte	.LVL41
+ 2633 0389 0200     		.2byte	0x2
+ 2634 038b 30       		.byte	0x30
+ 2635 038c 9F       		.byte	0x9f
+ 2636 038d CC000000 		.4byte	.LVL41
+ 2637 0391 10010000 		.4byte	.LVL48
+ 2638 0395 0100     		.2byte	0x1
+ 2639 0397 5E       		.byte	0x5e
+ 2640 0398 00000000 		.4byte	0
+ 2641 039c 00000000 		.4byte	0
+ 2642              	.LLST20:
+ 2643 03a0 10000000 		.4byte	.LVL20
+ 2644 03a4 20000000 		.4byte	.LVL23
+ 2645 03a8 0200     		.2byte	0x2
+ 2646 03aa 31       		.byte	0x31
+ 2647 03ab 9F       		.byte	0x9f
+ 2648 03ac AE000000 		.4byte	.LVL36
+ 2649 03b0 D0000000 		.4byte	.LVL42
+ 2650 03b4 0100     		.2byte	0x1
+ 2651 03b6 52       		.byte	0x52
+ 2652 03b7 D2000000 		.4byte	.LVL43
+ 2653 03bb D4000000 		.4byte	.LVL44
+ 2654 03bf 0100     		.2byte	0x1
+ 2655 03c1 52       		.byte	0x52
+ 2656 03c2 00000000 		.4byte	0
+ 2657 03c6 00000000 		.4byte	0
+ 2658              	.LLST21:
+ 2659 03ca 2A000000 		.4byte	.LVL24
+ 2660 03ce 76000000 		.4byte	.LVL31
+ 2661 03d2 0100     		.2byte	0x1
+ 2662 03d4 55       		.byte	0x55
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 56
+
+
+ 2663 03d5 10010000 		.4byte	.LVL48
+ 2664 03d9 28010000 		.4byte	.LVL54
+ 2665 03dd 0100     		.2byte	0x1
+ 2666 03df 55       		.byte	0x55
+ 2667 03e0 00000000 		.4byte	0
+ 2668 03e4 00000000 		.4byte	0
+ 2669              	.LLST22:
+ 2670 03e8 00000000 		.4byte	.LVL55
+ 2671 03ec 06000000 		.4byte	.LVL56
+ 2672 03f0 0100     		.2byte	0x1
+ 2673 03f2 50       		.byte	0x50
+ 2674 03f3 06000000 		.4byte	.LVL56
+ 2675 03f7 28000000 		.4byte	.LVL61
+ 2676 03fb 0400     		.2byte	0x4
+ 2677 03fd F3       		.byte	0xf3
+ 2678 03fe 01       		.uleb128 0x1
+ 2679 03ff 50       		.byte	0x50
+ 2680 0400 9F       		.byte	0x9f
+ 2681 0401 28000000 		.4byte	.LVL61
+ 2682 0405 2A000000 		.4byte	.LVL62
+ 2683 0409 0100     		.2byte	0x1
+ 2684 040b 50       		.byte	0x50
+ 2685 040c 2A000000 		.4byte	.LVL62
+ 2686 0410 4C000000 		.4byte	.LFE1
+ 2687 0414 0400     		.2byte	0x4
+ 2688 0416 F3       		.byte	0xf3
+ 2689 0417 01       		.uleb128 0x1
+ 2690 0418 50       		.byte	0x50
+ 2691 0419 9F       		.byte	0x9f
+ 2692 041a 00000000 		.4byte	0
+ 2693 041e 00000000 		.4byte	0
+ 2694              	.LLST23:
+ 2695 0422 00000000 		.4byte	.LVL67
+ 2696 0426 08000000 		.4byte	.LVL68
+ 2697 042a 0100     		.2byte	0x1
+ 2698 042c 50       		.byte	0x50
+ 2699 042d 08000000 		.4byte	.LVL68
+ 2700 0431 54000000 		.4byte	.LFE2
+ 2701 0435 0400     		.2byte	0x4
+ 2702 0437 F3       		.byte	0xf3
+ 2703 0438 01       		.uleb128 0x1
+ 2704 0439 50       		.byte	0x50
+ 2705 043a 9F       		.byte	0x9f
+ 2706 043b 00000000 		.4byte	0
+ 2707 043f 00000000 		.4byte	0
+ 2708              	.LLST24:
+ 2709 0443 00000000 		.4byte	.LVL67
+ 2710 0447 0B000000 		.4byte	.LVL69-1
+ 2711 044b 0100     		.2byte	0x1
+ 2712 044d 51       		.byte	0x51
+ 2713 044e 0B000000 		.4byte	.LVL69-1
+ 2714 0452 4E000000 		.4byte	.LVL74
+ 2715 0456 0100     		.2byte	0x1
+ 2716 0458 55       		.byte	0x55
+ 2717 0459 4E000000 		.4byte	.LVL74
+ 2718 045d 54000000 		.4byte	.LFE2
+ 2719 0461 0400     		.2byte	0x4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 57
+
+
+ 2720 0463 F3       		.byte	0xf3
+ 2721 0464 01       		.uleb128 0x1
+ 2722 0465 51       		.byte	0x51
+ 2723 0466 9F       		.byte	0x9f
+ 2724 0467 00000000 		.4byte	0
+ 2725 046b 00000000 		.4byte	0
+ 2726              	.LLST25:
+ 2727 046f 18000000 		.4byte	.LVL70
+ 2728 0473 25000000 		.4byte	.LVL72-1
+ 2729 0477 0100     		.2byte	0x1
+ 2730 0479 51       		.byte	0x51
+ 2731 047a 00000000 		.4byte	0
+ 2732 047e 00000000 		.4byte	0
+ 2733              	.LLST26:
+ 2734 0482 00000000 		.4byte	.LVL75
+ 2735 0486 08000000 		.4byte	.LVL76
+ 2736 048a 0100     		.2byte	0x1
+ 2737 048c 50       		.byte	0x50
+ 2738 048d 08000000 		.4byte	.LVL76
+ 2739 0491 76000000 		.4byte	.LVL86
+ 2740 0495 0100     		.2byte	0x1
+ 2741 0497 55       		.byte	0x55
+ 2742 0498 76000000 		.4byte	.LVL86
+ 2743 049c 84000000 		.4byte	.LFE0
+ 2744 04a0 0400     		.2byte	0x4
+ 2745 04a2 F3       		.byte	0xf3
+ 2746 04a3 01       		.uleb128 0x1
+ 2747 04a4 50       		.byte	0x50
+ 2748 04a5 9F       		.byte	0x9f
+ 2749 04a6 00000000 		.4byte	0
+ 2750 04aa 00000000 		.4byte	0
+ 2751              	.LLST27:
+ 2752 04ae 00000000 		.4byte	.LVL75
+ 2753 04b2 08000000 		.4byte	.LVL76
+ 2754 04b6 0100     		.2byte	0x1
+ 2755 04b8 51       		.byte	0x51
+ 2756 04b9 08000000 		.4byte	.LVL76
+ 2757 04bd 76000000 		.4byte	.LVL86
+ 2758 04c1 0100     		.2byte	0x1
+ 2759 04c3 56       		.byte	0x56
+ 2760 04c4 76000000 		.4byte	.LVL86
+ 2761 04c8 84000000 		.4byte	.LFE0
+ 2762 04cc 0400     		.2byte	0x4
+ 2763 04ce F3       		.byte	0xf3
+ 2764 04cf 01       		.uleb128 0x1
+ 2765 04d0 51       		.byte	0x51
+ 2766 04d1 9F       		.byte	0x9f
+ 2767 04d2 00000000 		.4byte	0
+ 2768 04d6 00000000 		.4byte	0
+ 2769              	.LLST28:
+ 2770 04da 00000000 		.4byte	.LVL75
+ 2771 04de 08000000 		.4byte	.LVL76
+ 2772 04e2 0100     		.2byte	0x1
+ 2773 04e4 52       		.byte	0x52
+ 2774 04e5 08000000 		.4byte	.LVL76
+ 2775 04e9 36000000 		.4byte	.LVL81
+ 2776 04ed 0100     		.2byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 58
+
+
+ 2777 04ef 54       		.byte	0x54
+ 2778 04f0 36000000 		.4byte	.LVL81
+ 2779 04f4 84000000 		.4byte	.LFE0
+ 2780 04f8 0400     		.2byte	0x4
+ 2781 04fa F3       		.byte	0xf3
+ 2782 04fb 01       		.uleb128 0x1
+ 2783 04fc 52       		.byte	0x52
+ 2784 04fd 9F       		.byte	0x9f
+ 2785 04fe 00000000 		.4byte	0
+ 2786 0502 00000000 		.4byte	0
+ 2787              	.LLST29:
+ 2788 0506 34000000 		.4byte	.LVL80
+ 2789 050a 38000000 		.4byte	.LVL82
+ 2790 050e 0200     		.2byte	0x2
+ 2791 0510 30       		.byte	0x30
+ 2792 0511 9F       		.byte	0x9f
+ 2793 0512 38000000 		.4byte	.LVL82
+ 2794 0516 76000000 		.4byte	.LVL86
+ 2795 051a 0100     		.2byte	0x1
+ 2796 051c 54       		.byte	0x54
+ 2797 051d 00000000 		.4byte	0
+ 2798 0521 00000000 		.4byte	0
+ 2799              	.LLST30:
+ 2800 0525 00000000 		.4byte	.LVL87
+ 2801 0529 3C000000 		.4byte	.LVL89
+ 2802 052d 0100     		.2byte	0x1
+ 2803 052f 50       		.byte	0x50
+ 2804 0530 3C000000 		.4byte	.LVL89
+ 2805 0534 48000000 		.4byte	.LFE3
+ 2806 0538 0400     		.2byte	0x4
+ 2807 053a F3       		.byte	0xf3
+ 2808 053b 01       		.uleb128 0x1
+ 2809 053c 50       		.byte	0x50
+ 2810 053d 9F       		.byte	0x9f
+ 2811 053e 00000000 		.4byte	0
+ 2812 0542 00000000 		.4byte	0
+ 2813              	.LLST31:
+ 2814 0546 00000000 		.4byte	.LVL87
+ 2815 054a 3A000000 		.4byte	.LVL88
+ 2816 054e 0100     		.2byte	0x1
+ 2817 0550 51       		.byte	0x51
+ 2818 0551 3A000000 		.4byte	.LVL88
+ 2819 0555 48000000 		.4byte	.LFE3
+ 2820 0559 0400     		.2byte	0x4
+ 2821 055b F3       		.byte	0xf3
+ 2822 055c 01       		.uleb128 0x1
+ 2823 055d 51       		.byte	0x51
+ 2824 055e 9F       		.byte	0x9f
+ 2825 055f 00000000 		.4byte	0
+ 2826 0563 00000000 		.4byte	0
+ 2827              	.LLST32:
+ 2828 0567 00000000 		.4byte	.LVL91
+ 2829 056b 15000000 		.4byte	.LVL95-1
+ 2830 056f 0100     		.2byte	0x1
+ 2831 0571 50       		.byte	0x50
+ 2832 0572 15000000 		.4byte	.LVL95-1
+ 2833 0576 24000000 		.4byte	.LVL97
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 59
+
+
+ 2834 057a 0100     		.2byte	0x1
+ 2835 057c 56       		.byte	0x56
+ 2836 057d 24000000 		.4byte	.LVL97
+ 2837 0581 30000000 		.4byte	.LVL99
+ 2838 0585 0400     		.2byte	0x4
+ 2839 0587 F3       		.byte	0xf3
+ 2840 0588 01       		.uleb128 0x1
+ 2841 0589 50       		.byte	0x50
+ 2842 058a 9F       		.byte	0x9f
+ 2843 058b 30000000 		.4byte	.LVL99
+ 2844 058f 46000000 		.4byte	.LVL103
+ 2845 0593 0100     		.2byte	0x1
+ 2846 0595 56       		.byte	0x56
+ 2847 0596 46000000 		.4byte	.LVL103
+ 2848 059a 4C000000 		.4byte	.LVL104
+ 2849 059e 0400     		.2byte	0x4
+ 2850 05a0 F3       		.byte	0xf3
+ 2851 05a1 01       		.uleb128 0x1
+ 2852 05a2 50       		.byte	0x50
+ 2853 05a3 9F       		.byte	0x9f
+ 2854 05a4 4C000000 		.4byte	.LVL104
+ 2855 05a8 4E000000 		.4byte	.LVL105
+ 2856 05ac 0100     		.2byte	0x1
+ 2857 05ae 56       		.byte	0x56
+ 2858 05af 4E000000 		.4byte	.LVL105
+ 2859 05b3 52000000 		.4byte	.LVL106
+ 2860 05b7 0400     		.2byte	0x4
+ 2861 05b9 F3       		.byte	0xf3
+ 2862 05ba 01       		.uleb128 0x1
+ 2863 05bb 50       		.byte	0x50
+ 2864 05bc 9F       		.byte	0x9f
+ 2865 05bd 52000000 		.4byte	.LVL106
+ 2866 05c1 54000000 		.4byte	.LVL107
+ 2867 05c5 0100     		.2byte	0x1
+ 2868 05c7 56       		.byte	0x56
+ 2869 05c8 54000000 		.4byte	.LVL107
+ 2870 05cc EC000000 		.4byte	.LFE4
+ 2871 05d0 0400     		.2byte	0x4
+ 2872 05d2 F3       		.byte	0xf3
+ 2873 05d3 01       		.uleb128 0x1
+ 2874 05d4 50       		.byte	0x50
+ 2875 05d5 9F       		.byte	0x9f
+ 2876 05d6 00000000 		.4byte	0
+ 2877 05da 00000000 		.4byte	0
+ 2878              	.LLST33:
+ 2879 05de 00000000 		.4byte	.LVL91
+ 2880 05e2 15000000 		.4byte	.LVL95-1
+ 2881 05e6 0100     		.2byte	0x1
+ 2882 05e8 51       		.byte	0x51
+ 2883 05e9 15000000 		.4byte	.LVL95-1
+ 2884 05ed 18000000 		.4byte	.LVL96
+ 2885 05f1 0400     		.2byte	0x4
+ 2886 05f3 F3       		.byte	0xf3
+ 2887 05f4 01       		.uleb128 0x1
+ 2888 05f5 51       		.byte	0x51
+ 2889 05f6 9F       		.byte	0x9f
+ 2890 05f7 18000000 		.4byte	.LVL96
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 60
+
+
+ 2891 05fb 3E000000 		.4byte	.LVL100
+ 2892 05ff 0100     		.2byte	0x1
+ 2893 0601 50       		.byte	0x50
+ 2894 0602 3E000000 		.4byte	.LVL100
+ 2895 0606 44000000 		.4byte	.LVL102
+ 2896 060a 0100     		.2byte	0x1
+ 2897 060c 55       		.byte	0x55
+ 2898 060d 44000000 		.4byte	.LVL102
+ 2899 0611 63000000 		.4byte	.LVL109-1
+ 2900 0615 0100     		.2byte	0x1
+ 2901 0617 50       		.byte	0x50
+ 2902 0618 63000000 		.4byte	.LVL109-1
+ 2903 061c 66000000 		.4byte	.LVL110
+ 2904 0620 0100     		.2byte	0x1
+ 2905 0622 55       		.byte	0x55
+ 2906 0623 66000000 		.4byte	.LVL110
+ 2907 0627 AA000000 		.4byte	.LVL119
+ 2908 062b 0100     		.2byte	0x1
+ 2909 062d 50       		.byte	0x50
+ 2910 062e AA000000 		.4byte	.LVL119
+ 2911 0632 DE000000 		.4byte	.LVL124
+ 2912 0636 0100     		.2byte	0x1
+ 2913 0638 55       		.byte	0x55
+ 2914 0639 DE000000 		.4byte	.LVL124
+ 2915 063d EC000000 		.4byte	.LFE4
+ 2916 0641 0100     		.2byte	0x1
+ 2917 0643 50       		.byte	0x50
+ 2918 0644 00000000 		.4byte	0
+ 2919 0648 00000000 		.4byte	0
+ 2920              	.LLST34:
+ 2921 064c 00000000 		.4byte	.LVL91
+ 2922 0650 12000000 		.4byte	.LVL94
+ 2923 0654 0100     		.2byte	0x1
+ 2924 0656 52       		.byte	0x52
+ 2925 0657 12000000 		.4byte	.LVL94
+ 2926 065b EC000000 		.4byte	.LFE4
+ 2927 065f 0400     		.2byte	0x4
+ 2928 0661 F3       		.byte	0xf3
+ 2929 0662 01       		.uleb128 0x1
+ 2930 0663 52       		.byte	0x52
+ 2931 0664 9F       		.byte	0x9f
+ 2932 0665 00000000 		.4byte	0
+ 2933 0669 00000000 		.4byte	0
+ 2934              	.LLST35:
+ 2935 066d 00000000 		.4byte	.LVL91
+ 2936 0671 0E000000 		.4byte	.LVL93
+ 2937 0675 0100     		.2byte	0x1
+ 2938 0677 53       		.byte	0x53
+ 2939 0678 0E000000 		.4byte	.LVL93
+ 2940 067c DE000000 		.4byte	.LVL124
+ 2941 0680 0100     		.2byte	0x1
+ 2942 0682 57       		.byte	0x57
+ 2943 0683 DE000000 		.4byte	.LVL124
+ 2944 0687 EC000000 		.4byte	.LFE4
+ 2945 068b 0400     		.2byte	0x4
+ 2946 068d F3       		.byte	0xf3
+ 2947 068e 01       		.uleb128 0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 61
+
+
+ 2948 068f 53       		.byte	0x53
+ 2949 0690 9F       		.byte	0x9f
+ 2950 0691 00000000 		.4byte	0
+ 2951 0695 00000000 		.4byte	0
+ 2952              	.LLST36:
+ 2953 0699 0C000000 		.4byte	.LVL92
+ 2954 069d 82000000 		.4byte	.LVL113
+ 2955 06a1 0200     		.2byte	0x2
+ 2956 06a3 4A       		.byte	0x4a
+ 2957 06a4 9F       		.byte	0x9f
+ 2958 06a5 82000000 		.4byte	.LVL113
+ 2959 06a9 88000000 		.4byte	.LVL115
+ 2960 06ad 0300     		.2byte	0x3
+ 2961 06af 08       		.byte	0x8
+ 2962 06b0 22       		.byte	0x22
+ 2963 06b1 9F       		.byte	0x9f
+ 2964 06b2 88000000 		.4byte	.LVL115
+ 2965 06b6 8C000000 		.4byte	.LVL116
+ 2966 06ba 0200     		.2byte	0x2
+ 2967 06bc 4A       		.byte	0x4a
+ 2968 06bd 9F       		.byte	0x9f
+ 2969 06be 8C000000 		.4byte	.LVL116
+ 2970 06c2 92000000 		.4byte	.LVL117
+ 2971 06c6 0100     		.2byte	0x1
+ 2972 06c8 58       		.byte	0x58
+ 2973 06c9 92000000 		.4byte	.LVL117
+ 2974 06cd 96000000 		.4byte	.LVL118
+ 2975 06d1 0200     		.2byte	0x2
+ 2976 06d3 4A       		.byte	0x4a
+ 2977 06d4 9F       		.byte	0x9f
+ 2978 06d5 96000000 		.4byte	.LVL118
+ 2979 06d9 D6000000 		.4byte	.LVL123
+ 2980 06dd 0100     		.2byte	0x1
+ 2981 06df 58       		.byte	0x58
+ 2982 06e0 00000000 		.4byte	0
+ 2983 06e4 00000000 		.4byte	0
+ 2984              	.LLST37:
+ 2985 06e8 0C000000 		.4byte	.LVL92
+ 2986 06ec 30000000 		.4byte	.LVL99
+ 2987 06f0 0200     		.2byte	0x2
+ 2988 06f2 30       		.byte	0x30
+ 2989 06f3 9F       		.byte	0x9f
+ 2990 06f4 30000000 		.4byte	.LVL99
+ 2991 06f8 4C000000 		.4byte	.LVL104
+ 2992 06fc 0200     		.2byte	0x2
+ 2993 06fe 31       		.byte	0x31
+ 2994 06ff 9F       		.byte	0x9f
+ 2995 0700 4C000000 		.4byte	.LVL104
+ 2996 0704 52000000 		.4byte	.LVL106
+ 2997 0708 0200     		.2byte	0x2
+ 2998 070a 30       		.byte	0x30
+ 2999 070b 9F       		.byte	0x9f
+ 3000 070c 52000000 		.4byte	.LVL106
+ 3001 0710 56000000 		.4byte	.LVL108
+ 3002 0714 0200     		.2byte	0x2
+ 3003 0716 31       		.byte	0x31
+ 3004 0717 9F       		.byte	0x9f
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 62
+
+
+ 3005 0718 56000000 		.4byte	.LVL108
+ 3006 071c 7C000000 		.4byte	.LVL111
+ 3007 0720 0100     		.2byte	0x1
+ 3008 0722 58       		.byte	0x58
+ 3009 0723 7E000000 		.4byte	.LVL112
+ 3010 0727 86000000 		.4byte	.LVL114
+ 3011 072b 0100     		.2byte	0x1
+ 3012 072d 58       		.byte	0x58
+ 3013 072e 88000000 		.4byte	.LVL115
+ 3014 0732 8C000000 		.4byte	.LVL116
+ 3015 0736 0100     		.2byte	0x1
+ 3016 0738 58       		.byte	0x58
+ 3017 0739 92000000 		.4byte	.LVL117
+ 3018 073d 96000000 		.4byte	.LVL118
+ 3019 0741 0100     		.2byte	0x1
+ 3020 0743 58       		.byte	0x58
+ 3021 0744 00000000 		.4byte	0
+ 3022 0748 00000000 		.4byte	0
+ 3023              	.LLST38:
+ 3024 074c 0C000000 		.4byte	.LVL92
+ 3025 0750 2A000000 		.4byte	.LVL98
+ 3026 0754 0200     		.2byte	0x2
+ 3027 0756 30       		.byte	0x30
+ 3028 0757 9F       		.byte	0x9f
+ 3029 0758 2A000000 		.4byte	.LVL98
+ 3030 075c 30000000 		.4byte	.LVL99
+ 3031 0760 0100     		.2byte	0x1
+ 3032 0762 56       		.byte	0x56
+ 3033 0763 30000000 		.4byte	.LVL99
+ 3034 0767 56000000 		.4byte	.LVL108
+ 3035 076b 0200     		.2byte	0x2
+ 3036 076d 30       		.byte	0x30
+ 3037 076e 9F       		.byte	0x9f
+ 3038 076f 56000000 		.4byte	.LVL108
+ 3039 0773 DE000000 		.4byte	.LVL124
+ 3040 0777 0100     		.2byte	0x1
+ 3041 0779 56       		.byte	0x56
+ 3042 077a 00000000 		.4byte	0
+ 3043 077e 00000000 		.4byte	0
+ 3044              		.section	.debug_aranges,"",%progbits
+ 3045 0000 4C000000 		.4byte	0x4c
+ 3046 0004 0200     		.2byte	0x2
+ 3047 0006 00000000 		.4byte	.Ldebug_info0
+ 3048 000a 04       		.byte	0x4
+ 3049 000b 00       		.byte	0
+ 3050 000c 0000     		.2byte	0
+ 3051 000e 0000     		.2byte	0
+ 3052 0010 00000000 		.4byte	.LFB5
+ 3053 0014 B4000000 		.4byte	.LFE5-.LFB5
+ 3054 0018 00000000 		.4byte	.LFB6
+ 3055 001c 34010000 		.4byte	.LFE6-.LFB6
+ 3056 0020 00000000 		.4byte	.LFB1
+ 3057 0024 4C000000 		.4byte	.LFE1-.LFB1
+ 3058 0028 00000000 		.4byte	.LFB2
+ 3059 002c 54000000 		.4byte	.LFE2-.LFB2
+ 3060 0030 00000000 		.4byte	.LFB0
+ 3061 0034 84000000 		.4byte	.LFE0-.LFB0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 63
+
+
+ 3062 0038 00000000 		.4byte	.LFB3
+ 3063 003c 48000000 		.4byte	.LFE3-.LFB3
+ 3064 0040 00000000 		.4byte	.LFB4
+ 3065 0044 EC000000 		.4byte	.LFE4-.LFB4
+ 3066 0048 00000000 		.4byte	0
+ 3067 004c 00000000 		.4byte	0
+ 3068              		.section	.debug_ranges,"",%progbits
+ 3069              	.Ldebug_ranges0:
+ 3070 0000 00000000 		.4byte	.LFB5
+ 3071 0004 B4000000 		.4byte	.LFE5
+ 3072 0008 00000000 		.4byte	.LFB6
+ 3073 000c 34010000 		.4byte	.LFE6
+ 3074 0010 00000000 		.4byte	.LFB1
+ 3075 0014 4C000000 		.4byte	.LFE1
+ 3076 0018 00000000 		.4byte	.LFB2
+ 3077 001c 54000000 		.4byte	.LFE2
+ 3078 0020 00000000 		.4byte	.LFB0
+ 3079 0024 84000000 		.4byte	.LFE0
+ 3080 0028 00000000 		.4byte	.LFB3
+ 3081 002c 48000000 		.4byte	.LFE3
+ 3082 0030 00000000 		.4byte	.LFB4
+ 3083 0034 EC000000 		.4byte	.LFE4
+ 3084 0038 00000000 		.4byte	0
+ 3085 003c 00000000 		.4byte	0
+ 3086              		.section	.debug_line,"",%progbits
+ 3087              	.Ldebug_line0:
+ 3088 0000 E1020000 		.section	.debug_str,"MS",%progbits,1
+ 3088      02002801 
+ 3088      00000201 
+ 3088      FB0E0D00 
+ 3088      01010101 
+ 3089              	.LASF46:
+ 3090 0000 656E6162 		.ascii	"enable\000"
+ 3090      6C6500
+ 3091              	.LASF28:
+ 3092 0007 73693533 		.ascii	"si5351_clock\000"
+ 3092      35315F63 
+ 3092      6C6F636B 
+ 3092      00
+ 3093              	.LASF19:
+ 3094 0014 75696E74 		.ascii	"uint64_t\000"
+ 3094      36345F74 
+ 3094      00
+ 3095              	.LASF5:
+ 3096 001d 73686F72 		.ascii	"short int\000"
+ 3096      7420696E 
+ 3096      7400
+ 3097              	.LASF63:
+ 3098 0027 73697A65 		.ascii	"sizetype\000"
+ 3098      74797065 
+ 3098      00
+ 3099              	.LASF36:
+ 3100 0030 53493533 		.ascii	"SI5351_DRIVE_8MA\000"
+ 3100      35315F44 
+ 3100      52495645 
+ 3100      5F384D41 
+ 3100      00
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 64
+
+
+ 3101              	.LASF74:
+ 3102 0041 73693533 		.ascii	"si5351_set_frequency\000"
+ 3102      35315F73 
+ 3102      65745F66 
+ 3102      72657175 
+ 3102      656E6379 
+ 3103              	.LASF10:
+ 3104 0056 5F5F7569 		.ascii	"__uint32_t\000"
+ 3104      6E743332 
+ 3104      5F7400
+ 3105              	.LASF33:
+ 3106 0061 53493533 		.ascii	"SI5351_DRIVE_2MA\000"
+ 3106      35315F44 
+ 3106      52495645 
+ 3106      5F324D41 
+ 3106      00
+ 3107              	.LASF55:
+ 3108 0072 73693533 		.ascii	"si5351_drive_strength\000"
+ 3108      35315F64 
+ 3108      72697665 
+ 3108      5F737472 
+ 3108      656E6774 
+ 3109              	.LASF43:
+ 3110 0088 64697662 		.ascii	"divby4\000"
+ 3110      793400
+ 3111              	.LASF18:
+ 3112 008f 696E7436 		.ascii	"int64_t\000"
+ 3112      345F7400 
+ 3113              	.LASF68:
+ 3114 0097 73693533 		.ascii	"si5351_read_byte\000"
+ 3114      35315F72 
+ 3114      6561645F 
+ 3114      62797465 
+ 3114      00
+ 3115              	.LASF44:
+ 3116 00a8 6D735F69 		.ascii	"ms_int\000"
+ 3116      6E7400
+ 3117              	.LASF58:
+ 3118 00af 706C6C72 		.ascii	"pllregs\000"
+ 3118      65677300 
+ 3119              	.LASF15:
+ 3120 00b7 75696E74 		.ascii	"uint8_t\000"
+ 3120      385F7400 
+ 3121              	.LASF53:
+ 3122 00bf 6C6F6164 		.ascii	"load_cap\000"
+ 3122      5F636170 
+ 3122      00
+ 3123              	.LASF40:
+ 3124 00c8 6D756C74 		.ascii	"multisynth_calc\000"
+ 3124      6973796E 
+ 3124      74685F63 
+ 3124      616C6300 
+ 3125              	.LASF37:
+ 3126 00d8 66726571 		.ascii	"freq\000"
+ 3126      00
+ 3127              	.LASF1:
+ 3128 00dd 6C6F6E67 		.ascii	"long long int\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 65
+
+
+ 3128      206C6F6E 
+ 3128      6720696E 
+ 3128      7400
+ 3129              	.LASF73:
+ 3130 00eb 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 3130      536F435F 
+ 3130      43726561 
+ 3130      746F725C 
+ 3130      43593843 
+ 3131 011b 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 3131      65636569 
+ 3131      7665725C 
+ 3131      43593843 
+ 3131      4B49542D 
+ 3132              	.LASF35:
+ 3133 014d 53493533 		.ascii	"SI5351_DRIVE_6MA\000"
+ 3133      35315F44 
+ 3133      52495645 
+ 3133      5F364D41 
+ 3133      00
+ 3134              	.LASF9:
+ 3135 015e 6C6F6E67 		.ascii	"long int\000"
+ 3135      20696E74 
+ 3135      00
+ 3136              	.LASF12:
+ 3137 0167 5F5F696E 		.ascii	"__int64_t\000"
+ 3137      7436345F 
+ 3137      7400
+ 3138              	.LASF60:
+ 3139 0171 61646472 		.ascii	"addr\000"
+ 3139      00
+ 3140              	.LASF7:
+ 3141 0176 5F5F7569 		.ascii	"__uint8_t\000"
+ 3141      6E74385F 
+ 3141      7400
+ 3142              	.LASF56:
+ 3143 0180 64726976 		.ascii	"drive\000"
+ 3143      6500
+ 3144              	.LASF2:
+ 3145 0186 6C6F6E67 		.ascii	"long double\000"
+ 3145      20646F75 
+ 3145      626C6500 
+ 3146              	.LASF42:
+ 3147 0192 636C6B5F 		.ascii	"clk_ctrl\000"
+ 3147      6374726C 
+ 3147      00
+ 3148              	.LASF4:
+ 3149 019b 756E7369 		.ascii	"unsigned char\000"
+ 3149      676E6564 
+ 3149      20636861 
+ 3149      7200
+ 3150              	.LASF39:
+ 3151 01a9 706C6C5F 		.ascii	"pll_calc\000"
+ 3151      63616C63 
+ 3151      00
+ 3152              	.LASF59:
+ 3153 01b2 6D737265 		.ascii	"msregs\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 66
+
+
+ 3153      677300
+ 3154              	.LASF3:
+ 3155 01b9 7369676E 		.ascii	"signed char\000"
+ 3155      65642063 
+ 3155      68617200 
+ 3156              	.LASF14:
+ 3157 01c5 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 3157      206C6F6E 
+ 3157      6720756E 
+ 3157      7369676E 
+ 3157      65642069 
+ 3158              	.LASF17:
+ 3159 01dc 75696E74 		.ascii	"uint32_t\000"
+ 3159      33325F74 
+ 3159      00
+ 3160              	.LASF0:
+ 3161 01e5 756E7369 		.ascii	"unsigned int\000"
+ 3161      676E6564 
+ 3161      20696E74 
+ 3161      00
+ 3162              	.LASF34:
+ 3163 01f2 53493533 		.ascii	"SI5351_DRIVE_4MA\000"
+ 3163      35315F44 
+ 3163      52495645 
+ 3163      5F344D41 
+ 3163      00
+ 3164              	.LASF30:
+ 3165 0203 53493533 		.ascii	"SI5351_PLLA\000"
+ 3165      35315F50 
+ 3165      4C4C4100 
+ 3166              	.LASF31:
+ 3167 020f 53493533 		.ascii	"SI5351_PLLB\000"
+ 3167      35315F50 
+ 3167      4C4C4200 
+ 3168              	.LASF6:
+ 3169 021b 73686F72 		.ascii	"short unsigned int\000"
+ 3169      7420756E 
+ 3169      7369676E 
+ 3169      65642069 
+ 3169      6E7400
+ 3170              	.LASF70:
+ 3171 022e 73693533 		.ascii	"si5351_write_xfer\000"
+ 3171      35315F77 
+ 3171      72697465 
+ 3171      5F786665 
+ 3171      7200
+ 3172              	.LASF64:
+ 3173 0240 706C6C61 		.ascii	"plla_freq\000"
+ 3173      5F667265 
+ 3173      7100
+ 3174              	.LASF16:
+ 3175 024a 696E7433 		.ascii	"int32_t\000"
+ 3175      325F7400 
+ 3176              	.LASF52:
+ 3177 0252 7874616C 		.ascii	"xtal_correction\000"
+ 3177      5F636F72 
+ 3177      72656374 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 67
+
+
+ 3177      696F6E00 
+ 3178              	.LASF61:
+ 3179 0262 706C6C5F 		.ascii	"pll_prog\000"
+ 3179      70726F67 
+ 3179      00
+ 3180              	.LASF69:
+ 3181 026b 73693533 		.ascii	"si5351_write_byte\000"
+ 3181      35315F77 
+ 3181      72697465 
+ 3181      5F627974 
+ 3181      6500
+ 3182              	.LASF13:
+ 3183 027d 5F5F7569 		.ascii	"__uint64_t\000"
+ 3183      6E743634 
+ 3183      5F7400
+ 3184              	.LASF32:
+ 3185 0288 73693533 		.ascii	"si5351_drive\000"
+ 3185      35315F64 
+ 3185      72697665 
+ 3185      00
+ 3186              	.LASF48:
+ 3187 0295 73693533 		.ascii	"si5351_clock_enable\000"
+ 3187      35315F63 
+ 3187      6C6F636B 
+ 3187      5F656E61 
+ 3187      626C6500 
+ 3188              	.LASF45:
+ 3189 02a9 74617267 		.ascii	"target_pll_freq\000"
+ 3189      65745F70 
+ 3189      6C6C5F66 
+ 3189      72657100 
+ 3190              	.LASF67:
+ 3191 02b9 636C6F63 		.ascii	"clock_control\000"
+ 3191      6B5F636F 
+ 3191      6E74726F 
+ 3191      6C00
+ 3192              	.LASF11:
+ 3193 02c7 6C6F6E67 		.ascii	"long unsigned int\000"
+ 3193      20756E73 
+ 3193      69676E65 
+ 3193      6420696E 
+ 3193      7400
+ 3194              	.LASF54:
+ 3195 02d9 636C6F63 		.ascii	"clock\000"
+ 3195      6B00
+ 3196              	.LASF49:
+ 3197 02df 7265675F 		.ascii	"reg_val\000"
+ 3197      76616C00 
+ 3198              	.LASF47:
+ 3199 02e7 73693533 		.ascii	"si5351_calibration_mode\000"
+ 3199      35315F63 
+ 3199      616C6962 
+ 3199      72617469 
+ 3199      6F6E5F6D 
+ 3200              	.LASF51:
+ 3201 02ff 66726571 		.ascii	"freq_xtal\000"
+ 3201      5F787461 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 68
+
+
+ 3201      6C00
+ 3202              	.LASF66:
+ 3203 0309 66726571 		.ascii	"freq_ref\000"
+ 3203      5F726566 
+ 3203      00
+ 3204              	.LASF29:
+ 3205 0312 73693533 		.ascii	"si5351_pll\000"
+ 3205      35315F70 
+ 3205      6C6C00
+ 3206              	.LASF57:
+ 3207 031d 72657365 		.ascii	"reset\000"
+ 3207      7400
+ 3208              	.LASF8:
+ 3209 0323 5F5F696E 		.ascii	"__int32_t\000"
+ 3209      7433325F 
+ 3209      7400
+ 3210              	.LASF62:
+ 3211 032d 70726F67 		.ascii	"program_pll\000"
+ 3211      72616D5F 
+ 3211      706C6C00 
+ 3212              	.LASF50:
+ 3213 0339 73693533 		.ascii	"si5351_init\000"
+ 3213      35315F69 
+ 3213      6E697400 
+ 3214              	.LASF65:
+ 3215 0345 706C6C62 		.ascii	"pllb_freq\000"
+ 3215      5F667265 
+ 3215      7100
+ 3216              	.LASF20:
+ 3217 034f 53493533 		.ascii	"SI5351_CLK0\000"
+ 3217      35315F43 
+ 3217      4C4B3000 
+ 3218              	.LASF21:
+ 3219 035b 53493533 		.ascii	"SI5351_CLK1\000"
+ 3219      35315F43 
+ 3219      4C4B3100 
+ 3220              	.LASF22:
+ 3221 0367 53493533 		.ascii	"SI5351_CLK2\000"
+ 3221      35315F43 
+ 3221      4C4B3200 
+ 3222              	.LASF23:
+ 3223 0373 53493533 		.ascii	"SI5351_CLK3\000"
+ 3223      35315F43 
+ 3223      4C4B3300 
+ 3224              	.LASF24:
+ 3225 037f 53493533 		.ascii	"SI5351_CLK4\000"
+ 3225      35315F43 
+ 3225      4C4B3400 
+ 3226              	.LASF25:
+ 3227 038b 53493533 		.ascii	"SI5351_CLK5\000"
+ 3227      35315F43 
+ 3227      4C4B3500 
+ 3228              	.LASF26:
+ 3229 0397 53493533 		.ascii	"SI5351_CLK6\000"
+ 3229      35315F43 
+ 3229      4C4B3600 
+ 3230              	.LASF27:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccMyT5GO.s 			page 69
+
+
+ 3231 03a3 53493533 		.ascii	"SI5351_CLK7\000"
+ 3231      35315F43 
+ 3231      4C4B3700 
+ 3232              	.LASF72:
+ 3233 03af 73693533 		.ascii	"si5351.c\000"
+ 3233      35312E63 
+ 3233      00
+ 3234              	.LASF71:
+ 3235 03b8 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 3235      43313120 
+ 3235      352E342E 
+ 3235      31203230 
+ 3235      31363036 
+ 3236 03eb 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 3236      20726576 
+ 3236      6973696F 
+ 3236      6E203233 
+ 3236      37373135 
+ 3237 041e 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 3237      66756E63 
+ 3237      74696F6E 
+ 3237      2D736563 
+ 3237      74696F6E 
+ 3238              	.LASF38:
+ 3239 0446 72656773 		.ascii	"regs\000"
+ 3239      00
+ 3240              	.LASF41:
+ 3241 044b 706C6C5F 		.ascii	"pll_freq\000"
+ 3241      66726571 
+ 3241      00
+ 3242              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

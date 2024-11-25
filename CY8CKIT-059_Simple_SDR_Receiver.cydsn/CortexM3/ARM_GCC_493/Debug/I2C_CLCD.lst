@@ -1,0 +1,4163 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"I2C_CLCD.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.I2C_CLCD_WrCntrlNib,"ax",%progbits
+  19              		.align	2
+  20              		.thumb
+  21              		.thumb_func
+  22              		.type	I2C_CLCD_WrCntrlNib, %function
+  23              	I2C_CLCD_WrCntrlNib:
+  24              	.LFB12:
+  25              		.file 1 "..\\API\\I2C_CLCD.c"
+   1:..\API/I2C_CLCD.c **** /*******************************************************************************
+   2:..\API/I2C_CLCD.c **** * File Name: I2C_CLCD.c
+   3:..\API/I2C_CLCD.c **** * Version 1.0
+   4:..\API/I2C_CLCD.c **** *
+   5:..\API/I2C_CLCD.c **** * Description:
+   6:..\API/I2C_CLCD.c **** *  This file provides source code for the I2C CLCD component's API.
+   7:..\API/I2C_CLCD.c **** *  I2C_CLCD.c is midified LCD.c to use PCF8574 based I2C module for CLCD.
+   8:..\API/I2C_CLCD.c **** *  In this file, the original 'LCD_' is changed to 'I2C_CLCD_'
+   9:..\API/I2C_CLCD.c **** *
+  10:..\API/I2C_CLCD.c **** * Note:
+  11:..\API/I2C_CLCD.c **** *
+  12:..\API/I2C_CLCD.c **** ********************************************************************************
+  13:..\API/I2C_CLCD.c **** * Copyright 2008-2014, Cypress Semiconductor Corporation.  All rights reserved.
+  14:..\API/I2C_CLCD.c **** * You may use this file only in accordance with the license, terms, conditions,
+  15:..\API/I2C_CLCD.c **** * disclaimers, and limitations in the end user license agreement accompanying
+  16:..\API/I2C_CLCD.c **** * the software package with which this file was provided.
+  17:..\API/I2C_CLCD.c **** *******************************************************************************/
+  18:..\API/I2C_CLCD.c **** 
+  19:..\API/I2C_CLCD.c **** /*******************************************************************************
+  20:..\API/I2C_CLCD.c **** * Copyright 2016, JA7RHK.   All rights reserved.
+  21:..\API/I2C_CLCD.c **** *******************************************************************************/
+  22:..\API/I2C_CLCD.c **** 
+  23:..\API/I2C_CLCD.c **** #include "CyLib.h"
+  24:..\API/I2C_CLCD.c **** #include "I2C_CLCD.h"
+  25:..\API/I2C_CLCD.c **** 
+  26:..\API/I2C_CLCD.c **** 
+  27:..\API/I2C_CLCD.c **** static void I2C_CLCD_WrDatNib(uint8 nibble) ;
+  28:..\API/I2C_CLCD.c **** static void I2C_CLCD_WrCntrlNib(uint8 nibble) ;
+  29:..\API/I2C_CLCD.c **** 
+  30:..\API/I2C_CLCD.c **** /* Stores state of component. Indicates whether component is or not
+  31:..\API/I2C_CLCD.c **** * in the enable state.
+  32:..\API/I2C_CLCD.c **** */
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 2
+
+
+  33:..\API/I2C_CLCD.c **** uint8 I2C_CLCD_enableState = 0u;
+  34:..\API/I2C_CLCD.c **** 
+  35:..\API/I2C_CLCD.c **** uint8 I2C_CLCD_initVar = 0u;
+  36:..\API/I2C_CLCD.c **** 
+  37:..\API/I2C_CLCD.c **** /* Need to have I2C_CLCD_buffIndex of different size to avoid MISRA
+  38:..\API/I2C_CLCD.c **** * warning when SCB based I2C Master is used. 
+  39:..\API/I2C_CLCD.c **** */
+  40:..\API/I2C_CLCD.c **** 
+  41:..\API/I2C_CLCD.c **** /* Variable stores the I2C address */
+  42:..\API/I2C_CLCD.c **** /* 7-bit slave address. */
+  43:..\API/I2C_CLCD.c **** uint8 slaveAddress = I2C_LCD_DEFAULT_I2C_ADDRESS;
+  44:..\API/I2C_CLCD.c **** uint8 I2C_CLCD_BackLight = I2C_CLCD_BL;
+  45:..\API/I2C_CLCD.c **** 
+  46:..\API/I2C_CLCD.c **** 
+  47:..\API/I2C_CLCD.c **** /*******************************************************************************
+  48:..\API/I2C_CLCD.c **** * Function Name: I2C_CLCD_Init
+  49:..\API/I2C_CLCD.c **** ********************************************************************************
+  50:..\API/I2C_CLCD.c **** *
+  51:..\API/I2C_CLCD.c **** * Summary:
+  52:..\API/I2C_CLCD.c **** *  Perform initialization required for the components normal work.
+  53:..\API/I2C_CLCD.c **** *  This function initializes the LCD hardware module as follows:
+  54:..\API/I2C_CLCD.c **** *        Enables a 4-bit interface
+  55:..\API/I2C_CLCD.c **** *        Clears the display
+  56:..\API/I2C_CLCD.c **** *        Enables the auto cursor increment
+  57:..\API/I2C_CLCD.c **** *        Resets the cursor to start position
+  58:..\API/I2C_CLCD.c **** *  Also, it loads a custom character set to the LCD if it was defined in the customizer.
+  59:..\API/I2C_CLCD.c **** *
+  60:..\API/I2C_CLCD.c **** * Parameters:
+  61:..\API/I2C_CLCD.c **** *  None.
+  62:..\API/I2C_CLCD.c **** *
+  63:..\API/I2C_CLCD.c **** * Return:
+  64:..\API/I2C_CLCD.c **** *  None.
+  65:..\API/I2C_CLCD.c **** *
+  66:..\API/I2C_CLCD.c **** * Reentrant:
+  67:..\API/I2C_CLCD.c **** *  No.
+  68:..\API/I2C_CLCD.c **** *
+  69:..\API/I2C_CLCD.c **** *******************************************************************************/
+  70:..\API/I2C_CLCD.c **** void I2C_CLCD_Init(void) 
+  71:..\API/I2C_CLCD.c **** {
+  72:..\API/I2C_CLCD.c ****     /* INIT CODE */
+  73:..\API/I2C_CLCD.c ****     CyDelay(40u);                                                        /* Delay 40 ms */
+  74:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_8_BIT_INIT);    /* Selects 8-bit mode */
+  75:..\API/I2C_CLCD.c ****     CyDelay(5u);                                                         /* Delay 5 ms */
+  76:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_8_BIT_INIT);    /* Selects 8-bit mode */
+  77:..\API/I2C_CLCD.c ****     CyDelay(15u);                                                        /* Delay 15 ms */
+  78:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_8_BIT_INIT);    /* Selects 8-bit mode */
+  79:..\API/I2C_CLCD.c ****     CyDelay(1u);                                                         /* Delay 1 ms */
+  80:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_4_BIT_INIT);    /* Selects 4-bit mode */
+  81:..\API/I2C_CLCD.c ****     CyDelay(5u);                                                         /* Delay 5 ms */
+  82:..\API/I2C_CLCD.c **** 
+  83:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_CURSOR_AUTO_INCR_ON);    /* Incr Cursor After Writes */
+  84:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_CURSOR_ON);      /* Turn Display, Cursor ON */
+  85:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_2_LINES_5x10);   /* 2 Lines by 5x10 Characters */
+  86:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_CURSOR_OFF);     /* Turn Display, Cursor OFF */
+  87:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_CLEAR_DISPLAY);          /* Clear LCD Screen */
+  88:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_ON_CURSOR_OFF);  /* Turn Display ON, Cursor OFF */
+  89:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_RESET_CURSOR_POSITION);  /* Set Cursor to 0,0 */
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 3
+
+
+  90:..\API/I2C_CLCD.c ****     CyDelay(5u);
+  91:..\API/I2C_CLCD.c **** }
+  92:..\API/I2C_CLCD.c **** 
+  93:..\API/I2C_CLCD.c **** 
+  94:..\API/I2C_CLCD.c **** /*******************************************************************************
+  95:..\API/I2C_CLCD.c **** * Function Name: I2C_CLCD_Enable
+  96:..\API/I2C_CLCD.c **** ********************************************************************************
+  97:..\API/I2C_CLCD.c **** *
+  98:..\API/I2C_CLCD.c **** * Summary:
+  99:..\API/I2C_CLCD.c **** *  Turns on the display.
+ 100:..\API/I2C_CLCD.c **** *
+ 101:..\API/I2C_CLCD.c **** * Parameters:
+ 102:..\API/I2C_CLCD.c **** *  None.
+ 103:..\API/I2C_CLCD.c **** *
+ 104:..\API/I2C_CLCD.c **** * Return:
+ 105:..\API/I2C_CLCD.c **** *  None.
+ 106:..\API/I2C_CLCD.c **** *
+ 107:..\API/I2C_CLCD.c **** * Reentrant:
+ 108:..\API/I2C_CLCD.c **** *  No.
+ 109:..\API/I2C_CLCD.c **** *
+ 110:..\API/I2C_CLCD.c **** * Theory:
+ 111:..\API/I2C_CLCD.c **** *  This function has no effect when it is called the first time as
+ 112:..\API/I2C_CLCD.c **** *  I2C_CLCD_Init() turns on the LCD.
+ 113:..\API/I2C_CLCD.c **** *
+ 114:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 115:..\API/I2C_CLCD.c **** void I2C_CLCD_Enable(void) 
+ 116:..\API/I2C_CLCD.c **** {
+ 117:..\API/I2C_CLCD.c ****     I2C_CLCD_DisplayOn();
+ 118:..\API/I2C_CLCD.c ****     I2C_CLCD_enableState = 1u;
+ 119:..\API/I2C_CLCD.c **** }
+ 120:..\API/I2C_CLCD.c **** 
+ 121:..\API/I2C_CLCD.c **** 
+ 122:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 123:..\API/I2C_CLCD.c **** * Function Name: I2C_CLCD_Start
+ 124:..\API/I2C_CLCD.c **** ********************************************************************************
+ 125:..\API/I2C_CLCD.c **** *
+ 126:..\API/I2C_CLCD.c **** * Summary:
+ 127:..\API/I2C_CLCD.c **** *  Perform initialization required for the components normal work.
+ 128:..\API/I2C_CLCD.c **** *  This function initializes the LCD hardware module as follows:
+ 129:..\API/I2C_CLCD.c **** *        Enables 4-bit interface
+ 130:..\API/I2C_CLCD.c **** *        Clears the display
+ 131:..\API/I2C_CLCD.c **** *        Enables auto cursor increment
+ 132:..\API/I2C_CLCD.c **** *        Resets the cursor to start position
+ 133:..\API/I2C_CLCD.c **** *  Also, it loads a custom character set to the LCD if it was defined in the customizer.
+ 134:..\API/I2C_CLCD.c **** *  If it was not the first call in this project, then it just turns on the
+ 135:..\API/I2C_CLCD.c **** *  display
+ 136:..\API/I2C_CLCD.c **** *
+ 137:..\API/I2C_CLCD.c **** *
+ 138:..\API/I2C_CLCD.c **** * Parameters:
+ 139:..\API/I2C_CLCD.c **** *  I2C_CLCD_initVar - global variable.
+ 140:..\API/I2C_CLCD.c **** *
+ 141:..\API/I2C_CLCD.c **** * Return:
+ 142:..\API/I2C_CLCD.c **** *  I2C_CLCD_initVar - global variable.
+ 143:..\API/I2C_CLCD.c **** *
+ 144:..\API/I2C_CLCD.c **** * Reentrant:
+ 145:..\API/I2C_CLCD.c **** *  No.
+ 146:..\API/I2C_CLCD.c **** *
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 4
+
+
+ 147:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 148:..\API/I2C_CLCD.c **** void I2C_CLCD_Start(void) 
+ 149:..\API/I2C_CLCD.c **** {
+ 150:..\API/I2C_CLCD.c ****     /* If not initialized, perform initialization */
+ 151:..\API/I2C_CLCD.c ****     if(I2C_CLCD_initVar == 0u)
+ 152:..\API/I2C_CLCD.c ****     {
+ 153:..\API/I2C_CLCD.c ****         I2C_CLCD_Init();
+ 154:..\API/I2C_CLCD.c ****         I2C_CLCD_initVar = 1u;
+ 155:..\API/I2C_CLCD.c ****     }
+ 156:..\API/I2C_CLCD.c **** 
+ 157:..\API/I2C_CLCD.c ****     /* Turn on the LCD */
+ 158:..\API/I2C_CLCD.c ****     I2C_CLCD_Enable();
+ 159:..\API/I2C_CLCD.c **** }
+ 160:..\API/I2C_CLCD.c **** 
+ 161:..\API/I2C_CLCD.c **** 
+ 162:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 163:..\API/I2C_CLCD.c **** * Function Name: I2C_CLCD_Stop
+ 164:..\API/I2C_CLCD.c **** ********************************************************************************
+ 165:..\API/I2C_CLCD.c **** *
+ 166:..\API/I2C_CLCD.c **** * Summary:
+ 167:..\API/I2C_CLCD.c **** *  Turns off the display of the LCD screen.
+ 168:..\API/I2C_CLCD.c **** *
+ 169:..\API/I2C_CLCD.c **** * Parameters:
+ 170:..\API/I2C_CLCD.c **** *  None.
+ 171:..\API/I2C_CLCD.c **** *
+ 172:..\API/I2C_CLCD.c **** * Return:
+ 173:..\API/I2C_CLCD.c **** *  None.
+ 174:..\API/I2C_CLCD.c **** *
+ 175:..\API/I2C_CLCD.c **** * Reentrant:
+ 176:..\API/I2C_CLCD.c **** *  No.
+ 177:..\API/I2C_CLCD.c **** *
+ 178:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 179:..\API/I2C_CLCD.c **** void I2C_CLCD_Stop(void) 
+ 180:..\API/I2C_CLCD.c **** {
+ 181:..\API/I2C_CLCD.c ****     /* Calls LCD Off Macro */
+ 182:..\API/I2C_CLCD.c ****     I2C_CLCD_DisplayOff();
+ 183:..\API/I2C_CLCD.c ****     I2C_CLCD_enableState = 0u;
+ 184:..\API/I2C_CLCD.c **** }
+ 185:..\API/I2C_CLCD.c **** 
+ 186:..\API/I2C_CLCD.c **** 
+ 187:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 188:..\API/I2C_CLCD.c **** *  Function Name: I2C_CLCD_Position
+ 189:..\API/I2C_CLCD.c **** ********************************************************************************
+ 190:..\API/I2C_CLCD.c **** *
+ 191:..\API/I2C_CLCD.c **** * Summary:
+ 192:..\API/I2C_CLCD.c **** *  Moves the active cursor location to a point specified by the input arguments
+ 193:..\API/I2C_CLCD.c **** *
+ 194:..\API/I2C_CLCD.c **** * Parameters:
+ 195:..\API/I2C_CLCD.c **** *  row:    Specific row of LCD module to be written
+ 196:..\API/I2C_CLCD.c **** *  column: Column of LCD module to be written
+ 197:..\API/I2C_CLCD.c **** *
+ 198:..\API/I2C_CLCD.c **** * Return:
+ 199:..\API/I2C_CLCD.c **** *  None.
+ 200:..\API/I2C_CLCD.c **** *
+ 201:..\API/I2C_CLCD.c **** * Note:
+ 202:..\API/I2C_CLCD.c **** *  This only applies for LCD displays that use the 2X40 address mode.
+ 203:..\API/I2C_CLCD.c **** *  In this case Row 2 starts with 0x28 offset from Row 1.
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 5
+
+
+ 204:..\API/I2C_CLCD.c **** *  When there are more than 2 rows, each row must be fewer than 20 characters.
+ 205:..\API/I2C_CLCD.c **** *
+ 206:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 207:..\API/I2C_CLCD.c **** void I2C_CLCD_Position(uint8 row, uint8 column) 
+ 208:..\API/I2C_CLCD.c **** {
+ 209:..\API/I2C_CLCD.c ****     switch (row)
+ 210:..\API/I2C_CLCD.c ****     {
+ 211:..\API/I2C_CLCD.c ****         case (uint8)0:
+ 212:..\API/I2C_CLCD.c ****             I2C_CLCD_WriteControl(I2C_CLCD_ROW_0_START + column);
+ 213:..\API/I2C_CLCD.c ****             break;
+ 214:..\API/I2C_CLCD.c ****         case (uint8) 1:
+ 215:..\API/I2C_CLCD.c ****             I2C_CLCD_WriteControl(I2C_CLCD_ROW_1_START + column);
+ 216:..\API/I2C_CLCD.c ****             break;
+ 217:..\API/I2C_CLCD.c ****         case (uint8) 2:
+ 218:..\API/I2C_CLCD.c ****             I2C_CLCD_WriteControl(I2C_CLCD_ROW_2_START + column);
+ 219:..\API/I2C_CLCD.c ****             break;
+ 220:..\API/I2C_CLCD.c ****         case (uint8) 3:
+ 221:..\API/I2C_CLCD.c ****             I2C_CLCD_WriteControl(I2C_CLCD_ROW_3_START + column);
+ 222:..\API/I2C_CLCD.c ****             break;
+ 223:..\API/I2C_CLCD.c ****         default:
+ 224:..\API/I2C_CLCD.c ****             /* if default case is hit, invalid row argument was passed.*/
+ 225:..\API/I2C_CLCD.c ****             break;
+ 226:..\API/I2C_CLCD.c ****     }
+ 227:..\API/I2C_CLCD.c **** }
+ 228:..\API/I2C_CLCD.c **** 
+ 229:..\API/I2C_CLCD.c **** 
+ 230:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 231:..\API/I2C_CLCD.c **** * Function Name: I2C_CLCD_PrintString
+ 232:..\API/I2C_CLCD.c **** ********************************************************************************
+ 233:..\API/I2C_CLCD.c **** *
+ 234:..\API/I2C_CLCD.c **** * Summary:
+ 235:..\API/I2C_CLCD.c **** *  Writes a zero terminated string to the LCD.
+ 236:..\API/I2C_CLCD.c **** *
+ 237:..\API/I2C_CLCD.c **** * Parameters:
+ 238:..\API/I2C_CLCD.c **** *  string: Pointer to head of char8 array to be written to the LCD module
+ 239:..\API/I2C_CLCD.c **** *
+ 240:..\API/I2C_CLCD.c **** * Return:
+ 241:..\API/I2C_CLCD.c **** *  None.
+ 242:..\API/I2C_CLCD.c **** *
+ 243:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 244:..\API/I2C_CLCD.c **** void I2C_CLCD_PrintString(char8 const string[]) 
+ 245:..\API/I2C_CLCD.c **** {
+ 246:..\API/I2C_CLCD.c ****     uint8 indexU8 = 1u;
+ 247:..\API/I2C_CLCD.c ****     char8 current = *string;
+ 248:..\API/I2C_CLCD.c **** 
+ 249:..\API/I2C_CLCD.c ****     /* Until null is reached, print next character */
+ 250:..\API/I2C_CLCD.c ****     while((char8) '\0' != current)
+ 251:..\API/I2C_CLCD.c ****     {
+ 252:..\API/I2C_CLCD.c ****         I2C_CLCD_WriteData((uint8)current);
+ 253:..\API/I2C_CLCD.c ****         current = string[indexU8];
+ 254:..\API/I2C_CLCD.c ****         indexU8++;
+ 255:..\API/I2C_CLCD.c ****     }
+ 256:..\API/I2C_CLCD.c **** }
+ 257:..\API/I2C_CLCD.c **** 
+ 258:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 259:..\API/I2C_CLCD.c **** * Function Name: I2C_CLCD_ClearLine
+ 260:..\API/I2C_CLCD.c **** ********************************************************************************
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 6
+
+
+ 261:..\API/I2C_CLCD.c **** *
+ 262:..\API/I2C_CLCD.c **** * Summary:
+ 263:..\API/I2C_CLCD.c **** *
+ 264:..\API/I2C_CLCD.c **** * Parameters:
+ 265:..\API/I2C_CLCD.c **** *  row:    Specific row of LCD module to be clear
+ 266:..\API/I2C_CLCD.c **** *
+ 267:..\API/I2C_CLCD.c **** * Return:
+ 268:..\API/I2C_CLCD.c **** *  None.
+ 269:..\API/I2C_CLCD.c **** *
+ 270:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 271:..\API/I2C_CLCD.c **** //#define CLCD_20x4
+ 272:..\API/I2C_CLCD.c **** void I2C_CLCD_ClearLine(uint8 row) 
+ 273:..\API/I2C_CLCD.c **** {
+ 274:..\API/I2C_CLCD.c ****     I2C_CLCD_Position(row, 0);
+ 275:..\API/I2C_CLCD.c **** #ifdef CLCD_20x4    
+ 276:..\API/I2C_CLCD.c ****     //                    01234567890123456789
+ 277:..\API/I2C_CLCD.c ****     I2C_CLCD_PrintString("                    ");
+ 278:..\API/I2C_CLCD.c **** #else // CLCD_16x2
+ 279:..\API/I2C_CLCD.c ****     //                    0123456789012345
+ 280:..\API/I2C_CLCD.c ****     I2C_CLCD_PrintString("                ");
+ 281:..\API/I2C_CLCD.c **** #endif
+ 282:..\API/I2C_CLCD.c **** }
+ 283:..\API/I2C_CLCD.c **** 
+ 284:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 285:..\API/I2C_CLCD.c **** *  Function Name: I2C_CLCD_PutChar
+ 286:..\API/I2C_CLCD.c **** ********************************************************************************
+ 287:..\API/I2C_CLCD.c **** *
+ 288:..\API/I2C_CLCD.c **** * Summary:
+ 289:..\API/I2C_CLCD.c **** *  Writes a single character to the current cursor position of the LCD module.
+ 290:..\API/I2C_CLCD.c **** *  Custom character names (_CUSTOM_0 through
+ 291:..\API/I2C_CLCD.c **** *  _CUSTOM_7) are acceptable as inputs.
+ 292:..\API/I2C_CLCD.c **** *
+ 293:..\API/I2C_CLCD.c **** * Parameters:
+ 294:..\API/I2C_CLCD.c **** *  character: Character to be written to LCD
+ 295:..\API/I2C_CLCD.c **** *
+ 296:..\API/I2C_CLCD.c **** * Return:
+ 297:..\API/I2C_CLCD.c **** *  None.
+ 298:..\API/I2C_CLCD.c **** *
+ 299:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 300:..\API/I2C_CLCD.c **** void I2C_CLCD_PutChar(char8 character) 
+ 301:..\API/I2C_CLCD.c **** {
+ 302:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteData((uint8)character);
+ 303:..\API/I2C_CLCD.c **** }
+ 304:..\API/I2C_CLCD.c **** 
+ 305:..\API/I2C_CLCD.c **** 
+ 306:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 307:..\API/I2C_CLCD.c **** *  Function Name: I2C_CLCD_WriteData
+ 308:..\API/I2C_CLCD.c **** ********************************************************************************
+ 309:..\API/I2C_CLCD.c **** *
+ 310:..\API/I2C_CLCD.c **** * Summary:
+ 311:..\API/I2C_CLCD.c **** *  Writes a data byte to the LCD module's Data Display RAM.
+ 312:..\API/I2C_CLCD.c **** *
+ 313:..\API/I2C_CLCD.c **** * Parameters:
+ 314:..\API/I2C_CLCD.c **** *  dByte: Byte to be written to the LCD module
+ 315:..\API/I2C_CLCD.c **** *
+ 316:..\API/I2C_CLCD.c **** * Return:
+ 317:..\API/I2C_CLCD.c **** *  None.
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 7
+
+
+ 318:..\API/I2C_CLCD.c **** *
+ 319:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 320:..\API/I2C_CLCD.c **** void I2C_CLCD_WriteData(uint8 dByte) 
+ 321:..\API/I2C_CLCD.c **** {
+ 322:..\API/I2C_CLCD.c ****     uint8 nibble;
+ 323:..\API/I2C_CLCD.c **** 
+ 324:..\API/I2C_CLCD.c ****     I2C_CLCD_IsReady();
+ 325:..\API/I2C_CLCD.c ****     nibble = dByte >> I2C_CLCD_NIBBLE_SHIFT;
+ 326:..\API/I2C_CLCD.c **** 
+ 327:..\API/I2C_CLCD.c ****     /* Write high nibble */
+ 328:..\API/I2C_CLCD.c ****     I2C_CLCD_WrDatNib(nibble);
+ 329:..\API/I2C_CLCD.c **** 
+ 330:..\API/I2C_CLCD.c ****     nibble = dByte & I2C_CLCD_NIBBLE_MASK;
+ 331:..\API/I2C_CLCD.c ****     /* Write low nibble */
+ 332:..\API/I2C_CLCD.c ****     I2C_CLCD_WrDatNib(nibble);
+ 333:..\API/I2C_CLCD.c **** }
+ 334:..\API/I2C_CLCD.c **** 
+ 335:..\API/I2C_CLCD.c **** 
+ 336:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 337:..\API/I2C_CLCD.c **** *  Function Name: I2C_CLCD_WriteControl
+ 338:..\API/I2C_CLCD.c **** ********************************************************************************
+ 339:..\API/I2C_CLCD.c **** *
+ 340:..\API/I2C_CLCD.c **** * Summary:
+ 341:..\API/I2C_CLCD.c **** *  Writes a command byte to the LCD module.
+ 342:..\API/I2C_CLCD.c **** *
+ 343:..\API/I2C_CLCD.c **** * Parameters:
+ 344:..\API/I2C_CLCD.c **** *  cByte:  The byte to be written to theLCD module
+ 345:..\API/I2C_CLCD.c **** * 
+ 346:..\API/I2C_CLCD.c **** * Return:
+ 347:..\API/I2C_CLCD.c **** *  None.
+ 348:..\API/I2C_CLCD.c **** *
+ 349:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 350:..\API/I2C_CLCD.c **** void I2C_CLCD_WriteControl(uint8 cByte) 
+ 351:..\API/I2C_CLCD.c **** {
+ 352:..\API/I2C_CLCD.c ****     uint8 nibble;
+ 353:..\API/I2C_CLCD.c **** 
+ 354:..\API/I2C_CLCD.c ****     I2C_CLCD_IsReady();
+ 355:..\API/I2C_CLCD.c **** 
+ 356:..\API/I2C_CLCD.c ****     nibble = cByte >> I2C_CLCD_NIBBLE_SHIFT;
+ 357:..\API/I2C_CLCD.c ****     
+ 358:..\API/I2C_CLCD.c ****     /* WrCntrlNib(High Nibble) */
+ 359:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(nibble);
+ 360:..\API/I2C_CLCD.c ****     nibble = cByte & I2C_CLCD_NIBBLE_MASK;
+ 361:..\API/I2C_CLCD.c **** 
+ 362:..\API/I2C_CLCD.c ****     /* WrCntrlNib(Low Nibble) */
+ 363:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(nibble);
+ 364:..\API/I2C_CLCD.c **** }
+ 365:..\API/I2C_CLCD.c **** 
+ 366:..\API/I2C_CLCD.c **** 
+ 367:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 368:..\API/I2C_CLCD.c **** * Function Name: I2C_CLCD_IsReady
+ 369:..\API/I2C_CLCD.c **** ********************************************************************************
+ 370:..\API/I2C_CLCD.c **** *
+ 371:..\API/I2C_CLCD.c **** * Summary:
+ 372:..\API/I2C_CLCD.c **** *  Polls the LCD until the ready bit is set.
+ 373:..\API/I2C_CLCD.c **** *
+ 374:..\API/I2C_CLCD.c **** * Parameters:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 8
+
+
+ 375:..\API/I2C_CLCD.c **** *  None.
+ 376:..\API/I2C_CLCD.c **** *
+ 377:..\API/I2C_CLCD.c **** * Return:
+ 378:..\API/I2C_CLCD.c **** *  None.
+ 379:..\API/I2C_CLCD.c **** *
+ 380:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 381:..\API/I2C_CLCD.c **** void I2C_CLCD_IsReady(void) 
+ 382:..\API/I2C_CLCD.c **** {
+ 383:..\API/I2C_CLCD.c ****     /*
+ 384:..\API/I2C_CLCD.c ****     *  No need to use the delay routines since the time taken to write takes
+ 385:..\API/I2C_CLCD.c ****     *  longer that what is needed both for toggling and enable pin an to execute
+ 386:..\API/I2C_CLCD.c ****     *  the command.
+ 387:..\API/I2C_CLCD.c ****     */
+ 388:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+ 389:..\API/I2C_CLCD.c **** }
+ 390:..\API/I2C_CLCD.c **** 
+ 391:..\API/I2C_CLCD.c **** 
+ 392:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 393:..\API/I2C_CLCD.c **** *  Function Name: I2C_CLCD_WrDatNib
+ 394:..\API/I2C_CLCD.c **** ********************************************************************************
+ 395:..\API/I2C_CLCD.c **** *
+ 396:..\API/I2C_CLCD.c **** * Summary:
+ 397:..\API/I2C_CLCD.c **** *  Writes a data nibble to the LCD module.
+ 398:..\API/I2C_CLCD.c **** *
+ 399:..\API/I2C_CLCD.c **** * Parameters:
+ 400:..\API/I2C_CLCD.c **** *  nibble:  Byte containing nibble in least significant nibble to be written
+ 401:..\API/I2C_CLCD.c **** *           to LCD module.
+ 402:..\API/I2C_CLCD.c **** *
+ 403:..\API/I2C_CLCD.c **** * Return:
+ 404:..\API/I2C_CLCD.c **** *  None.
+ 405:..\API/I2C_CLCD.c **** *
+ 406:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 407:..\API/I2C_CLCD.c **** static void I2C_CLCD_WrDatNib(uint8 nibble) 
+ 408:..\API/I2C_CLCD.c **** {
+ 409:..\API/I2C_CLCD.c **** 	uint8 data = I2C_CLCD_BackLight;
+ 410:..\API/I2C_CLCD.c **** 
+ 411:..\API/I2C_CLCD.c ****     I2C_CLCD_MasterSendStart(slaveAddress, I2C_WRITE);
+ 412:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+ 413:..\API/I2C_CLCD.c **** 
+ 414:..\API/I2C_CLCD.c ****     /* RS should be low to select data register */
+ 415:..\API/I2C_CLCD.c ****     data |= I2C_CLCD_RS;
+ 416:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+ 417:..\API/I2C_CLCD.c **** 
+ 418:..\API/I2C_CLCD.c ****     /* Reset RW for write operation */
+ 419:..\API/I2C_CLCD.c ****     data &= ((uint8)(~I2C_CLCD_RW));
+ 420:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+ 421:..\API/I2C_CLCD.c **** 
+ 422:..\API/I2C_CLCD.c ****     /* Guaranteed delay between Setting RS and RW and setting E bits */
+ 423:..\API/I2C_CLCD.c ****     CyDelayUs(0u);
+ 424:..\API/I2C_CLCD.c ****     
+ 425:..\API/I2C_CLCD.c ****     /* Clear data pins */
+ 426:..\API/I2C_CLCD.c ****     data &= ((uint8)(~I2C_CLCD_DATA_MASK));
+ 427:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+ 428:..\API/I2C_CLCD.c **** 
+ 429:..\API/I2C_CLCD.c ****     /* Write data, bring E high */
+ 430:..\API/I2C_CLCD.c ****     /* for FC-113 data position is 0xF0 */
+ 431:..\API/I2C_CLCD.c ****     data |= (I2C_CLCD_E | (nibble << I2C_CLCD_4BIT_DATA_SHIFT));
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 9
+
+
+ 432:..\API/I2C_CLCD.c ****  	I2C_CLCD_MasterWriteByte(data);
+ 433:..\API/I2C_CLCD.c **** 
+ 434:..\API/I2C_CLCD.c ****     /* Minimum of 230 ns delay */
+ 435:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+ 436:..\API/I2C_CLCD.c **** 
+ 437:..\API/I2C_CLCD.c ****     data &= ((uint8)(~I2C_CLCD_E));
+ 438:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+ 439:..\API/I2C_CLCD.c **** 
+ 440:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+ 441:..\API/I2C_CLCD.c ****     I2C_1_MasterSendStop();
+ 442:..\API/I2C_CLCD.c **** }
+ 443:..\API/I2C_CLCD.c **** 
+ 444:..\API/I2C_CLCD.c **** 
+ 445:..\API/I2C_CLCD.c **** /*******************************************************************************
+ 446:..\API/I2C_CLCD.c **** *  Function Name: I2C_CLCD_WrCntrlNib
+ 447:..\API/I2C_CLCD.c **** ********************************************************************************
+ 448:..\API/I2C_CLCD.c **** *
+ 449:..\API/I2C_CLCD.c **** * Summary:
+ 450:..\API/I2C_CLCD.c **** *  Writes a control nibble to the LCD module.
+ 451:..\API/I2C_CLCD.c **** *
+ 452:..\API/I2C_CLCD.c **** * Parameters:
+ 453:..\API/I2C_CLCD.c **** *  nibble: The byte containing a nibble in the four least significant bits.????
+ 454:..\API/I2C_CLCD.c **** *
+ 455:..\API/I2C_CLCD.c **** * Return:
+ 456:..\API/I2C_CLCD.c **** *  None.
+ 457:..\API/I2C_CLCD.c **** *
+ 458:..\API/I2C_CLCD.c **** *******************************************************************************/
+ 459:..\API/I2C_CLCD.c **** static void I2C_CLCD_WrCntrlNib(uint8 nibble) 
+ 460:..\API/I2C_CLCD.c **** {
+  26              		.loc 1 460 0
+  27              		.cfi_startproc
+  28              		@ args = 0, pretend = 0, frame = 0
+  29              		@ frame_needed = 0, uses_anonymous_args = 0
+  30              	.LVL0:
+  31 0000 70B5     		push	{r4, r5, r6, lr}
+  32              		.cfi_def_cfa_offset 16
+  33              		.cfi_offset 4, -16
+  34              		.cfi_offset 5, -12
+  35              		.cfi_offset 6, -8
+  36              		.cfi_offset 14, -4
+  37 0002 0646     		mov	r6, r0
+ 461:..\API/I2C_CLCD.c **** 	uint8 data = I2C_CLCD_BackLight;
+  38              		.loc 1 461 0
+  39 0004 134B     		ldr	r3, .L3
+  40 0006 1D78     		ldrb	r5, [r3]	@ zero_extendqisi2
+  41              	.LVL1:
+ 462:..\API/I2C_CLCD.c ****     
+ 463:..\API/I2C_CLCD.c ****     I2C_CLCD_MasterSendStart(slaveAddress, I2C_WRITE);
+  42              		.loc 1 463 0
+  43 0008 5878     		ldrb	r0, [r3, #1]	@ zero_extendqisi2
+  44              	.LVL2:
+  45 000a 0021     		movs	r1, #0
+  46 000c FFF7FEFF 		bl	I2C_1_MasterSendStart
+  47              	.LVL3:
+ 464:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+  48              		.loc 1 464 0
+  49 0010 0120     		movs	r0, #1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 10
+
+
+  50 0012 FFF7FEFF 		bl	CyDelayUs
+  51              	.LVL4:
+ 465:..\API/I2C_CLCD.c **** 
+ 466:..\API/I2C_CLCD.c ****     /* RS and RW should be low to select instruction register and  write operation respectively */
+ 467:..\API/I2C_CLCD.c ****     data |= ((uint8)(~(I2C_CLCD_RS | I2C_CLCD_RW)));
+ 468:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+  52              		.loc 1 468 0
+  53 0016 45F0FC00 		orr	r0, r5, #252
+  54 001a FFF7FEFF 		bl	I2C_1_MasterWriteByte
+  55              	.LVL5:
+ 469:..\API/I2C_CLCD.c **** 
+ 470:..\API/I2C_CLCD.c ****     /* Two following lines of code will give 40ns delay */
+ 471:..\API/I2C_CLCD.c ****     /* Clear data pins */
+ 472:..\API/I2C_CLCD.c ****     data &= ((uint8)(~I2C_CLCD_DATA_MASK));
+  56              		.loc 1 472 0
+  57 001e 05F00F05 		and	r5, r5, #15
+  58              	.LVL6:
+  59 0022 45F00C04 		orr	r4, r5, #12
+  60              	.LVL7:
+ 473:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+  61              		.loc 1 473 0
+  62 0026 2046     		mov	r0, r4
+  63 0028 FFF7FEFF 		bl	I2C_1_MasterWriteByte
+  64              	.LVL8:
+ 474:..\API/I2C_CLCD.c **** 
+ 475:..\API/I2C_CLCD.c ****     /* for FC-113 data position is 0xF0 */
+ 476:..\API/I2C_CLCD.c ****     data |= (I2C_CLCD_E | (nibble << I2C_CLCD_4BIT_DATA_SHIFT));
+  65              		.loc 1 476 0
+  66 002c 44EA0614 		orr	r4, r4, r6, lsl #4
+  67              	.LVL9:
+  68 0030 E4B2     		uxtb	r4, r4
+  69              	.LVL10:
+ 477:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+  70              		.loc 1 477 0
+  71 0032 44F00400 		orr	r0, r4, #4
+  72 0036 FFF7FEFF 		bl	I2C_1_MasterWriteByte
+  73              	.LVL11:
+ 478:..\API/I2C_CLCD.c **** 
+ 479:..\API/I2C_CLCD.c ****     /* Minimum of 230 ns delay */
+ 480:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+  74              		.loc 1 480 0
+  75 003a 0120     		movs	r0, #1
+  76 003c FFF7FEFF 		bl	CyDelayUs
+  77              	.LVL12:
+ 481:..\API/I2C_CLCD.c **** 
+ 482:..\API/I2C_CLCD.c ****     data &= ((uint8)(~I2C_CLCD_E));
+ 483:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+  78              		.loc 1 483 0
+  79 0040 04F0FB00 		and	r0, r4, #251
+  80 0044 FFF7FEFF 		bl	I2C_1_MasterWriteByte
+  81              	.LVL13:
+ 484:..\API/I2C_CLCD.c ****     
+ 485:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+  82              		.loc 1 485 0
+  83 0048 0120     		movs	r0, #1
+  84 004a FFF7FEFF 		bl	CyDelayUs
+  85              	.LVL14:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 11
+
+
+ 486:..\API/I2C_CLCD.c ****     I2C_1_MasterSendStop();
+  86              		.loc 1 486 0
+  87 004e FFF7FEFF 		bl	I2C_1_MasterSendStop
+  88              	.LVL15:
+  89 0052 70BD     		pop	{r4, r5, r6, pc}
+  90              	.LVL16:
+  91              	.L4:
+  92              		.align	2
+  93              	.L3:
+  94 0054 00000000 		.word	.LANCHOR0
+  95              		.cfi_endproc
+  96              	.LFE12:
+  97              		.size	I2C_CLCD_WrCntrlNib, .-I2C_CLCD_WrCntrlNib
+  98              		.section	.text.I2C_CLCD_WrDatNib,"ax",%progbits
+  99              		.align	2
+ 100              		.thumb
+ 101              		.thumb_func
+ 102              		.type	I2C_CLCD_WrDatNib, %function
+ 103              	I2C_CLCD_WrDatNib:
+ 104              	.LFB11:
+ 408:..\API/I2C_CLCD.c **** 	uint8 data = I2C_CLCD_BackLight;
+ 105              		.loc 1 408 0
+ 106              		.cfi_startproc
+ 107              		@ args = 0, pretend = 0, frame = 0
+ 108              		@ frame_needed = 0, uses_anonymous_args = 0
+ 109              	.LVL17:
+ 110 0000 38B5     		push	{r3, r4, r5, lr}
+ 111              		.cfi_def_cfa_offset 16
+ 112              		.cfi_offset 3, -16
+ 113              		.cfi_offset 4, -12
+ 114              		.cfi_offset 5, -8
+ 115              		.cfi_offset 14, -4
+ 116 0002 0546     		mov	r5, r0
+ 409:..\API/I2C_CLCD.c **** 
+ 117              		.loc 1 409 0
+ 118 0004 184B     		ldr	r3, .L7
+ 119 0006 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
+ 120              	.LVL18:
+ 411:..\API/I2C_CLCD.c ****     CyDelayUs(1u);
+ 121              		.loc 1 411 0
+ 122 0008 5878     		ldrb	r0, [r3, #1]	@ zero_extendqisi2
+ 123              	.LVL19:
+ 124 000a 0021     		movs	r1, #0
+ 125 000c FFF7FEFF 		bl	I2C_1_MasterSendStart
+ 126              	.LVL20:
+ 412:..\API/I2C_CLCD.c **** 
+ 127              		.loc 1 412 0
+ 128 0010 0120     		movs	r0, #1
+ 129 0012 FFF7FEFF 		bl	CyDelayUs
+ 130              	.LVL21:
+ 416:..\API/I2C_CLCD.c **** 
+ 131              		.loc 1 416 0
+ 132 0016 44F00100 		orr	r0, r4, #1
+ 133 001a FFF7FEFF 		bl	I2C_1_MasterWriteByte
+ 134              	.LVL22:
+ 419:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+ 135              		.loc 1 419 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 12
+
+
+ 136 001e 04F0FD00 		and	r0, r4, #253
+ 137              	.LVL23:
+ 420:..\API/I2C_CLCD.c **** 
+ 138              		.loc 1 420 0
+ 139 0022 40F00100 		orr	r0, r0, #1
+ 140              	.LVL24:
+ 141 0026 FFF7FEFF 		bl	I2C_1_MasterWriteByte
+ 142              	.LVL25:
+ 423:..\API/I2C_CLCD.c ****     
+ 143              		.loc 1 423 0
+ 144 002a 0020     		movs	r0, #0
+ 145 002c FFF7FEFF 		bl	CyDelayUs
+ 146              	.LVL26:
+ 426:..\API/I2C_CLCD.c **** 	I2C_CLCD_MasterWriteByte(data);
+ 147              		.loc 1 426 0
+ 148 0030 04F00D03 		and	r3, r4, #13
+ 149 0034 43F00104 		orr	r4, r3, #1
+ 150              	.LVL27:
+ 427:..\API/I2C_CLCD.c **** 
+ 151              		.loc 1 427 0
+ 152 0038 2046     		mov	r0, r4
+ 153 003a FFF7FEFF 		bl	I2C_1_MasterWriteByte
+ 154              	.LVL28:
+ 431:..\API/I2C_CLCD.c ****  	I2C_CLCD_MasterWriteByte(data);
+ 155              		.loc 1 431 0
+ 156 003e 44EA0514 		orr	r4, r4, r5, lsl #4
+ 157              	.LVL29:
+ 158 0042 E4B2     		uxtb	r4, r4
+ 159              	.LVL30:
+ 432:..\API/I2C_CLCD.c **** 
+ 160              		.loc 1 432 0
+ 161 0044 44F00400 		orr	r0, r4, #4
+ 162 0048 FFF7FEFF 		bl	I2C_1_MasterWriteByte
+ 163              	.LVL31:
+ 435:..\API/I2C_CLCD.c **** 
+ 164              		.loc 1 435 0
+ 165 004c 0120     		movs	r0, #1
+ 166 004e FFF7FEFF 		bl	CyDelayUs
+ 167              	.LVL32:
+ 438:..\API/I2C_CLCD.c **** 
+ 168              		.loc 1 438 0
+ 169 0052 04F0F900 		and	r0, r4, #249
+ 170 0056 FFF7FEFF 		bl	I2C_1_MasterWriteByte
+ 171              	.LVL33:
+ 440:..\API/I2C_CLCD.c ****     I2C_1_MasterSendStop();
+ 172              		.loc 1 440 0
+ 173 005a 0120     		movs	r0, #1
+ 174 005c FFF7FEFF 		bl	CyDelayUs
+ 175              	.LVL34:
+ 441:..\API/I2C_CLCD.c **** }
+ 176              		.loc 1 441 0
+ 177 0060 FFF7FEFF 		bl	I2C_1_MasterSendStop
+ 178              	.LVL35:
+ 179 0064 38BD     		pop	{r3, r4, r5, pc}
+ 180              	.LVL36:
+ 181              	.L8:
+ 182 0066 00BF     		.align	2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 13
+
+
+ 183              	.L7:
+ 184 0068 00000000 		.word	.LANCHOR0
+ 185              		.cfi_endproc
+ 186              	.LFE11:
+ 187              		.size	I2C_CLCD_WrDatNib, .-I2C_CLCD_WrDatNib
+ 188              		.section	.text.I2C_CLCD_IsReady,"ax",%progbits
+ 189              		.align	2
+ 190              		.global	I2C_CLCD_IsReady
+ 191              		.thumb
+ 192              		.thumb_func
+ 193              		.type	I2C_CLCD_IsReady, %function
+ 194              	I2C_CLCD_IsReady:
+ 195              	.LFB10:
+ 382:..\API/I2C_CLCD.c ****     /*
+ 196              		.loc 1 382 0
+ 197              		.cfi_startproc
+ 198              		@ args = 0, pretend = 0, frame = 0
+ 199              		@ frame_needed = 0, uses_anonymous_args = 0
+ 200 0000 08B5     		push	{r3, lr}
+ 201              		.cfi_def_cfa_offset 8
+ 202              		.cfi_offset 3, -8
+ 203              		.cfi_offset 14, -4
+ 388:..\API/I2C_CLCD.c **** }
+ 204              		.loc 1 388 0
+ 205 0002 0120     		movs	r0, #1
+ 206 0004 FFF7FEFF 		bl	CyDelayUs
+ 207              	.LVL37:
+ 208 0008 08BD     		pop	{r3, pc}
+ 209              		.cfi_endproc
+ 210              	.LFE10:
+ 211              		.size	I2C_CLCD_IsReady, .-I2C_CLCD_IsReady
+ 212 000a 00BF     		.section	.text.I2C_CLCD_WriteData,"ax",%progbits
+ 213              		.align	2
+ 214              		.global	I2C_CLCD_WriteData
+ 215              		.thumb
+ 216              		.thumb_func
+ 217              		.type	I2C_CLCD_WriteData, %function
+ 218              	I2C_CLCD_WriteData:
+ 219              	.LFB8:
+ 321:..\API/I2C_CLCD.c ****     uint8 nibble;
+ 220              		.loc 1 321 0
+ 221              		.cfi_startproc
+ 222              		@ args = 0, pretend = 0, frame = 0
+ 223              		@ frame_needed = 0, uses_anonymous_args = 0
+ 224              	.LVL38:
+ 225 0000 10B5     		push	{r4, lr}
+ 226              		.cfi_def_cfa_offset 8
+ 227              		.cfi_offset 4, -8
+ 228              		.cfi_offset 14, -4
+ 229 0002 0446     		mov	r4, r0
+ 324:..\API/I2C_CLCD.c ****     nibble = dByte >> I2C_CLCD_NIBBLE_SHIFT;
+ 230              		.loc 1 324 0
+ 231 0004 FFF7FEFF 		bl	I2C_CLCD_IsReady
+ 232              	.LVL39:
+ 328:..\API/I2C_CLCD.c **** 
+ 233              		.loc 1 328 0
+ 234 0008 2009     		lsrs	r0, r4, #4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 14
+
+
+ 235 000a FFF7FEFF 		bl	I2C_CLCD_WrDatNib
+ 236              	.LVL40:
+ 332:..\API/I2C_CLCD.c **** }
+ 237              		.loc 1 332 0
+ 238 000e 04F00F00 		and	r0, r4, #15
+ 239 0012 FFF7FEFF 		bl	I2C_CLCD_WrDatNib
+ 240              	.LVL41:
+ 241 0016 10BD     		pop	{r4, pc}
+ 242              		.cfi_endproc
+ 243              	.LFE8:
+ 244              		.size	I2C_CLCD_WriteData, .-I2C_CLCD_WriteData
+ 245              		.section	.text.I2C_CLCD_PrintString,"ax",%progbits
+ 246              		.align	2
+ 247              		.global	I2C_CLCD_PrintString
+ 248              		.thumb
+ 249              		.thumb_func
+ 250              		.type	I2C_CLCD_PrintString, %function
+ 251              	I2C_CLCD_PrintString:
+ 252              	.LFB5:
+ 245:..\API/I2C_CLCD.c ****     uint8 indexU8 = 1u;
+ 253              		.loc 1 245 0
+ 254              		.cfi_startproc
+ 255              		@ args = 0, pretend = 0, frame = 0
+ 256              		@ frame_needed = 0, uses_anonymous_args = 0
+ 257              	.LVL42:
+ 258 0000 38B5     		push	{r3, r4, r5, lr}
+ 259              		.cfi_def_cfa_offset 16
+ 260              		.cfi_offset 3, -16
+ 261              		.cfi_offset 4, -12
+ 262              		.cfi_offset 5, -8
+ 263              		.cfi_offset 14, -4
+ 264 0002 0546     		mov	r5, r0
+ 265              	.LVL43:
+ 247:..\API/I2C_CLCD.c **** 
+ 266              		.loc 1 247 0
+ 267 0004 0078     		ldrb	r0, [r0]	@ zero_extendqisi2
+ 268              	.LVL44:
+ 246:..\API/I2C_CLCD.c ****     char8 current = *string;
+ 269              		.loc 1 246 0
+ 270 0006 0124     		movs	r4, #1
+ 250:..\API/I2C_CLCD.c ****     {
+ 271              		.loc 1 250 0
+ 272 0008 04E0     		b	.L14
+ 273              	.LVL45:
+ 274              	.L15:
+ 252:..\API/I2C_CLCD.c ****         current = string[indexU8];
+ 275              		.loc 1 252 0
+ 276 000a FFF7FEFF 		bl	I2C_CLCD_WriteData
+ 277              	.LVL46:
+ 253:..\API/I2C_CLCD.c ****         indexU8++;
+ 278              		.loc 1 253 0
+ 279 000e 285D     		ldrb	r0, [r5, r4]	@ zero_extendqisi2
+ 280              	.LVL47:
+ 254:..\API/I2C_CLCD.c ****     }
+ 281              		.loc 1 254 0
+ 282 0010 0134     		adds	r4, r4, #1
+ 283              	.LVL48:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 15
+
+
+ 284 0012 E4B2     		uxtb	r4, r4
+ 285              	.LVL49:
+ 286              	.L14:
+ 250:..\API/I2C_CLCD.c ****     {
+ 287              		.loc 1 250 0
+ 288 0014 0028     		cmp	r0, #0
+ 289 0016 F8D1     		bne	.L15
+ 256:..\API/I2C_CLCD.c **** 
+ 290              		.loc 1 256 0
+ 291 0018 38BD     		pop	{r3, r4, r5, pc}
+ 292              		.cfi_endproc
+ 293              	.LFE5:
+ 294              		.size	I2C_CLCD_PrintString, .-I2C_CLCD_PrintString
+ 295 001a 00BF     		.section	.text.I2C_CLCD_PutChar,"ax",%progbits
+ 296              		.align	2
+ 297              		.global	I2C_CLCD_PutChar
+ 298              		.thumb
+ 299              		.thumb_func
+ 300              		.type	I2C_CLCD_PutChar, %function
+ 301              	I2C_CLCD_PutChar:
+ 302              	.LFB7:
+ 301:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteData((uint8)character);
+ 303              		.loc 1 301 0
+ 304              		.cfi_startproc
+ 305              		@ args = 0, pretend = 0, frame = 0
+ 306              		@ frame_needed = 0, uses_anonymous_args = 0
+ 307              	.LVL50:
+ 308 0000 08B5     		push	{r3, lr}
+ 309              		.cfi_def_cfa_offset 8
+ 310              		.cfi_offset 3, -8
+ 311              		.cfi_offset 14, -4
+ 302:..\API/I2C_CLCD.c **** }
+ 312              		.loc 1 302 0
+ 313 0002 FFF7FEFF 		bl	I2C_CLCD_WriteData
+ 314              	.LVL51:
+ 315 0006 08BD     		pop	{r3, pc}
+ 316              		.cfi_endproc
+ 317              	.LFE7:
+ 318              		.size	I2C_CLCD_PutChar, .-I2C_CLCD_PutChar
+ 319              		.section	.text.I2C_CLCD_WriteControl,"ax",%progbits
+ 320              		.align	2
+ 321              		.global	I2C_CLCD_WriteControl
+ 322              		.thumb
+ 323              		.thumb_func
+ 324              		.type	I2C_CLCD_WriteControl, %function
+ 325              	I2C_CLCD_WriteControl:
+ 326              	.LFB9:
+ 351:..\API/I2C_CLCD.c ****     uint8 nibble;
+ 327              		.loc 1 351 0
+ 328              		.cfi_startproc
+ 329              		@ args = 0, pretend = 0, frame = 0
+ 330              		@ frame_needed = 0, uses_anonymous_args = 0
+ 331              	.LVL52:
+ 332 0000 10B5     		push	{r4, lr}
+ 333              		.cfi_def_cfa_offset 8
+ 334              		.cfi_offset 4, -8
+ 335              		.cfi_offset 14, -4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 16
+
+
+ 336 0002 0446     		mov	r4, r0
+ 354:..\API/I2C_CLCD.c **** 
+ 337              		.loc 1 354 0
+ 338 0004 FFF7FEFF 		bl	I2C_CLCD_IsReady
+ 339              	.LVL53:
+ 359:..\API/I2C_CLCD.c ****     nibble = cByte & I2C_CLCD_NIBBLE_MASK;
+ 340              		.loc 1 359 0
+ 341 0008 2009     		lsrs	r0, r4, #4
+ 342 000a FFF7FEFF 		bl	I2C_CLCD_WrCntrlNib
+ 343              	.LVL54:
+ 363:..\API/I2C_CLCD.c **** }
+ 344              		.loc 1 363 0
+ 345 000e 04F00F00 		and	r0, r4, #15
+ 346 0012 FFF7FEFF 		bl	I2C_CLCD_WrCntrlNib
+ 347              	.LVL55:
+ 348 0016 10BD     		pop	{r4, pc}
+ 349              		.cfi_endproc
+ 350              	.LFE9:
+ 351              		.size	I2C_CLCD_WriteControl, .-I2C_CLCD_WriteControl
+ 352              		.section	.text.I2C_CLCD_Init,"ax",%progbits
+ 353              		.align	2
+ 354              		.global	I2C_CLCD_Init
+ 355              		.thumb
+ 356              		.thumb_func
+ 357              		.type	I2C_CLCD_Init, %function
+ 358              	I2C_CLCD_Init:
+ 359              	.LFB0:
+  71:..\API/I2C_CLCD.c ****     /* INIT CODE */
+ 360              		.loc 1 71 0
+ 361              		.cfi_startproc
+ 362              		@ args = 0, pretend = 0, frame = 0
+ 363              		@ frame_needed = 0, uses_anonymous_args = 0
+ 364 0000 08B5     		push	{r3, lr}
+ 365              		.cfi_def_cfa_offset 8
+ 366              		.cfi_offset 3, -8
+ 367              		.cfi_offset 14, -4
+  73:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_8_BIT_INIT);    /* Selects 8-bit mode */
+ 368              		.loc 1 73 0
+ 369 0002 2820     		movs	r0, #40
+ 370 0004 FFF7FEFF 		bl	CyDelay
+ 371              	.LVL56:
+  74:..\API/I2C_CLCD.c ****     CyDelay(5u);                                                         /* Delay 5 ms */
+ 372              		.loc 1 74 0
+ 373 0008 0320     		movs	r0, #3
+ 374 000a FFF7FEFF 		bl	I2C_CLCD_WrCntrlNib
+ 375              	.LVL57:
+  75:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_8_BIT_INIT);    /* Selects 8-bit mode */
+ 376              		.loc 1 75 0
+ 377 000e 0520     		movs	r0, #5
+ 378 0010 FFF7FEFF 		bl	CyDelay
+ 379              	.LVL58:
+  76:..\API/I2C_CLCD.c ****     CyDelay(15u);                                                        /* Delay 15 ms */
+ 380              		.loc 1 76 0
+ 381 0014 0320     		movs	r0, #3
+ 382 0016 FFF7FEFF 		bl	I2C_CLCD_WrCntrlNib
+ 383              	.LVL59:
+  77:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_8_BIT_INIT);    /* Selects 8-bit mode */
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 17
+
+
+ 384              		.loc 1 77 0
+ 385 001a 0F20     		movs	r0, #15
+ 386 001c FFF7FEFF 		bl	CyDelay
+ 387              	.LVL60:
+  78:..\API/I2C_CLCD.c ****     CyDelay(1u);                                                         /* Delay 1 ms */
+ 388              		.loc 1 78 0
+ 389 0020 0320     		movs	r0, #3
+ 390 0022 FFF7FEFF 		bl	I2C_CLCD_WrCntrlNib
+ 391              	.LVL61:
+  79:..\API/I2C_CLCD.c ****     I2C_CLCD_WrCntrlNib(I2C_CLCD_DISPLAY_4_BIT_INIT);    /* Selects 4-bit mode */
+ 392              		.loc 1 79 0
+ 393 0026 0120     		movs	r0, #1
+ 394 0028 FFF7FEFF 		bl	CyDelay
+ 395              	.LVL62:
+  80:..\API/I2C_CLCD.c ****     CyDelay(5u);                                                         /* Delay 5 ms */
+ 396              		.loc 1 80 0
+ 397 002c 0220     		movs	r0, #2
+ 398 002e FFF7FEFF 		bl	I2C_CLCD_WrCntrlNib
+ 399              	.LVL63:
+  81:..\API/I2C_CLCD.c **** 
+ 400              		.loc 1 81 0
+ 401 0032 0520     		movs	r0, #5
+ 402 0034 FFF7FEFF 		bl	CyDelay
+ 403              	.LVL64:
+  83:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_CURSOR_ON);      /* Turn Display, Cursor ON */
+ 404              		.loc 1 83 0
+ 405 0038 0620     		movs	r0, #6
+ 406 003a FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 407              	.LVL65:
+  84:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_2_LINES_5x10);   /* 2 Lines by 5x10 Characters */
+ 408              		.loc 1 84 0
+ 409 003e 0E20     		movs	r0, #14
+ 410 0040 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 411              	.LVL66:
+  85:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_CURSOR_OFF);     /* Turn Display, Cursor OFF */
+ 412              		.loc 1 85 0
+ 413 0044 2C20     		movs	r0, #44
+ 414 0046 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 415              	.LVL67:
+  86:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_CLEAR_DISPLAY);          /* Clear LCD Screen */
+ 416              		.loc 1 86 0
+ 417 004a 0820     		movs	r0, #8
+ 418 004c FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 419              	.LVL68:
+  87:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_DISPLAY_ON_CURSOR_OFF);  /* Turn Display ON, Cursor OFF */
+ 420              		.loc 1 87 0
+ 421 0050 0120     		movs	r0, #1
+ 422 0052 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 423              	.LVL69:
+  88:..\API/I2C_CLCD.c ****     I2C_CLCD_WriteControl(I2C_CLCD_RESET_CURSOR_POSITION);  /* Set Cursor to 0,0 */
+ 424              		.loc 1 88 0
+ 425 0056 0C20     		movs	r0, #12
+ 426 0058 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 427              	.LVL70:
+  89:..\API/I2C_CLCD.c ****     CyDelay(5u);
+ 428              		.loc 1 89 0
+ 429 005c 0320     		movs	r0, #3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 18
+
+
+ 430 005e FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 431              	.LVL71:
+  90:..\API/I2C_CLCD.c **** }
+ 432              		.loc 1 90 0
+ 433 0062 0520     		movs	r0, #5
+ 434 0064 FFF7FEFF 		bl	CyDelay
+ 435              	.LVL72:
+ 436 0068 08BD     		pop	{r3, pc}
+ 437              		.cfi_endproc
+ 438              	.LFE0:
+ 439              		.size	I2C_CLCD_Init, .-I2C_CLCD_Init
+ 440 006a 00BF     		.section	.text.I2C_CLCD_Enable,"ax",%progbits
+ 441              		.align	2
+ 442              		.global	I2C_CLCD_Enable
+ 443              		.thumb
+ 444              		.thumb_func
+ 445              		.type	I2C_CLCD_Enable, %function
+ 446              	I2C_CLCD_Enable:
+ 447              	.LFB1:
+ 116:..\API/I2C_CLCD.c ****     I2C_CLCD_DisplayOn();
+ 448              		.loc 1 116 0
+ 449              		.cfi_startproc
+ 450              		@ args = 0, pretend = 0, frame = 0
+ 451              		@ frame_needed = 0, uses_anonymous_args = 0
+ 452 0000 08B5     		push	{r3, lr}
+ 453              		.cfi_def_cfa_offset 8
+ 454              		.cfi_offset 3, -8
+ 455              		.cfi_offset 14, -4
+ 117:..\API/I2C_CLCD.c ****     I2C_CLCD_enableState = 1u;
+ 456              		.loc 1 117 0
+ 457 0002 0C20     		movs	r0, #12
+ 458 0004 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 459              	.LVL73:
+ 118:..\API/I2C_CLCD.c **** }
+ 460              		.loc 1 118 0
+ 461 0008 0122     		movs	r2, #1
+ 462 000a 014B     		ldr	r3, .L25
+ 463 000c 1A70     		strb	r2, [r3]
+ 464 000e 08BD     		pop	{r3, pc}
+ 465              	.L26:
+ 466              		.align	2
+ 467              	.L25:
+ 468 0010 00000000 		.word	.LANCHOR1
+ 469              		.cfi_endproc
+ 470              	.LFE1:
+ 471              		.size	I2C_CLCD_Enable, .-I2C_CLCD_Enable
+ 472              		.section	.text.I2C_CLCD_Start,"ax",%progbits
+ 473              		.align	2
+ 474              		.global	I2C_CLCD_Start
+ 475              		.thumb
+ 476              		.thumb_func
+ 477              		.type	I2C_CLCD_Start, %function
+ 478              	I2C_CLCD_Start:
+ 479              	.LFB2:
+ 149:..\API/I2C_CLCD.c ****     /* If not initialized, perform initialization */
+ 480              		.loc 1 149 0
+ 481              		.cfi_startproc
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 19
+
+
+ 482              		@ args = 0, pretend = 0, frame = 0
+ 483              		@ frame_needed = 0, uses_anonymous_args = 0
+ 484 0000 08B5     		push	{r3, lr}
+ 485              		.cfi_def_cfa_offset 8
+ 486              		.cfi_offset 3, -8
+ 487              		.cfi_offset 14, -4
+ 151:..\API/I2C_CLCD.c ****     {
+ 488              		.loc 1 151 0
+ 489 0002 054B     		ldr	r3, .L30
+ 490 0004 5B78     		ldrb	r3, [r3, #1]	@ zero_extendqisi2
+ 491 0006 23B9     		cbnz	r3, .L28
+ 153:..\API/I2C_CLCD.c ****         I2C_CLCD_initVar = 1u;
+ 492              		.loc 1 153 0
+ 493 0008 FFF7FEFF 		bl	I2C_CLCD_Init
+ 494              	.LVL74:
+ 154:..\API/I2C_CLCD.c ****     }
+ 495              		.loc 1 154 0
+ 496 000c 0122     		movs	r2, #1
+ 497 000e 024B     		ldr	r3, .L30
+ 498 0010 5A70     		strb	r2, [r3, #1]
+ 499              	.L28:
+ 158:..\API/I2C_CLCD.c **** }
+ 500              		.loc 1 158 0
+ 501 0012 FFF7FEFF 		bl	I2C_CLCD_Enable
+ 502              	.LVL75:
+ 503 0016 08BD     		pop	{r3, pc}
+ 504              	.L31:
+ 505              		.align	2
+ 506              	.L30:
+ 507 0018 00000000 		.word	.LANCHOR1
+ 508              		.cfi_endproc
+ 509              	.LFE2:
+ 510              		.size	I2C_CLCD_Start, .-I2C_CLCD_Start
+ 511              		.section	.text.I2C_CLCD_Stop,"ax",%progbits
+ 512              		.align	2
+ 513              		.global	I2C_CLCD_Stop
+ 514              		.thumb
+ 515              		.thumb_func
+ 516              		.type	I2C_CLCD_Stop, %function
+ 517              	I2C_CLCD_Stop:
+ 518              	.LFB3:
+ 180:..\API/I2C_CLCD.c ****     /* Calls LCD Off Macro */
+ 519              		.loc 1 180 0
+ 520              		.cfi_startproc
+ 521              		@ args = 0, pretend = 0, frame = 0
+ 522              		@ frame_needed = 0, uses_anonymous_args = 0
+ 523 0000 08B5     		push	{r3, lr}
+ 524              		.cfi_def_cfa_offset 8
+ 525              		.cfi_offset 3, -8
+ 526              		.cfi_offset 14, -4
+ 182:..\API/I2C_CLCD.c ****     I2C_CLCD_enableState = 0u;
+ 527              		.loc 1 182 0
+ 528 0002 0820     		movs	r0, #8
+ 529 0004 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 530              	.LVL76:
+ 183:..\API/I2C_CLCD.c **** }
+ 531              		.loc 1 183 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 20
+
+
+ 532 0008 0022     		movs	r2, #0
+ 533 000a 014B     		ldr	r3, .L34
+ 534 000c 1A70     		strb	r2, [r3]
+ 535 000e 08BD     		pop	{r3, pc}
+ 536              	.L35:
+ 537              		.align	2
+ 538              	.L34:
+ 539 0010 00000000 		.word	.LANCHOR1
+ 540              		.cfi_endproc
+ 541              	.LFE3:
+ 542              		.size	I2C_CLCD_Stop, .-I2C_CLCD_Stop
+ 543              		.section	.text.I2C_CLCD_Position,"ax",%progbits
+ 544              		.align	2
+ 545              		.global	I2C_CLCD_Position
+ 546              		.thumb
+ 547              		.thumb_func
+ 548              		.type	I2C_CLCD_Position, %function
+ 549              	I2C_CLCD_Position:
+ 550              	.LFB4:
+ 208:..\API/I2C_CLCD.c ****     switch (row)
+ 551              		.loc 1 208 0
+ 552              		.cfi_startproc
+ 553              		@ args = 0, pretend = 0, frame = 0
+ 554              		@ frame_needed = 0, uses_anonymous_args = 0
+ 555              	.LVL77:
+ 556 0000 08B5     		push	{r3, lr}
+ 557              		.cfi_def_cfa_offset 8
+ 558              		.cfi_offset 3, -8
+ 559              		.cfi_offset 14, -4
+ 209:..\API/I2C_CLCD.c ****     {
+ 560              		.loc 1 209 0
+ 561 0002 0328     		cmp	r0, #3
+ 562 0004 19D8     		bhi	.L36
+ 563 0006 DFE800F0 		tbb	[pc, r0]
+ 564              	.L39:
+ 565 000a 02       		.byte	(.L38-.L39)/2
+ 566 000b 07       		.byte	(.L40-.L39)/2
+ 567 000c 0D       		.byte	(.L41-.L39)/2
+ 568 000d 13       		.byte	(.L42-.L39)/2
+ 569              		.p2align 1
+ 570              	.L38:
+ 212:..\API/I2C_CLCD.c ****             break;
+ 571              		.loc 1 212 0
+ 572 000e 81F08000 		eor	r0, r1, #128
+ 573              	.LVL78:
+ 574 0012 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 575              	.LVL79:
+ 213:..\API/I2C_CLCD.c ****         case (uint8) 1:
+ 576              		.loc 1 213 0
+ 577 0016 08BD     		pop	{r3, pc}
+ 578              	.LVL80:
+ 579              	.L40:
+ 215:..\API/I2C_CLCD.c ****             break;
+ 580              		.loc 1 215 0
+ 581 0018 A1F14000 		sub	r0, r1, #64
+ 582              	.LVL81:
+ 583 001c C0B2     		uxtb	r0, r0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 21
+
+
+ 584 001e FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 585              	.LVL82:
+ 216:..\API/I2C_CLCD.c ****         case (uint8) 2:
+ 586              		.loc 1 216 0
+ 587 0022 08BD     		pop	{r3, pc}
+ 588              	.LVL83:
+ 589              	.L41:
+ 218:..\API/I2C_CLCD.c ****             break;
+ 590              		.loc 1 218 0
+ 591 0024 A1F16C00 		sub	r0, r1, #108
+ 592              	.LVL84:
+ 593 0028 C0B2     		uxtb	r0, r0
+ 594 002a FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 595              	.LVL85:
+ 219:..\API/I2C_CLCD.c ****         case (uint8) 3:
+ 596              		.loc 1 219 0
+ 597 002e 08BD     		pop	{r3, pc}
+ 598              	.LVL86:
+ 599              	.L42:
+ 221:..\API/I2C_CLCD.c ****             break;
+ 600              		.loc 1 221 0
+ 601 0030 A1F12C00 		sub	r0, r1, #44
+ 602              	.LVL87:
+ 603 0034 C0B2     		uxtb	r0, r0
+ 604 0036 FFF7FEFF 		bl	I2C_CLCD_WriteControl
+ 605              	.LVL88:
+ 606              	.L36:
+ 607 003a 08BD     		pop	{r3, pc}
+ 608              		.cfi_endproc
+ 609              	.LFE4:
+ 610              		.size	I2C_CLCD_Position, .-I2C_CLCD_Position
+ 611              		.section	.text.I2C_CLCD_ClearLine,"ax",%progbits
+ 612              		.align	2
+ 613              		.global	I2C_CLCD_ClearLine
+ 614              		.thumb
+ 615              		.thumb_func
+ 616              		.type	I2C_CLCD_ClearLine, %function
+ 617              	I2C_CLCD_ClearLine:
+ 618              	.LFB6:
+ 273:..\API/I2C_CLCD.c ****     I2C_CLCD_Position(row, 0);
+ 619              		.loc 1 273 0
+ 620              		.cfi_startproc
+ 621              		@ args = 0, pretend = 0, frame = 0
+ 622              		@ frame_needed = 0, uses_anonymous_args = 0
+ 623              	.LVL89:
+ 624 0000 08B5     		push	{r3, lr}
+ 625              		.cfi_def_cfa_offset 8
+ 626              		.cfi_offset 3, -8
+ 627              		.cfi_offset 14, -4
+ 274:..\API/I2C_CLCD.c **** #ifdef CLCD_20x4    
+ 628              		.loc 1 274 0
+ 629 0002 0021     		movs	r1, #0
+ 630 0004 FFF7FEFF 		bl	I2C_CLCD_Position
+ 631              	.LVL90:
+ 280:..\API/I2C_CLCD.c **** #endif
+ 632              		.loc 1 280 0
+ 633 0008 0148     		ldr	r0, .L46
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 22
+
+
+ 634 000a FFF7FEFF 		bl	I2C_CLCD_PrintString
+ 635              	.LVL91:
+ 636 000e 08BD     		pop	{r3, pc}
+ 637              	.L47:
+ 638              		.align	2
+ 639              	.L46:
+ 640 0010 00000000 		.word	.LC0
+ 641              		.cfi_endproc
+ 642              	.LFE6:
+ 643              		.size	I2C_CLCD_ClearLine, .-I2C_CLCD_ClearLine
+ 644              		.section	.text.I2C_CLCD_PrintInt8,"ax",%progbits
+ 645              		.align	2
+ 646              		.global	I2C_CLCD_PrintInt8
+ 647              		.thumb
+ 648              		.thumb_func
+ 649              		.type	I2C_CLCD_PrintInt8, %function
+ 650              	I2C_CLCD_PrintInt8:
+ 651              	.LFB13:
+ 487:..\API/I2C_CLCD.c **** }
+ 488:..\API/I2C_CLCD.c **** 
+ 489:..\API/I2C_CLCD.c **** #if(I2C_CLCD_CONVERSION_ROUTINES == 1u)
+ 490:..\API/I2C_CLCD.c **** 
+ 491:..\API/I2C_CLCD.c ****     /*******************************************************************************
+ 492:..\API/I2C_CLCD.c ****     *  Function Name: I2C_CLCD_PrintInt8
+ 493:..\API/I2C_CLCD.c ****     ********************************************************************************
+ 494:..\API/I2C_CLCD.c ****     *
+ 495:..\API/I2C_CLCD.c ****     * Summary:
+ 496:..\API/I2C_CLCD.c ****     *  Print a byte as two ASCII characters.
+ 497:..\API/I2C_CLCD.c ****     *
+ 498:..\API/I2C_CLCD.c ****     * Parameters:
+ 499:..\API/I2C_CLCD.c ****     *  value: The byte to be printed out as ASCII characters.
+ 500:..\API/I2C_CLCD.c ****     *
+ 501:..\API/I2C_CLCD.c ****     * Return:
+ 502:..\API/I2C_CLCD.c ****     *  None.
+ 503:..\API/I2C_CLCD.c ****     *
+ 504:..\API/I2C_CLCD.c ****     *******************************************************************************/
+ 505:..\API/I2C_CLCD.c ****     void I2C_CLCD_PrintInt8(uint8 value) 
+ 506:..\API/I2C_CLCD.c ****     {
+ 652              		.loc 1 506 0
+ 653              		.cfi_startproc
+ 654              		@ args = 0, pretend = 0, frame = 0
+ 655              		@ frame_needed = 0, uses_anonymous_args = 0
+ 656              	.LVL92:
+ 657 0000 38B5     		push	{r3, r4, r5, lr}
+ 658              		.cfi_def_cfa_offset 16
+ 659              		.cfi_offset 3, -16
+ 660              		.cfi_offset 4, -12
+ 661              		.cfi_offset 5, -8
+ 662              		.cfi_offset 14, -4
+ 663 0002 0446     		mov	r4, r0
+ 507:..\API/I2C_CLCD.c ****         static char8 const CYCODE I2C_CLCD_hex[16u] = "0123456789ABCDEF";
+ 508:..\API/I2C_CLCD.c ****         
+ 509:..\API/I2C_CLCD.c ****         I2C_CLCD_PutChar((char8) I2C_CLCD_hex[value >> I2C_CLCD_BYTE_UPPER_NIBBLE_SHIFT]);
+ 664              		.loc 1 509 0
+ 665 0004 0309     		lsrs	r3, r0, #4
+ 666 0006 054D     		ldr	r5, .L50
+ 667 0008 E85C     		ldrb	r0, [r5, r3]	@ zero_extendqisi2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 23
+
+
+ 668              	.LVL93:
+ 669 000a FFF7FEFF 		bl	I2C_CLCD_PutChar
+ 670              	.LVL94:
+ 510:..\API/I2C_CLCD.c ****         I2C_CLCD_PutChar((char8) I2C_CLCD_hex[value & I2C_CLCD_BYTE_LOWER_NIBBLE_MASK]);
+ 671              		.loc 1 510 0
+ 672 000e 04F00F04 		and	r4, r4, #15
+ 673 0012 285D     		ldrb	r0, [r5, r4]	@ zero_extendqisi2
+ 674 0014 FFF7FEFF 		bl	I2C_CLCD_PutChar
+ 675              	.LVL95:
+ 676 0018 38BD     		pop	{r3, r4, r5, pc}
+ 677              	.L51:
+ 678 001a 00BF     		.align	2
+ 679              	.L50:
+ 680 001c 00000000 		.word	.LANCHOR2
+ 681              		.cfi_endproc
+ 682              	.LFE13:
+ 683              		.size	I2C_CLCD_PrintInt8, .-I2C_CLCD_PrintInt8
+ 684              		.section	.text.I2C_CLCD_PrintInt16,"ax",%progbits
+ 685              		.align	2
+ 686              		.global	I2C_CLCD_PrintInt16
+ 687              		.thumb
+ 688              		.thumb_func
+ 689              		.type	I2C_CLCD_PrintInt16, %function
+ 690              	I2C_CLCD_PrintInt16:
+ 691              	.LFB14:
+ 511:..\API/I2C_CLCD.c ****     }
+ 512:..\API/I2C_CLCD.c **** 
+ 513:..\API/I2C_CLCD.c **** 
+ 514:..\API/I2C_CLCD.c ****     /*******************************************************************************
+ 515:..\API/I2C_CLCD.c ****     *  Function Name: I2C_CLCD_PrintInt16
+ 516:..\API/I2C_CLCD.c ****     ********************************************************************************
+ 517:..\API/I2C_CLCD.c ****     *
+ 518:..\API/I2C_CLCD.c ****     * Summary:
+ 519:..\API/I2C_CLCD.c ****     *  Print a uint16 as four ASCII characters.
+ 520:..\API/I2C_CLCD.c ****     *
+ 521:..\API/I2C_CLCD.c ****     * Parameters:
+ 522:..\API/I2C_CLCD.c ****     *  value: The uint16 to be printed out as ASCII characters.
+ 523:..\API/I2C_CLCD.c ****     *
+ 524:..\API/I2C_CLCD.c ****     * Return:
+ 525:..\API/I2C_CLCD.c ****     *  None.
+ 526:..\API/I2C_CLCD.c ****     *
+ 527:..\API/I2C_CLCD.c ****     *******************************************************************************/
+ 528:..\API/I2C_CLCD.c ****     void I2C_CLCD_PrintInt16(uint16 value) 
+ 529:..\API/I2C_CLCD.c ****     {
+ 692              		.loc 1 529 0
+ 693              		.cfi_startproc
+ 694              		@ args = 0, pretend = 0, frame = 0
+ 695              		@ frame_needed = 0, uses_anonymous_args = 0
+ 696              	.LVL96:
+ 697 0000 10B5     		push	{r4, lr}
+ 698              		.cfi_def_cfa_offset 8
+ 699              		.cfi_offset 4, -8
+ 700              		.cfi_offset 14, -4
+ 701 0002 0446     		mov	r4, r0
+ 530:..\API/I2C_CLCD.c ****         I2C_CLCD_PrintInt8((uint8)(value >> I2C_CLCD_U16_UPPER_BYTE_SHIFT));
+ 702              		.loc 1 530 0
+ 703 0004 000A     		lsrs	r0, r0, #8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 24
+
+
+ 704              	.LVL97:
+ 705 0006 FFF7FEFF 		bl	I2C_CLCD_PrintInt8
+ 706              	.LVL98:
+ 531:..\API/I2C_CLCD.c ****         I2C_CLCD_PrintInt8((uint8)(value & I2C_CLCD_U16_LOWER_BYTE_MASK));
+ 707              		.loc 1 531 0
+ 708 000a E0B2     		uxtb	r0, r4
+ 709 000c FFF7FEFF 		bl	I2C_CLCD_PrintInt8
+ 710              	.LVL99:
+ 711 0010 10BD     		pop	{r4, pc}
+ 712              		.cfi_endproc
+ 713              	.LFE14:
+ 714              		.size	I2C_CLCD_PrintInt16, .-I2C_CLCD_PrintInt16
+ 715 0012 00BF     		.section	.text.I2C_CLCD_PrintInt32,"ax",%progbits
+ 716              		.align	2
+ 717              		.global	I2C_CLCD_PrintInt32
+ 718              		.thumb
+ 719              		.thumb_func
+ 720              		.type	I2C_CLCD_PrintInt32, %function
+ 721              	I2C_CLCD_PrintInt32:
+ 722              	.LFB15:
+ 532:..\API/I2C_CLCD.c ****     }
+ 533:..\API/I2C_CLCD.c **** 
+ 534:..\API/I2C_CLCD.c ****     
+ 535:..\API/I2C_CLCD.c ****     /*******************************************************************************
+ 536:..\API/I2C_CLCD.c ****     *  Function Name: I2C_CLCD_PrintInt32
+ 537:..\API/I2C_CLCD.c ****     ********************************************************************************
+ 538:..\API/I2C_CLCD.c ****     *
+ 539:..\API/I2C_CLCD.c ****     * Summary:
+ 540:..\API/I2C_CLCD.c ****     *  Print a uint32 hexadecimal number as eight ASCII characters.
+ 541:..\API/I2C_CLCD.c ****     *
+ 542:..\API/I2C_CLCD.c ****     * Parameters:
+ 543:..\API/I2C_CLCD.c ****     *  value: The uint32 to be printed out as ASCII characters.
+ 544:..\API/I2C_CLCD.c ****     *
+ 545:..\API/I2C_CLCD.c ****     * Return:
+ 546:..\API/I2C_CLCD.c ****     *  None.
+ 547:..\API/I2C_CLCD.c ****     *
+ 548:..\API/I2C_CLCD.c ****     *******************************************************************************/
+ 549:..\API/I2C_CLCD.c ****     void I2C_CLCD_PrintInt32(uint32 value) 
+ 550:..\API/I2C_CLCD.c ****     {
+ 723              		.loc 1 550 0
+ 724              		.cfi_startproc
+ 725              		@ args = 0, pretend = 0, frame = 0
+ 726              		@ frame_needed = 0, uses_anonymous_args = 0
+ 727              	.LVL100:
+ 728 0000 38B5     		push	{r3, r4, r5, lr}
+ 729              		.cfi_def_cfa_offset 16
+ 730              		.cfi_offset 3, -16
+ 731              		.cfi_offset 4, -12
+ 732              		.cfi_offset 5, -8
+ 733              		.cfi_offset 14, -4
+ 734 0002 0546     		mov	r5, r0
+ 735              	.LVL101:
+ 551:..\API/I2C_CLCD.c ****         uint8 shift = I2C_CLCD_32_BIT_SHIFT;
+ 736              		.loc 1 551 0
+ 737 0004 2024     		movs	r4, #32
+ 552:..\API/I2C_CLCD.c ****         
+ 553:..\API/I2C_CLCD.c ****         while (shift != 0u)
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 25
+
+
+ 738              		.loc 1 553 0
+ 739 0006 06E0     		b	.L55
+ 740              	.LVL102:
+ 741              	.L56:
+ 554:..\API/I2C_CLCD.c ****         {
+ 555:..\API/I2C_CLCD.c ****             /* "shift" var should be subtracted by 8 prior shifting. This implements 
+ 556:..\API/I2C_CLCD.c ****             * shifting by 24, 16, 8 and 0u. 
+ 557:..\API/I2C_CLCD.c ****             */
+ 558:..\API/I2C_CLCD.c ****             shift -= I2C_CLCD_8_BIT_SHIFT;
+ 742              		.loc 1 558 0
+ 743 0008 083C     		subs	r4, r4, #8
+ 744              	.LVL103:
+ 745 000a E4B2     		uxtb	r4, r4
+ 746              	.LVL104:
+ 559:..\API/I2C_CLCD.c ****             
+ 560:..\API/I2C_CLCD.c ****             /* Print 8 bits of uint32 hex number */
+ 561:..\API/I2C_CLCD.c ****             I2C_CLCD_PrintInt8((uint8) ((uint32) (value >> shift)));
+ 747              		.loc 1 561 0
+ 748 000c 25FA04F0 		lsr	r0, r5, r4
+ 749 0010 C0B2     		uxtb	r0, r0
+ 750 0012 FFF7FEFF 		bl	I2C_CLCD_PrintInt8
+ 751              	.LVL105:
+ 752              	.L55:
+ 553:..\API/I2C_CLCD.c ****         {
+ 753              		.loc 1 553 0
+ 754 0016 002C     		cmp	r4, #0
+ 755 0018 F6D1     		bne	.L56
+ 562:..\API/I2C_CLCD.c ****         }
+ 563:..\API/I2C_CLCD.c ****     }
+ 756              		.loc 1 563 0
+ 757 001a 38BD     		pop	{r3, r4, r5, pc}
+ 758              		.cfi_endproc
+ 759              	.LFE15:
+ 760              		.size	I2C_CLCD_PrintInt32, .-I2C_CLCD_PrintInt32
+ 761              		.section	.text.I2C_CLCD_PrintU32Number,"ax",%progbits
+ 762              		.align	2
+ 763              		.global	I2C_CLCD_PrintU32Number
+ 764              		.thumb
+ 765              		.thumb_func
+ 766              		.type	I2C_CLCD_PrintU32Number, %function
+ 767              	I2C_CLCD_PrintU32Number:
+ 768              	.LFB16:
+ 564:..\API/I2C_CLCD.c ****     
+ 565:..\API/I2C_CLCD.c ****     
+ 566:..\API/I2C_CLCD.c ****     /*******************************************************************************
+ 567:..\API/I2C_CLCD.c ****     *  Function Name: I2C_CLCD_PrintNumber
+ 568:..\API/I2C_CLCD.c ****     ********************************************************************************
+ 569:..\API/I2C_CLCD.c ****     *
+ 570:..\API/I2C_CLCD.c ****     * Summary:
+ 571:..\API/I2C_CLCD.c ****     *  Print an uint16 value as a left-justified decimal value.
+ 572:..\API/I2C_CLCD.c ****     *
+ 573:..\API/I2C_CLCD.c ****     * Parameters:
+ 574:..\API/I2C_CLCD.c ****     *  value: A 16-bit value to be printed in ASCII characters as a decimal number
+ 575:..\API/I2C_CLCD.c ****     *
+ 576:..\API/I2C_CLCD.c ****     * Return:
+ 577:..\API/I2C_CLCD.c ****     *  None.
+ 578:..\API/I2C_CLCD.c ****     *
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 26
+
+
+ 579:..\API/I2C_CLCD.c ****     * Note:
+ 580:..\API/I2C_CLCD.c ****     *  This function is implemented as a macro.
+ 581:..\API/I2C_CLCD.c ****     *
+ 582:..\API/I2C_CLCD.c ****     *******************************************************************************/
+ 583:..\API/I2C_CLCD.c **** 
+ 584:..\API/I2C_CLCD.c ****     
+ 585:..\API/I2C_CLCD.c ****     /*******************************************************************************
+ 586:..\API/I2C_CLCD.c ****     *  Function Name: I2C_CLCD_PrintU32Number
+ 587:..\API/I2C_CLCD.c ****     ********************************************************************************
+ 588:..\API/I2C_CLCD.c ****     *
+ 589:..\API/I2C_CLCD.c ****     * Summary:
+ 590:..\API/I2C_CLCD.c ****     *  Print an uint32 value as a left-justified decimal value.
+ 591:..\API/I2C_CLCD.c ****     *
+ 592:..\API/I2C_CLCD.c ****     * Parameters:
+ 593:..\API/I2C_CLCD.c ****     *  value: A 32-bit value to be printed in ASCII characters as a decimal number
+ 594:..\API/I2C_CLCD.c ****     *
+ 595:..\API/I2C_CLCD.c ****     * Return:
+ 596:..\API/I2C_CLCD.c ****     *  None.
+ 597:..\API/I2C_CLCD.c ****     *
+ 598:..\API/I2C_CLCD.c ****     *******************************************************************************/
+ 599:..\API/I2C_CLCD.c ****     void I2C_CLCD_PrintU32Number(uint32 value) 
+ 600:..\API/I2C_CLCD.c ****     {
+ 769              		.loc 1 600 0
+ 770              		.cfi_startproc
+ 771              		@ args = 0, pretend = 0, frame = 16
+ 772              		@ frame_needed = 0, uses_anonymous_args = 0
+ 773              	.LVL106:
+ 774 0000 00B5     		push	{lr}
+ 775              		.cfi_def_cfa_offset 4
+ 776              		.cfi_offset 14, -4
+ 777 0002 85B0     		sub	sp, sp, #20
+ 778              		.cfi_def_cfa_offset 24
+ 779              	.LVL107:
+ 601:..\API/I2C_CLCD.c ****         uint8 tmpDigit;
+ 602:..\API/I2C_CLCD.c ****         char8 number[I2C_CLCD_NUMBER_OF_REMAINDERS_U32 + 1u];
+ 603:..\API/I2C_CLCD.c ****         uint8 digIndex = I2C_CLCD_NUMBER_OF_REMAINDERS_U32;
+ 604:..\API/I2C_CLCD.c ****         
+ 605:..\API/I2C_CLCD.c ****         /* This API will output a decimal number as a string and that string will be 
+ 606:..\API/I2C_CLCD.c ****         * filled from end to start. Set Null termination character first.
+ 607:..\API/I2C_CLCD.c ****         */
+ 608:..\API/I2C_CLCD.c ****         number[digIndex] = (char8) '\0';
+ 780              		.loc 1 608 0
+ 781 0004 0023     		movs	r3, #0
+ 782 0006 8DF80E30 		strb	r3, [sp, #14]
+ 783              	.LVL108:
+ 609:..\API/I2C_CLCD.c ****         digIndex--;
+ 784              		.loc 1 609 0
+ 785 000a 0922     		movs	r2, #9
+ 610:..\API/I2C_CLCD.c ****         
+ 611:..\API/I2C_CLCD.c ****         /* Load these in reverse order */
+ 612:..\API/I2C_CLCD.c ****         while(value >= I2C_CLCD_TEN)
+ 786              		.loc 1 612 0
+ 787 000c 10E0     		b	.L59
+ 788              	.LVL109:
+ 789              	.L60:
+ 613:..\API/I2C_CLCD.c ****         {
+ 614:..\API/I2C_CLCD.c ****             /* Extract decimal digit, indexed by 'digIndex', from 'value' and
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 27
+
+
+ 615:..\API/I2C_CLCD.c ****             * convert it to ASCII character.
+ 616:..\API/I2C_CLCD.c ****             */
+ 617:..\API/I2C_CLCD.c ****             tmpDigit = (uint8) (((uint8) (value % I2C_CLCD_TEN)) + (uint8) I2C_CLCD_ZERO_CHAR_ASCII
+ 790              		.loc 1 617 0
+ 791 000e 134B     		ldr	r3, .L62
+ 792 0010 A3FB0013 		umull	r1, r3, r3, r0
+ 793 0014 DB08     		lsrs	r3, r3, #3
+ 794 0016 1946     		mov	r1, r3
+ 795 0018 03EB8303 		add	r3, r3, r3, lsl #2
+ 796 001c 5B00     		lsls	r3, r3, #1
+ 797 001e C31A     		subs	r3, r0, r3
+ 798 0020 3033     		adds	r3, r3, #48
+ 799              	.LVL110:
+ 618:..\API/I2C_CLCD.c ****             
+ 619:..\API/I2C_CLCD.c ****             /* Temporary variable 'tmpDigit' is used to avoid Violation of MISRA rule 
+ 620:..\API/I2C_CLCD.c ****             * #10.3.
+ 621:..\API/I2C_CLCD.c ****             */
+ 622:..\API/I2C_CLCD.c ****             number[digIndex] = (char8) tmpDigit;
+ 800              		.loc 1 622 0
+ 801 0022 04A8     		add	r0, sp, #16
+ 802              	.LVL111:
+ 803 0024 1044     		add	r0, r0, r2
+ 804 0026 00F80C3C 		strb	r3, [r0, #-12]
+ 623:..\API/I2C_CLCD.c ****             value /= I2C_CLCD_TEN;
+ 805              		.loc 1 623 0
+ 806 002a 0846     		mov	r0, r1
+ 807              	.LVL112:
+ 624:..\API/I2C_CLCD.c ****             digIndex--;
+ 808              		.loc 1 624 0
+ 809 002c 013A     		subs	r2, r2, #1
+ 810              	.LVL113:
+ 811 002e D2B2     		uxtb	r2, r2
+ 812              	.LVL114:
+ 813              	.L59:
+ 612:..\API/I2C_CLCD.c ****         {
+ 814              		.loc 1 612 0
+ 815 0030 0928     		cmp	r0, #9
+ 816 0032 ECD8     		bhi	.L60
+ 625:..\API/I2C_CLCD.c ****         }
+ 626:..\API/I2C_CLCD.c ****         
+ 627:..\API/I2C_CLCD.c ****         /* Extract last decimal digit 'digIndex', from the 'value' and convert it
+ 628:..\API/I2C_CLCD.c ****         * to ASCII character.
+ 629:..\API/I2C_CLCD.c ****         */
+ 630:..\API/I2C_CLCD.c ****         tmpDigit = (uint8) (((uint8)(value % I2C_CLCD_TEN)) + (uint8) I2C_CLCD_ZERO_CHAR_ASCII);
+ 817              		.loc 1 630 0
+ 818 0034 094B     		ldr	r3, .L62
+ 819 0036 A3FB0013 		umull	r1, r3, r3, r0
+ 820 003a DB08     		lsrs	r3, r3, #3
+ 821 003c 03EB8303 		add	r3, r3, r3, lsl #2
+ 822 0040 5B00     		lsls	r3, r3, #1
+ 823 0042 C31A     		subs	r3, r0, r3
+ 824 0044 3033     		adds	r3, r3, #48
+ 825              	.LVL115:
+ 631:..\API/I2C_CLCD.c ****         number[digIndex] = (char8) tmpDigit;
+ 826              		.loc 1 631 0
+ 827 0046 04A9     		add	r1, sp, #16
+ 828 0048 1144     		add	r1, r1, r2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 28
+
+
+ 829 004a 01F80C3C 		strb	r3, [r1, #-12]
+ 632:..\API/I2C_CLCD.c **** 
+ 633:..\API/I2C_CLCD.c ****         /* Print out number */
+ 634:..\API/I2C_CLCD.c ****         I2C_CLCD_PrintString(&number[digIndex]);
+ 830              		.loc 1 634 0
+ 831 004e 01AB     		add	r3, sp, #4
+ 832              	.LVL116:
+ 833 0050 9818     		adds	r0, r3, r2
+ 834              	.LVL117:
+ 835 0052 FFF7FEFF 		bl	I2C_CLCD_PrintString
+ 836              	.LVL118:
+ 635:..\API/I2C_CLCD.c ****     }
+ 837              		.loc 1 635 0
+ 838 0056 05B0     		add	sp, sp, #20
+ 839              		.cfi_def_cfa_offset 4
+ 840              		@ sp needed
+ 841 0058 5DF804FB 		ldr	pc, [sp], #4
+ 842              	.L63:
+ 843              		.align	2
+ 844              	.L62:
+ 845 005c CDCCCCCC 		.word	-858993459
+ 846              		.cfi_endproc
+ 847              	.LFE16:
+ 848              		.size	I2C_CLCD_PrintU32Number, .-I2C_CLCD_PrintU32Number
+ 849              		.global	I2C_CLCD_BackLight
+ 850              		.global	slaveAddress
+ 851              		.global	I2C_CLCD_initVar
+ 852              		.global	I2C_CLCD_enableState
+ 853              		.section	.rodata
+ 854              		.align	2
+ 855              		.set	.LANCHOR2,. + 0
+ 856              		.type	I2C_CLCD_hex.4972, %object
+ 857              		.size	I2C_CLCD_hex.4972, 16
+ 858              	I2C_CLCD_hex.4972:
+ 859 0000 30313233 		.ascii	"0123456789ABCDEF"
+ 859      34353637 
+ 859      38394142 
+ 859      43444546 
+ 860              		.data
+ 861              		.set	.LANCHOR0,. + 0
+ 862              		.type	I2C_CLCD_BackLight, %object
+ 863              		.size	I2C_CLCD_BackLight, 1
+ 864              	I2C_CLCD_BackLight:
+ 865 0000 08       		.byte	8
+ 866              		.type	slaveAddress, %object
+ 867              		.size	slaveAddress, 1
+ 868              	slaveAddress:
+ 869 0001 27       		.byte	39
+ 870              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 871              		.align	2
+ 872              	.LC0:
+ 873 0000 20202020 		.ascii	"                \000"
+ 873      20202020 
+ 873      20202020 
+ 873      20202020 
+ 873      00
+ 874 0011 000000   		.bss
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 29
+
+
+ 875              		.set	.LANCHOR1,. + 0
+ 876              		.type	I2C_CLCD_enableState, %object
+ 877              		.size	I2C_CLCD_enableState, 1
+ 878              	I2C_CLCD_enableState:
+ 879 0000 00       		.space	1
+ 880              		.type	I2C_CLCD_initVar, %object
+ 881              		.size	I2C_CLCD_initVar, 1
+ 882              	I2C_CLCD_initVar:
+ 883 0001 00       		.space	1
+ 884              		.text
+ 885              	.Letext0:
+ 886              		.file 2 "Generated_Source\\PSoC5/cytypes.h"
+ 887              		.file 3 "Generated_Source\\PSoC5/I2C_1.h"
+ 888              		.file 4 "Generated_Source\\PSoC5/CyLib.h"
+ 889              		.section	.debug_info,"",%progbits
+ 890              	.Ldebug_info0:
+ 891 0000 B2080000 		.4byte	0x8b2
+ 892 0004 0400     		.2byte	0x4
+ 893 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 894 000a 04       		.byte	0x4
+ 895 000b 01       		.uleb128 0x1
+ 896 000c 0C020000 		.4byte	.LASF55
+ 897 0010 01       		.byte	0x1
+ 898 0011 51010000 		.4byte	.LASF56
+ 899 0015 93010000 		.4byte	.LASF57
+ 900 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 901 001d 00000000 		.4byte	0
+ 902 0021 00000000 		.4byte	.Ldebug_line0
+ 903 0025 02       		.uleb128 0x2
+ 904 0026 04       		.byte	0x4
+ 905 0027 05       		.byte	0x5
+ 906 0028 696E7400 		.ascii	"int\000"
+ 907 002c 03       		.uleb128 0x3
+ 908 002d 04       		.byte	0x4
+ 909 002e 07       		.byte	0x7
+ 910 002f 9A020000 		.4byte	.LASF0
+ 911 0033 03       		.uleb128 0x3
+ 912 0034 01       		.byte	0x1
+ 913 0035 06       		.byte	0x6
+ 914 0036 9A030000 		.4byte	.LASF1
+ 915 003a 03       		.uleb128 0x3
+ 916 003b 01       		.byte	0x1
+ 917 003c 08       		.byte	0x8
+ 918 003d 43010000 		.4byte	.LASF2
+ 919 0041 03       		.uleb128 0x3
+ 920 0042 02       		.byte	0x2
+ 921 0043 05       		.byte	0x5
+ 922 0044 25030000 		.4byte	.LASF3
+ 923 0048 03       		.uleb128 0x3
+ 924 0049 02       		.byte	0x2
+ 925 004a 07       		.byte	0x7
+ 926 004b AC030000 		.4byte	.LASF4
+ 927 004f 03       		.uleb128 0x3
+ 928 0050 04       		.byte	0x4
+ 929 0051 05       		.byte	0x5
+ 930 0052 7F030000 		.4byte	.LASF5
+ 931 0056 03       		.uleb128 0x3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 30
+
+
+ 932 0057 04       		.byte	0x4
+ 933 0058 07       		.byte	0x7
+ 934 0059 1C010000 		.4byte	.LASF6
+ 935 005d 03       		.uleb128 0x3
+ 936 005e 08       		.byte	0x8
+ 937 005f 05       		.byte	0x5
+ 938 0060 EE020000 		.4byte	.LASF7
+ 939 0064 03       		.uleb128 0x3
+ 940 0065 08       		.byte	0x8
+ 941 0066 07       		.byte	0x7
+ 942 0067 A7020000 		.4byte	.LASF8
+ 943 006b 03       		.uleb128 0x3
+ 944 006c 04       		.byte	0x4
+ 945 006d 07       		.byte	0x7
+ 946 006e E5020000 		.4byte	.LASF9
+ 947 0072 03       		.uleb128 0x3
+ 948 0073 01       		.byte	0x1
+ 949 0074 08       		.byte	0x8
+ 950 0075 06030000 		.4byte	.LASF10
+ 951 0079 04       		.uleb128 0x4
+ 952 007a 2E010000 		.4byte	.LASF11
+ 953 007e 02       		.byte	0x2
+ 954 007f 3801     		.2byte	0x138
+ 955 0081 3A000000 		.4byte	0x3a
+ 956 0085 04       		.uleb128 0x4
+ 957 0086 F5010000 		.4byte	.LASF12
+ 958 008a 02       		.byte	0x2
+ 959 008b 3901     		.2byte	0x139
+ 960 008d 48000000 		.4byte	0x48
+ 961 0091 04       		.uleb128 0x4
+ 962 0092 05020000 		.4byte	.LASF13
+ 963 0096 02       		.byte	0x2
+ 964 0097 3A01     		.2byte	0x13a
+ 965 0099 56000000 		.4byte	0x56
+ 966 009d 03       		.uleb128 0x3
+ 967 009e 04       		.byte	0x4
+ 968 009f 04       		.byte	0x4
+ 969 00a0 C6000000 		.4byte	.LASF14
+ 970 00a4 03       		.uleb128 0x3
+ 971 00a5 08       		.byte	0x8
+ 972 00a6 04       		.byte	0x4
+ 973 00a7 63010000 		.4byte	.LASF15
+ 974 00ab 04       		.uleb128 0x4
+ 975 00ac 16010000 		.4byte	.LASF16
+ 976 00b0 02       		.byte	0x2
+ 977 00b1 4901     		.2byte	0x149
+ 978 00b3 72000000 		.4byte	0x72
+ 979 00b7 05       		.uleb128 0x5
+ 980 00b8 7F010000 		.4byte	.LASF17
+ 981 00bc 01       		.byte	0x1
+ 982 00bd CB01     		.2byte	0x1cb
+ 983 00bf 00000000 		.4byte	.LFB12
+ 984 00c3 58000000 		.4byte	.LFE12-.LFB12
+ 985 00c7 01       		.uleb128 0x1
+ 986 00c8 9C       		.byte	0x9c
+ 987 00c9 9B010000 		.4byte	0x19b
+ 988 00cd 06       		.uleb128 0x6
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 31
+
+
+ 989 00ce 19000000 		.4byte	.LASF19
+ 990 00d2 01       		.byte	0x1
+ 991 00d3 CB01     		.2byte	0x1cb
+ 992 00d5 79000000 		.4byte	0x79
+ 993 00d9 00000000 		.4byte	.LLST0
+ 994 00dd 07       		.uleb128 0x7
+ 995 00de CC000000 		.4byte	.LASF20
+ 996 00e2 01       		.byte	0x1
+ 997 00e3 CD01     		.2byte	0x1cd
+ 998 00e5 79000000 		.4byte	0x79
+ 999 00e9 21000000 		.4byte	.LLST1
+ 1000 00ed 08       		.uleb128 0x8
+ 1001 00ee 10000000 		.4byte	.LVL3
+ 1002 00f2 5D080000 		.4byte	0x85d
+ 1003 00f6 00010000 		.4byte	0x100
+ 1004 00fa 09       		.uleb128 0x9
+ 1005 00fb 01       		.uleb128 0x1
+ 1006 00fc 51       		.byte	0x51
+ 1007 00fd 01       		.uleb128 0x1
+ 1008 00fe 30       		.byte	0x30
+ 1009 00ff 00       		.byte	0
+ 1010 0100 08       		.uleb128 0x8
+ 1011 0101 16000000 		.4byte	.LVL4
+ 1012 0105 77080000 		.4byte	0x877
+ 1013 0109 13010000 		.4byte	0x113
+ 1014 010d 09       		.uleb128 0x9
+ 1015 010e 01       		.uleb128 0x1
+ 1016 010f 50       		.byte	0x50
+ 1017 0110 01       		.uleb128 0x1
+ 1018 0111 31       		.byte	0x31
+ 1019 0112 00       		.byte	0
+ 1020 0113 08       		.uleb128 0x8
+ 1021 0114 1E000000 		.4byte	.LVL5
+ 1022 0118 88080000 		.4byte	0x888
+ 1023 011c 2A010000 		.4byte	0x12a
+ 1024 0120 09       		.uleb128 0x9
+ 1025 0121 01       		.uleb128 0x1
+ 1026 0122 50       		.byte	0x50
+ 1027 0123 05       		.uleb128 0x5
+ 1028 0124 75       		.byte	0x75
+ 1029 0125 00       		.sleb128 0
+ 1030 0126 08       		.byte	0x8
+ 1031 0127 FC       		.byte	0xfc
+ 1032 0128 21       		.byte	0x21
+ 1033 0129 00       		.byte	0
+ 1034 012a 08       		.uleb128 0x8
+ 1035 012b 2C000000 		.4byte	.LVL8
+ 1036 012f 88080000 		.4byte	0x888
+ 1037 0133 3E010000 		.4byte	0x13e
+ 1038 0137 09       		.uleb128 0x9
+ 1039 0138 01       		.uleb128 0x1
+ 1040 0139 50       		.byte	0x50
+ 1041 013a 02       		.uleb128 0x2
+ 1042 013b 74       		.byte	0x74
+ 1043 013c 00       		.sleb128 0
+ 1044 013d 00       		.byte	0
+ 1045 013e 08       		.uleb128 0x8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 32
+
+
+ 1046 013f 3A000000 		.4byte	.LVL11
+ 1047 0143 88080000 		.4byte	0x888
+ 1048 0147 54010000 		.4byte	0x154
+ 1049 014b 09       		.uleb128 0x9
+ 1050 014c 01       		.uleb128 0x1
+ 1051 014d 50       		.byte	0x50
+ 1052 014e 04       		.uleb128 0x4
+ 1053 014f 74       		.byte	0x74
+ 1054 0150 00       		.sleb128 0
+ 1055 0151 34       		.byte	0x34
+ 1056 0152 21       		.byte	0x21
+ 1057 0153 00       		.byte	0
+ 1058 0154 08       		.uleb128 0x8
+ 1059 0155 40000000 		.4byte	.LVL12
+ 1060 0159 77080000 		.4byte	0x877
+ 1061 015d 67010000 		.4byte	0x167
+ 1062 0161 09       		.uleb128 0x9
+ 1063 0162 01       		.uleb128 0x1
+ 1064 0163 50       		.byte	0x50
+ 1065 0164 01       		.uleb128 0x1
+ 1066 0165 31       		.byte	0x31
+ 1067 0166 00       		.byte	0
+ 1068 0167 08       		.uleb128 0x8
+ 1069 0168 48000000 		.4byte	.LVL13
+ 1070 016c 88080000 		.4byte	0x888
+ 1071 0170 7E010000 		.4byte	0x17e
+ 1072 0174 09       		.uleb128 0x9
+ 1073 0175 01       		.uleb128 0x1
+ 1074 0176 50       		.byte	0x50
+ 1075 0177 05       		.uleb128 0x5
+ 1076 0178 74       		.byte	0x74
+ 1077 0179 00       		.sleb128 0
+ 1078 017a 08       		.byte	0x8
+ 1079 017b FB       		.byte	0xfb
+ 1080 017c 1A       		.byte	0x1a
+ 1081 017d 00       		.byte	0
+ 1082 017e 08       		.uleb128 0x8
+ 1083 017f 4E000000 		.4byte	.LVL14
+ 1084 0183 77080000 		.4byte	0x877
+ 1085 0187 91010000 		.4byte	0x191
+ 1086 018b 09       		.uleb128 0x9
+ 1087 018c 01       		.uleb128 0x1
+ 1088 018d 50       		.byte	0x50
+ 1089 018e 01       		.uleb128 0x1
+ 1090 018f 31       		.byte	0x31
+ 1091 0190 00       		.byte	0
+ 1092 0191 0A       		.uleb128 0xa
+ 1093 0192 52000000 		.4byte	.LVL15
+ 1094 0196 9D080000 		.4byte	0x89d
+ 1095 019a 00       		.byte	0
+ 1096 019b 05       		.uleb128 0x5
+ 1097 019c 88030000 		.4byte	.LASF18
+ 1098 01a0 01       		.byte	0x1
+ 1099 01a1 9701     		.2byte	0x197
+ 1100 01a3 00000000 		.4byte	.LFB11
+ 1101 01a7 6C000000 		.4byte	.LFE11-.LFB11
+ 1102 01ab 01       		.uleb128 0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 33
+
+
+ 1103 01ac 9C       		.byte	0x9c
+ 1104 01ad AA020000 		.4byte	0x2aa
+ 1105 01b1 06       		.uleb128 0x6
+ 1106 01b2 19000000 		.4byte	.LASF19
+ 1107 01b6 01       		.byte	0x1
+ 1108 01b7 9701     		.2byte	0x197
+ 1109 01b9 79000000 		.4byte	0x79
+ 1110 01bd 7D000000 		.4byte	.LLST2
+ 1111 01c1 07       		.uleb128 0x7
+ 1112 01c2 CC000000 		.4byte	.LASF20
+ 1113 01c6 01       		.byte	0x1
+ 1114 01c7 9901     		.2byte	0x199
+ 1115 01c9 79000000 		.4byte	0x79
+ 1116 01cd 9E000000 		.4byte	.LLST3
+ 1117 01d1 08       		.uleb128 0x8
+ 1118 01d2 10000000 		.4byte	.LVL20
+ 1119 01d6 5D080000 		.4byte	0x85d
+ 1120 01da E4010000 		.4byte	0x1e4
+ 1121 01de 09       		.uleb128 0x9
+ 1122 01df 01       		.uleb128 0x1
+ 1123 01e0 51       		.byte	0x51
+ 1124 01e1 01       		.uleb128 0x1
+ 1125 01e2 30       		.byte	0x30
+ 1126 01e3 00       		.byte	0
+ 1127 01e4 08       		.uleb128 0x8
+ 1128 01e5 16000000 		.4byte	.LVL21
+ 1129 01e9 77080000 		.4byte	0x877
+ 1130 01ed F7010000 		.4byte	0x1f7
+ 1131 01f1 09       		.uleb128 0x9
+ 1132 01f2 01       		.uleb128 0x1
+ 1133 01f3 50       		.byte	0x50
+ 1134 01f4 01       		.uleb128 0x1
+ 1135 01f5 31       		.byte	0x31
+ 1136 01f6 00       		.byte	0
+ 1137 01f7 08       		.uleb128 0x8
+ 1138 01f8 1E000000 		.4byte	.LVL22
+ 1139 01fc 88080000 		.4byte	0x888
+ 1140 0200 0D020000 		.4byte	0x20d
+ 1141 0204 09       		.uleb128 0x9
+ 1142 0205 01       		.uleb128 0x1
+ 1143 0206 50       		.byte	0x50
+ 1144 0207 04       		.uleb128 0x4
+ 1145 0208 74       		.byte	0x74
+ 1146 0209 00       		.sleb128 0
+ 1147 020a 31       		.byte	0x31
+ 1148 020b 21       		.byte	0x21
+ 1149 020c 00       		.byte	0
+ 1150 020d 08       		.uleb128 0x8
+ 1151 020e 2A000000 		.4byte	.LVL25
+ 1152 0212 88080000 		.4byte	0x888
+ 1153 0216 26020000 		.4byte	0x226
+ 1154 021a 09       		.uleb128 0x9
+ 1155 021b 01       		.uleb128 0x1
+ 1156 021c 50       		.byte	0x50
+ 1157 021d 07       		.uleb128 0x7
+ 1158 021e 74       		.byte	0x74
+ 1159 021f 00       		.sleb128 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 34
+
+
+ 1160 0220 08       		.byte	0x8
+ 1161 0221 FC       		.byte	0xfc
+ 1162 0222 1A       		.byte	0x1a
+ 1163 0223 31       		.byte	0x31
+ 1164 0224 21       		.byte	0x21
+ 1165 0225 00       		.byte	0
+ 1166 0226 08       		.uleb128 0x8
+ 1167 0227 30000000 		.4byte	.LVL26
+ 1168 022b 77080000 		.4byte	0x877
+ 1169 022f 39020000 		.4byte	0x239
+ 1170 0233 09       		.uleb128 0x9
+ 1171 0234 01       		.uleb128 0x1
+ 1172 0235 50       		.byte	0x50
+ 1173 0236 01       		.uleb128 0x1
+ 1174 0237 30       		.byte	0x30
+ 1175 0238 00       		.byte	0
+ 1176 0239 08       		.uleb128 0x8
+ 1177 023a 3E000000 		.4byte	.LVL28
+ 1178 023e 88080000 		.4byte	0x888
+ 1179 0242 4D020000 		.4byte	0x24d
+ 1180 0246 09       		.uleb128 0x9
+ 1181 0247 01       		.uleb128 0x1
+ 1182 0248 50       		.byte	0x50
+ 1183 0249 02       		.uleb128 0x2
+ 1184 024a 74       		.byte	0x74
+ 1185 024b 00       		.sleb128 0
+ 1186 024c 00       		.byte	0
+ 1187 024d 08       		.uleb128 0x8
+ 1188 024e 4C000000 		.4byte	.LVL31
+ 1189 0252 88080000 		.4byte	0x888
+ 1190 0256 63020000 		.4byte	0x263
+ 1191 025a 09       		.uleb128 0x9
+ 1192 025b 01       		.uleb128 0x1
+ 1193 025c 50       		.byte	0x50
+ 1194 025d 04       		.uleb128 0x4
+ 1195 025e 74       		.byte	0x74
+ 1196 025f 00       		.sleb128 0
+ 1197 0260 34       		.byte	0x34
+ 1198 0261 21       		.byte	0x21
+ 1199 0262 00       		.byte	0
+ 1200 0263 08       		.uleb128 0x8
+ 1201 0264 52000000 		.4byte	.LVL32
+ 1202 0268 77080000 		.4byte	0x877
+ 1203 026c 76020000 		.4byte	0x276
+ 1204 0270 09       		.uleb128 0x9
+ 1205 0271 01       		.uleb128 0x1
+ 1206 0272 50       		.byte	0x50
+ 1207 0273 01       		.uleb128 0x1
+ 1208 0274 31       		.byte	0x31
+ 1209 0275 00       		.byte	0
+ 1210 0276 08       		.uleb128 0x8
+ 1211 0277 5A000000 		.4byte	.LVL33
+ 1212 027b 88080000 		.4byte	0x888
+ 1213 027f 8D020000 		.4byte	0x28d
+ 1214 0283 09       		.uleb128 0x9
+ 1215 0284 01       		.uleb128 0x1
+ 1216 0285 50       		.byte	0x50
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 35
+
+
+ 1217 0286 05       		.uleb128 0x5
+ 1218 0287 74       		.byte	0x74
+ 1219 0288 00       		.sleb128 0
+ 1220 0289 08       		.byte	0x8
+ 1221 028a F9       		.byte	0xf9
+ 1222 028b 1A       		.byte	0x1a
+ 1223 028c 00       		.byte	0
+ 1224 028d 08       		.uleb128 0x8
+ 1225 028e 60000000 		.4byte	.LVL34
+ 1226 0292 77080000 		.4byte	0x877
+ 1227 0296 A0020000 		.4byte	0x2a0
+ 1228 029a 09       		.uleb128 0x9
+ 1229 029b 01       		.uleb128 0x1
+ 1230 029c 50       		.byte	0x50
+ 1231 029d 01       		.uleb128 0x1
+ 1232 029e 31       		.byte	0x31
+ 1233 029f 00       		.byte	0
+ 1234 02a0 0A       		.uleb128 0xa
+ 1235 02a1 64000000 		.4byte	.LVL35
+ 1236 02a5 9D080000 		.4byte	0x89d
+ 1237 02a9 00       		.byte	0
+ 1238 02aa 0B       		.uleb128 0xb
+ 1239 02ab 20000000 		.4byte	.LASF21
+ 1240 02af 01       		.byte	0x1
+ 1241 02b0 7D01     		.2byte	0x17d
+ 1242 02b2 00000000 		.4byte	.LFB10
+ 1243 02b6 0A000000 		.4byte	.LFE10-.LFB10
+ 1244 02ba 01       		.uleb128 0x1
+ 1245 02bb 9C       		.byte	0x9c
+ 1246 02bc D0020000 		.4byte	0x2d0
+ 1247 02c0 0C       		.uleb128 0xc
+ 1248 02c1 08000000 		.4byte	.LVL37
+ 1249 02c5 77080000 		.4byte	0x877
+ 1250 02c9 09       		.uleb128 0x9
+ 1251 02ca 01       		.uleb128 0x1
+ 1252 02cb 50       		.byte	0x50
+ 1253 02cc 01       		.uleb128 0x1
+ 1254 02cd 31       		.byte	0x31
+ 1255 02ce 00       		.byte	0
+ 1256 02cf 00       		.byte	0
+ 1257 02d0 0B       		.uleb128 0xb
+ 1258 02d1 CB020000 		.4byte	.LASF22
+ 1259 02d5 01       		.byte	0x1
+ 1260 02d6 4001     		.2byte	0x140
+ 1261 02d8 00000000 		.4byte	.LFB8
+ 1262 02dc 18000000 		.4byte	.LFE8-.LFB8
+ 1263 02e0 01       		.uleb128 0x1
+ 1264 02e1 9C       		.byte	0x9c
+ 1265 02e2 38030000 		.4byte	0x338
+ 1266 02e6 06       		.uleb128 0x6
+ 1267 02e7 A6030000 		.4byte	.LASF23
+ 1268 02eb 01       		.byte	0x1
+ 1269 02ec 4001     		.2byte	0x140
+ 1270 02ee 79000000 		.4byte	0x79
+ 1271 02f2 0B010000 		.4byte	.LLST4
+ 1272 02f6 07       		.uleb128 0x7
+ 1273 02f7 19000000 		.4byte	.LASF19
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 36
+
+
+ 1274 02fb 01       		.byte	0x1
+ 1275 02fc 4201     		.2byte	0x142
+ 1276 02fe 79000000 		.4byte	0x79
+ 1277 0302 2C010000 		.4byte	.LLST5
+ 1278 0306 0A       		.uleb128 0xa
+ 1279 0307 08000000 		.4byte	.LVL39
+ 1280 030b AA020000 		.4byte	0x2aa
+ 1281 030f 08       		.uleb128 0x8
+ 1282 0310 0E000000 		.4byte	.LVL40
+ 1283 0314 9B010000 		.4byte	0x19b
+ 1284 0318 25030000 		.4byte	0x325
+ 1285 031c 09       		.uleb128 0x9
+ 1286 031d 01       		.uleb128 0x1
+ 1287 031e 50       		.byte	0x50
+ 1288 031f 04       		.uleb128 0x4
+ 1289 0320 74       		.byte	0x74
+ 1290 0321 00       		.sleb128 0
+ 1291 0322 34       		.byte	0x34
+ 1292 0323 25       		.byte	0x25
+ 1293 0324 00       		.byte	0
+ 1294 0325 0C       		.uleb128 0xc
+ 1295 0326 16000000 		.4byte	.LVL41
+ 1296 032a 9B010000 		.4byte	0x19b
+ 1297 032e 09       		.uleb128 0x9
+ 1298 032f 01       		.uleb128 0x1
+ 1299 0330 50       		.byte	0x50
+ 1300 0331 04       		.uleb128 0x4
+ 1301 0332 74       		.byte	0x74
+ 1302 0333 00       		.sleb128 0
+ 1303 0334 3F       		.byte	0x3f
+ 1304 0335 1A       		.byte	0x1a
+ 1305 0336 00       		.byte	0
+ 1306 0337 00       		.byte	0
+ 1307 0338 0D       		.uleb128 0xd
+ 1308 0339 6A010000 		.4byte	.LASF24
+ 1309 033d 01       		.byte	0x1
+ 1310 033e F4       		.byte	0xf4
+ 1311 033f 00000000 		.4byte	.LFB5
+ 1312 0343 1A000000 		.4byte	.LFE5-.LFB5
+ 1313 0347 01       		.uleb128 0x1
+ 1314 0348 9C       		.byte	0x9c
+ 1315 0349 84030000 		.4byte	0x384
+ 1316 034d 0E       		.uleb128 0xe
+ 1317 034e 9D000000 		.4byte	.LASF25
+ 1318 0352 01       		.byte	0x1
+ 1319 0353 F4       		.byte	0xf4
+ 1320 0354 84030000 		.4byte	0x384
+ 1321 0358 52010000 		.4byte	.LLST6
+ 1322 035c 0F       		.uleb128 0xf
+ 1323 035d 95000000 		.4byte	.LASF26
+ 1324 0361 01       		.byte	0x1
+ 1325 0362 F6       		.byte	0xf6
+ 1326 0363 79000000 		.4byte	0x79
+ 1327 0367 70010000 		.4byte	.LLST7
+ 1328 036b 0F       		.uleb128 0xf
+ 1329 036c 2F030000 		.4byte	.LASF27
+ 1330 0370 01       		.byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 37
+
+
+ 1331 0371 F7       		.byte	0xf7
+ 1332 0372 AB000000 		.4byte	0xab
+ 1333 0376 9A010000 		.4byte	.LLST8
+ 1334 037a 0A       		.uleb128 0xa
+ 1335 037b 0E000000 		.4byte	.LVL46
+ 1336 037f D0020000 		.4byte	0x2d0
+ 1337 0383 00       		.byte	0
+ 1338 0384 10       		.uleb128 0x10
+ 1339 0385 04       		.byte	0x4
+ 1340 0386 8A030000 		.4byte	0x38a
+ 1341 038a 11       		.uleb128 0x11
+ 1342 038b AB000000 		.4byte	0xab
+ 1343 038f 0B       		.uleb128 0xb
+ 1344 0390 0B030000 		.4byte	.LASF28
+ 1345 0394 01       		.byte	0x1
+ 1346 0395 2C01     		.2byte	0x12c
+ 1347 0397 00000000 		.4byte	.LFB7
+ 1348 039b 08000000 		.4byte	.LFE7-.LFB7
+ 1349 039f 01       		.uleb128 0x1
+ 1350 03a0 9C       		.byte	0x9c
+ 1351 03a1 BF030000 		.4byte	0x3bf
+ 1352 03a5 06       		.uleb128 0x6
+ 1353 03a6 47000000 		.4byte	.LASF29
+ 1354 03aa 01       		.byte	0x1
+ 1355 03ab 2C01     		.2byte	0x12c
+ 1356 03ad AB000000 		.4byte	0xab
+ 1357 03b1 B8010000 		.4byte	.LLST9
+ 1358 03b5 0A       		.uleb128 0xa
+ 1359 03b6 06000000 		.4byte	.LVL51
+ 1360 03ba D0020000 		.4byte	0x2d0
+ 1361 03be 00       		.byte	0
+ 1362 03bf 0B       		.uleb128 0xb
+ 1363 03c0 31000000 		.4byte	.LASF30
+ 1364 03c4 01       		.byte	0x1
+ 1365 03c5 5E01     		.2byte	0x15e
+ 1366 03c7 00000000 		.4byte	.LFB9
+ 1367 03cb 18000000 		.4byte	.LFE9-.LFB9
+ 1368 03cf 01       		.uleb128 0x1
+ 1369 03d0 9C       		.byte	0x9c
+ 1370 03d1 27040000 		.4byte	0x427
+ 1371 03d5 06       		.uleb128 0x6
+ 1372 03d6 D0030000 		.4byte	.LASF31
+ 1373 03da 01       		.byte	0x1
+ 1374 03db 5E01     		.2byte	0x15e
+ 1375 03dd 79000000 		.4byte	0x79
+ 1376 03e1 D9010000 		.4byte	.LLST10
+ 1377 03e5 07       		.uleb128 0x7
+ 1378 03e6 19000000 		.4byte	.LASF19
+ 1379 03ea 01       		.byte	0x1
+ 1380 03eb 6001     		.2byte	0x160
+ 1381 03ed 79000000 		.4byte	0x79
+ 1382 03f1 FA010000 		.4byte	.LLST11
+ 1383 03f5 0A       		.uleb128 0xa
+ 1384 03f6 08000000 		.4byte	.LVL53
+ 1385 03fa AA020000 		.4byte	0x2aa
+ 1386 03fe 08       		.uleb128 0x8
+ 1387 03ff 0E000000 		.4byte	.LVL54
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 38
+
+
+ 1388 0403 B7000000 		.4byte	0xb7
+ 1389 0407 14040000 		.4byte	0x414
+ 1390 040b 09       		.uleb128 0x9
+ 1391 040c 01       		.uleb128 0x1
+ 1392 040d 50       		.byte	0x50
+ 1393 040e 04       		.uleb128 0x4
+ 1394 040f 74       		.byte	0x74
+ 1395 0410 00       		.sleb128 0
+ 1396 0411 34       		.byte	0x34
+ 1397 0412 25       		.byte	0x25
+ 1398 0413 00       		.byte	0
+ 1399 0414 0C       		.uleb128 0xc
+ 1400 0415 16000000 		.4byte	.LVL55
+ 1401 0419 B7000000 		.4byte	0xb7
+ 1402 041d 09       		.uleb128 0x9
+ 1403 041e 01       		.uleb128 0x1
+ 1404 041f 50       		.byte	0x50
+ 1405 0420 04       		.uleb128 0x4
+ 1406 0421 74       		.byte	0x74
+ 1407 0422 00       		.sleb128 0
+ 1408 0423 3F       		.byte	0x3f
+ 1409 0424 1A       		.byte	0x1a
+ 1410 0425 00       		.byte	0
+ 1411 0426 00       		.byte	0
+ 1412 0427 0D       		.uleb128 0xd
+ 1413 0428 D1000000 		.4byte	.LASF32
+ 1414 042c 01       		.byte	0x1
+ 1415 042d 46       		.byte	0x46
+ 1416 042e 00000000 		.4byte	.LFB0
+ 1417 0432 6A000000 		.4byte	.LFE0-.LFB0
+ 1418 0436 01       		.uleb128 0x1
+ 1419 0437 9C       		.byte	0x9c
+ 1420 0438 7E050000 		.4byte	0x57e
+ 1421 043c 08       		.uleb128 0x8
+ 1422 043d 08000000 		.4byte	.LVL56
+ 1423 0441 A8080000 		.4byte	0x8a8
+ 1424 0445 50040000 		.4byte	0x450
+ 1425 0449 09       		.uleb128 0x9
+ 1426 044a 01       		.uleb128 0x1
+ 1427 044b 50       		.byte	0x50
+ 1428 044c 02       		.uleb128 0x2
+ 1429 044d 08       		.byte	0x8
+ 1430 044e 28       		.byte	0x28
+ 1431 044f 00       		.byte	0
+ 1432 0450 08       		.uleb128 0x8
+ 1433 0451 0E000000 		.4byte	.LVL57
+ 1434 0455 B7000000 		.4byte	0xb7
+ 1435 0459 63040000 		.4byte	0x463
+ 1436 045d 09       		.uleb128 0x9
+ 1437 045e 01       		.uleb128 0x1
+ 1438 045f 50       		.byte	0x50
+ 1439 0460 01       		.uleb128 0x1
+ 1440 0461 33       		.byte	0x33
+ 1441 0462 00       		.byte	0
+ 1442 0463 08       		.uleb128 0x8
+ 1443 0464 14000000 		.4byte	.LVL58
+ 1444 0468 A8080000 		.4byte	0x8a8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 39
+
+
+ 1445 046c 76040000 		.4byte	0x476
+ 1446 0470 09       		.uleb128 0x9
+ 1447 0471 01       		.uleb128 0x1
+ 1448 0472 50       		.byte	0x50
+ 1449 0473 01       		.uleb128 0x1
+ 1450 0474 35       		.byte	0x35
+ 1451 0475 00       		.byte	0
+ 1452 0476 08       		.uleb128 0x8
+ 1453 0477 1A000000 		.4byte	.LVL59
+ 1454 047b B7000000 		.4byte	0xb7
+ 1455 047f 89040000 		.4byte	0x489
+ 1456 0483 09       		.uleb128 0x9
+ 1457 0484 01       		.uleb128 0x1
+ 1458 0485 50       		.byte	0x50
+ 1459 0486 01       		.uleb128 0x1
+ 1460 0487 33       		.byte	0x33
+ 1461 0488 00       		.byte	0
+ 1462 0489 08       		.uleb128 0x8
+ 1463 048a 20000000 		.4byte	.LVL60
+ 1464 048e A8080000 		.4byte	0x8a8
+ 1465 0492 9C040000 		.4byte	0x49c
+ 1466 0496 09       		.uleb128 0x9
+ 1467 0497 01       		.uleb128 0x1
+ 1468 0498 50       		.byte	0x50
+ 1469 0499 01       		.uleb128 0x1
+ 1470 049a 3F       		.byte	0x3f
+ 1471 049b 00       		.byte	0
+ 1472 049c 08       		.uleb128 0x8
+ 1473 049d 26000000 		.4byte	.LVL61
+ 1474 04a1 B7000000 		.4byte	0xb7
+ 1475 04a5 AF040000 		.4byte	0x4af
+ 1476 04a9 09       		.uleb128 0x9
+ 1477 04aa 01       		.uleb128 0x1
+ 1478 04ab 50       		.byte	0x50
+ 1479 04ac 01       		.uleb128 0x1
+ 1480 04ad 33       		.byte	0x33
+ 1481 04ae 00       		.byte	0
+ 1482 04af 08       		.uleb128 0x8
+ 1483 04b0 2C000000 		.4byte	.LVL62
+ 1484 04b4 A8080000 		.4byte	0x8a8
+ 1485 04b8 C2040000 		.4byte	0x4c2
+ 1486 04bc 09       		.uleb128 0x9
+ 1487 04bd 01       		.uleb128 0x1
+ 1488 04be 50       		.byte	0x50
+ 1489 04bf 01       		.uleb128 0x1
+ 1490 04c0 31       		.byte	0x31
+ 1491 04c1 00       		.byte	0
+ 1492 04c2 08       		.uleb128 0x8
+ 1493 04c3 32000000 		.4byte	.LVL63
+ 1494 04c7 B7000000 		.4byte	0xb7
+ 1495 04cb D5040000 		.4byte	0x4d5
+ 1496 04cf 09       		.uleb128 0x9
+ 1497 04d0 01       		.uleb128 0x1
+ 1498 04d1 50       		.byte	0x50
+ 1499 04d2 01       		.uleb128 0x1
+ 1500 04d3 32       		.byte	0x32
+ 1501 04d4 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 40
+
+
+ 1502 04d5 08       		.uleb128 0x8
+ 1503 04d6 38000000 		.4byte	.LVL64
+ 1504 04da A8080000 		.4byte	0x8a8
+ 1505 04de E8040000 		.4byte	0x4e8
+ 1506 04e2 09       		.uleb128 0x9
+ 1507 04e3 01       		.uleb128 0x1
+ 1508 04e4 50       		.byte	0x50
+ 1509 04e5 01       		.uleb128 0x1
+ 1510 04e6 35       		.byte	0x35
+ 1511 04e7 00       		.byte	0
+ 1512 04e8 08       		.uleb128 0x8
+ 1513 04e9 3E000000 		.4byte	.LVL65
+ 1514 04ed BF030000 		.4byte	0x3bf
+ 1515 04f1 FB040000 		.4byte	0x4fb
+ 1516 04f5 09       		.uleb128 0x9
+ 1517 04f6 01       		.uleb128 0x1
+ 1518 04f7 50       		.byte	0x50
+ 1519 04f8 01       		.uleb128 0x1
+ 1520 04f9 36       		.byte	0x36
+ 1521 04fa 00       		.byte	0
+ 1522 04fb 08       		.uleb128 0x8
+ 1523 04fc 44000000 		.4byte	.LVL66
+ 1524 0500 BF030000 		.4byte	0x3bf
+ 1525 0504 0E050000 		.4byte	0x50e
+ 1526 0508 09       		.uleb128 0x9
+ 1527 0509 01       		.uleb128 0x1
+ 1528 050a 50       		.byte	0x50
+ 1529 050b 01       		.uleb128 0x1
+ 1530 050c 3E       		.byte	0x3e
+ 1531 050d 00       		.byte	0
+ 1532 050e 08       		.uleb128 0x8
+ 1533 050f 4A000000 		.4byte	.LVL67
+ 1534 0513 BF030000 		.4byte	0x3bf
+ 1535 0517 22050000 		.4byte	0x522
+ 1536 051b 09       		.uleb128 0x9
+ 1537 051c 01       		.uleb128 0x1
+ 1538 051d 50       		.byte	0x50
+ 1539 051e 02       		.uleb128 0x2
+ 1540 051f 08       		.byte	0x8
+ 1541 0520 2C       		.byte	0x2c
+ 1542 0521 00       		.byte	0
+ 1543 0522 08       		.uleb128 0x8
+ 1544 0523 50000000 		.4byte	.LVL68
+ 1545 0527 BF030000 		.4byte	0x3bf
+ 1546 052b 35050000 		.4byte	0x535
+ 1547 052f 09       		.uleb128 0x9
+ 1548 0530 01       		.uleb128 0x1
+ 1549 0531 50       		.byte	0x50
+ 1550 0532 01       		.uleb128 0x1
+ 1551 0533 38       		.byte	0x38
+ 1552 0534 00       		.byte	0
+ 1553 0535 08       		.uleb128 0x8
+ 1554 0536 56000000 		.4byte	.LVL69
+ 1555 053a BF030000 		.4byte	0x3bf
+ 1556 053e 48050000 		.4byte	0x548
+ 1557 0542 09       		.uleb128 0x9
+ 1558 0543 01       		.uleb128 0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 41
+
+
+ 1559 0544 50       		.byte	0x50
+ 1560 0545 01       		.uleb128 0x1
+ 1561 0546 31       		.byte	0x31
+ 1562 0547 00       		.byte	0
+ 1563 0548 08       		.uleb128 0x8
+ 1564 0549 5C000000 		.4byte	.LVL70
+ 1565 054d BF030000 		.4byte	0x3bf
+ 1566 0551 5B050000 		.4byte	0x55b
+ 1567 0555 09       		.uleb128 0x9
+ 1568 0556 01       		.uleb128 0x1
+ 1569 0557 50       		.byte	0x50
+ 1570 0558 01       		.uleb128 0x1
+ 1571 0559 3C       		.byte	0x3c
+ 1572 055a 00       		.byte	0
+ 1573 055b 08       		.uleb128 0x8
+ 1574 055c 62000000 		.4byte	.LVL71
+ 1575 0560 BF030000 		.4byte	0x3bf
+ 1576 0564 6E050000 		.4byte	0x56e
+ 1577 0568 09       		.uleb128 0x9
+ 1578 0569 01       		.uleb128 0x1
+ 1579 056a 50       		.byte	0x50
+ 1580 056b 01       		.uleb128 0x1
+ 1581 056c 33       		.byte	0x33
+ 1582 056d 00       		.byte	0
+ 1583 056e 0C       		.uleb128 0xc
+ 1584 056f 68000000 		.4byte	.LVL72
+ 1585 0573 A8080000 		.4byte	0x8a8
+ 1586 0577 09       		.uleb128 0x9
+ 1587 0578 01       		.uleb128 0x1
+ 1588 0579 50       		.byte	0x50
+ 1589 057a 01       		.uleb128 0x1
+ 1590 057b 35       		.byte	0x35
+ 1591 057c 00       		.byte	0
+ 1592 057d 00       		.byte	0
+ 1593 057e 0D       		.uleb128 0xd
+ 1594 057f F1000000 		.4byte	.LASF33
+ 1595 0583 01       		.byte	0x1
+ 1596 0584 73       		.byte	0x73
+ 1597 0585 00000000 		.4byte	.LFB1
+ 1598 0589 14000000 		.4byte	.LFE1-.LFB1
+ 1599 058d 01       		.uleb128 0x1
+ 1600 058e 9C       		.byte	0x9c
+ 1601 058f A3050000 		.4byte	0x5a3
+ 1602 0593 0C       		.uleb128 0xc
+ 1603 0594 08000000 		.4byte	.LVL73
+ 1604 0598 BF030000 		.4byte	0x3bf
+ 1605 059c 09       		.uleb128 0x9
+ 1606 059d 01       		.uleb128 0x1
+ 1607 059e 50       		.byte	0x50
+ 1608 059f 01       		.uleb128 0x1
+ 1609 05a0 3C       		.byte	0x3c
+ 1610 05a1 00       		.byte	0
+ 1611 05a2 00       		.byte	0
+ 1612 05a3 0D       		.uleb128 0xd
+ 1613 05a4 34010000 		.4byte	.LASF34
+ 1614 05a8 01       		.byte	0x1
+ 1615 05a9 94       		.byte	0x94
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 42
+
+
+ 1616 05aa 00000000 		.4byte	.LFB2
+ 1617 05ae 1C000000 		.4byte	.LFE2-.LFB2
+ 1618 05b2 01       		.uleb128 0x1
+ 1619 05b3 9C       		.byte	0x9c
+ 1620 05b4 CB050000 		.4byte	0x5cb
+ 1621 05b8 0A       		.uleb128 0xa
+ 1622 05b9 0C000000 		.4byte	.LVL74
+ 1623 05bd 27040000 		.4byte	0x427
+ 1624 05c1 0A       		.uleb128 0xa
+ 1625 05c2 16000000 		.4byte	.LVL75
+ 1626 05c6 7E050000 		.4byte	0x57e
+ 1627 05ca 00       		.byte	0
+ 1628 05cb 0D       		.uleb128 0xd
+ 1629 05cc 4F030000 		.4byte	.LASF35
+ 1630 05d0 01       		.byte	0x1
+ 1631 05d1 B3       		.byte	0xb3
+ 1632 05d2 00000000 		.4byte	.LFB3
+ 1633 05d6 14000000 		.4byte	.LFE3-.LFB3
+ 1634 05da 01       		.uleb128 0x1
+ 1635 05db 9C       		.byte	0x9c
+ 1636 05dc F0050000 		.4byte	0x5f0
+ 1637 05e0 0C       		.uleb128 0xc
+ 1638 05e1 08000000 		.4byte	.LVL76
+ 1639 05e5 BF030000 		.4byte	0x3bf
+ 1640 05e9 09       		.uleb128 0x9
+ 1641 05ea 01       		.uleb128 0x1
+ 1642 05eb 50       		.byte	0x50
+ 1643 05ec 01       		.uleb128 0x1
+ 1644 05ed 38       		.byte	0x38
+ 1645 05ee 00       		.byte	0
+ 1646 05ef 00       		.byte	0
+ 1647 05f0 0D       		.uleb128 0xd
+ 1648 05f1 DF000000 		.4byte	.LASF36
+ 1649 05f5 01       		.byte	0x1
+ 1650 05f6 CF       		.byte	0xcf
+ 1651 05f7 00000000 		.4byte	.LFB4
+ 1652 05fb 3C000000 		.4byte	.LFE4-.LFB4
+ 1653 05ff 01       		.uleb128 0x1
+ 1654 0600 9C       		.byte	0x9c
+ 1655 0601 48060000 		.4byte	0x648
+ 1656 0605 12       		.uleb128 0x12
+ 1657 0606 726F7700 		.ascii	"row\000"
+ 1658 060a 01       		.byte	0x1
+ 1659 060b CF       		.byte	0xcf
+ 1660 060c 79000000 		.4byte	0x79
+ 1661 0610 20020000 		.4byte	.LLST12
+ 1662 0614 0E       		.uleb128 0xe
+ 1663 0615 AC000000 		.4byte	.LASF37
+ 1664 0619 01       		.byte	0x1
+ 1665 061a CF       		.byte	0xcf
+ 1666 061b 79000000 		.4byte	0x79
+ 1667 061f 8C020000 		.4byte	.LLST13
+ 1668 0623 0A       		.uleb128 0xa
+ 1669 0624 16000000 		.4byte	.LVL79
+ 1670 0628 BF030000 		.4byte	0x3bf
+ 1671 062c 0A       		.uleb128 0xa
+ 1672 062d 22000000 		.4byte	.LVL82
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 43
+
+
+ 1673 0631 BF030000 		.4byte	0x3bf
+ 1674 0635 0A       		.uleb128 0xa
+ 1675 0636 2E000000 		.4byte	.LVL85
+ 1676 063a BF030000 		.4byte	0x3bf
+ 1677 063e 0A       		.uleb128 0xa
+ 1678 063f 3A000000 		.4byte	.LVL88
+ 1679 0643 BF030000 		.4byte	0x3bf
+ 1680 0647 00       		.byte	0
+ 1681 0648 0B       		.uleb128 0xb
+ 1682 0649 B3000000 		.4byte	.LASF38
+ 1683 064d 01       		.byte	0x1
+ 1684 064e 1001     		.2byte	0x110
+ 1685 0650 00000000 		.4byte	.LFB6
+ 1686 0654 14000000 		.4byte	.LFE6-.LFB6
+ 1687 0658 01       		.uleb128 0x1
+ 1688 0659 9C       		.byte	0x9c
+ 1689 065a 95060000 		.4byte	0x695
+ 1690 065e 13       		.uleb128 0x13
+ 1691 065f 726F7700 		.ascii	"row\000"
+ 1692 0663 01       		.byte	0x1
+ 1693 0664 1001     		.2byte	0x110
+ 1694 0666 79000000 		.4byte	0x79
+ 1695 066a F8020000 		.4byte	.LLST14
+ 1696 066e 08       		.uleb128 0x8
+ 1697 066f 08000000 		.4byte	.LVL90
+ 1698 0673 F0050000 		.4byte	0x5f0
+ 1699 0677 81060000 		.4byte	0x681
+ 1700 067b 09       		.uleb128 0x9
+ 1701 067c 01       		.uleb128 0x1
+ 1702 067d 51       		.byte	0x51
+ 1703 067e 01       		.uleb128 0x1
+ 1704 067f 30       		.byte	0x30
+ 1705 0680 00       		.byte	0
+ 1706 0681 0C       		.uleb128 0xc
+ 1707 0682 0E000000 		.4byte	.LVL91
+ 1708 0686 38030000 		.4byte	0x338
+ 1709 068a 09       		.uleb128 0x9
+ 1710 068b 01       		.uleb128 0x1
+ 1711 068c 50       		.byte	0x50
+ 1712 068d 05       		.uleb128 0x5
+ 1713 068e 03       		.byte	0x3
+ 1714 068f 00000000 		.4byte	.LC0
+ 1715 0693 00       		.byte	0
+ 1716 0694 00       		.byte	0
+ 1717 0695 0B       		.uleb128 0xb
+ 1718 0696 D6030000 		.4byte	.LASF39
+ 1719 069a 01       		.byte	0x1
+ 1720 069b F901     		.2byte	0x1f9
+ 1721 069d 00000000 		.4byte	.LFB13
+ 1722 06a1 20000000 		.4byte	.LFE13-.LFB13
+ 1723 06a5 01       		.uleb128 0x1
+ 1724 06a6 9C       		.byte	0x9c
+ 1725 06a7 FE060000 		.4byte	0x6fe
+ 1726 06ab 06       		.uleb128 0x6
+ 1727 06ac 51000000 		.4byte	.LASF40
+ 1728 06b0 01       		.byte	0x1
+ 1729 06b1 F901     		.2byte	0x1f9
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 44
+
+
+ 1730 06b3 79000000 		.4byte	0x79
+ 1731 06b7 19030000 		.4byte	.LLST15
+ 1732 06bb 14       		.uleb128 0x14
+ 1733 06bc 5D030000 		.4byte	.LASF41
+ 1734 06c0 01       		.byte	0x1
+ 1735 06c1 FB01     		.2byte	0x1fb
+ 1736 06c3 0E070000 		.4byte	0x70e
+ 1737 06c7 05       		.uleb128 0x5
+ 1738 06c8 03       		.byte	0x3
+ 1739 06c9 00000000 		.4byte	I2C_CLCD_hex.4972
+ 1740 06cd 08       		.uleb128 0x8
+ 1741 06ce 0E000000 		.4byte	.LVL94
+ 1742 06d2 8F030000 		.4byte	0x38f
+ 1743 06d6 E8060000 		.4byte	0x6e8
+ 1744 06da 09       		.uleb128 0x9
+ 1745 06db 01       		.uleb128 0x1
+ 1746 06dc 50       		.byte	0x50
+ 1747 06dd 09       		.uleb128 0x9
+ 1748 06de 74       		.byte	0x74
+ 1749 06df 00       		.sleb128 0
+ 1750 06e0 34       		.byte	0x34
+ 1751 06e1 25       		.byte	0x25
+ 1752 06e2 75       		.byte	0x75
+ 1753 06e3 00       		.sleb128 0
+ 1754 06e4 22       		.byte	0x22
+ 1755 06e5 94       		.byte	0x94
+ 1756 06e6 01       		.byte	0x1
+ 1757 06e7 00       		.byte	0
+ 1758 06e8 0C       		.uleb128 0xc
+ 1759 06e9 18000000 		.4byte	.LVL95
+ 1760 06ed 8F030000 		.4byte	0x38f
+ 1761 06f1 09       		.uleb128 0x9
+ 1762 06f2 01       		.uleb128 0x1
+ 1763 06f3 50       		.byte	0x50
+ 1764 06f4 07       		.uleb128 0x7
+ 1765 06f5 75       		.byte	0x75
+ 1766 06f6 00       		.sleb128 0
+ 1767 06f7 74       		.byte	0x74
+ 1768 06f8 00       		.sleb128 0
+ 1769 06f9 22       		.byte	0x22
+ 1770 06fa 94       		.byte	0x94
+ 1771 06fb 01       		.byte	0x1
+ 1772 06fc 00       		.byte	0
+ 1773 06fd 00       		.byte	0
+ 1774 06fe 15       		.uleb128 0x15
+ 1775 06ff AB000000 		.4byte	0xab
+ 1776 0703 0E070000 		.4byte	0x70e
+ 1777 0707 16       		.uleb128 0x16
+ 1778 0708 6B000000 		.4byte	0x6b
+ 1779 070c 0F       		.byte	0xf
+ 1780 070d 00       		.byte	0
+ 1781 070e 11       		.uleb128 0x11
+ 1782 070f FE060000 		.4byte	0x6fe
+ 1783 0713 0B       		.uleb128 0xb
+ 1784 0714 57000000 		.4byte	.LASF42
+ 1785 0718 01       		.byte	0x1
+ 1786 0719 1002     		.2byte	0x210
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 45
+
+
+ 1787 071b 00000000 		.4byte	.LFB14
+ 1788 071f 12000000 		.4byte	.LFE14-.LFB14
+ 1789 0723 01       		.uleb128 0x1
+ 1790 0724 9C       		.byte	0x9c
+ 1791 0725 60070000 		.4byte	0x760
+ 1792 0729 06       		.uleb128 0x6
+ 1793 072a 51000000 		.4byte	.LASF40
+ 1794 072e 01       		.byte	0x1
+ 1795 072f 1002     		.2byte	0x210
+ 1796 0731 85000000 		.4byte	0x85
+ 1797 0735 3A030000 		.4byte	.LLST16
+ 1798 0739 08       		.uleb128 0x8
+ 1799 073a 0A000000 		.4byte	.LVL98
+ 1800 073e 95060000 		.4byte	0x695
+ 1801 0742 4F070000 		.4byte	0x74f
+ 1802 0746 09       		.uleb128 0x9
+ 1803 0747 01       		.uleb128 0x1
+ 1804 0748 50       		.byte	0x50
+ 1805 0749 04       		.uleb128 0x4
+ 1806 074a 74       		.byte	0x74
+ 1807 074b 00       		.sleb128 0
+ 1808 074c 38       		.byte	0x38
+ 1809 074d 25       		.byte	0x25
+ 1810 074e 00       		.byte	0
+ 1811 074f 0C       		.uleb128 0xc
+ 1812 0750 10000000 		.4byte	.LVL99
+ 1813 0754 95060000 		.4byte	0x695
+ 1814 0758 09       		.uleb128 0x9
+ 1815 0759 01       		.uleb128 0x1
+ 1816 075a 50       		.byte	0x50
+ 1817 075b 02       		.uleb128 0x2
+ 1818 075c 74       		.byte	0x74
+ 1819 075d 00       		.sleb128 0
+ 1820 075e 00       		.byte	0
+ 1821 075f 00       		.byte	0
+ 1822 0760 0B       		.uleb128 0xb
+ 1823 0761 81000000 		.4byte	.LASF43
+ 1824 0765 01       		.byte	0x1
+ 1825 0766 2502     		.2byte	0x225
+ 1826 0768 00000000 		.4byte	.LFB15
+ 1827 076c 1C000000 		.4byte	.LFE15-.LFB15
+ 1828 0770 01       		.uleb128 0x1
+ 1829 0771 9C       		.byte	0x9c
+ 1830 0772 AA070000 		.4byte	0x7aa
+ 1831 0776 06       		.uleb128 0x6
+ 1832 0777 51000000 		.4byte	.LASF40
+ 1833 077b 01       		.byte	0x1
+ 1834 077c 2502     		.2byte	0x225
+ 1835 077e 91000000 		.4byte	0x91
+ 1836 0782 5B030000 		.4byte	.LLST17
+ 1837 0786 07       		.uleb128 0x7
+ 1838 0787 00000000 		.4byte	.LASF44
+ 1839 078b 01       		.byte	0x1
+ 1840 078c 2702     		.2byte	0x227
+ 1841 078e 79000000 		.4byte	0x79
+ 1842 0792 79030000 		.4byte	.LLST18
+ 1843 0796 0C       		.uleb128 0xc
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 46
+
+
+ 1844 0797 16000000 		.4byte	.LVL105
+ 1845 079b 95060000 		.4byte	0x695
+ 1846 079f 09       		.uleb128 0x9
+ 1847 07a0 01       		.uleb128 0x1
+ 1848 07a1 50       		.byte	0x50
+ 1849 07a2 05       		.uleb128 0x5
+ 1850 07a3 75       		.byte	0x75
+ 1851 07a4 00       		.sleb128 0
+ 1852 07a5 74       		.byte	0x74
+ 1853 07a6 00       		.sleb128 0
+ 1854 07a7 25       		.byte	0x25
+ 1855 07a8 00       		.byte	0
+ 1856 07a9 00       		.byte	0
+ 1857 07aa 0B       		.uleb128 0xb
+ 1858 07ab 37030000 		.4byte	.LASF45
+ 1859 07af 01       		.byte	0x1
+ 1860 07b0 5702     		.2byte	0x257
+ 1861 07b2 00000000 		.4byte	.LFB16
+ 1862 07b6 60000000 		.4byte	.LFE16-.LFB16
+ 1863 07ba 01       		.uleb128 0x1
+ 1864 07bb 9C       		.byte	0x9c
+ 1865 07bc 09080000 		.4byte	0x809
+ 1866 07c0 06       		.uleb128 0x6
+ 1867 07c1 51000000 		.4byte	.LASF40
+ 1868 07c5 01       		.byte	0x1
+ 1869 07c6 5702     		.2byte	0x257
+ 1870 07c8 91000000 		.4byte	0x91
+ 1871 07cc A4030000 		.4byte	.LLST19
+ 1872 07d0 07       		.uleb128 0x7
+ 1873 07d1 1C030000 		.4byte	.LASF46
+ 1874 07d5 01       		.byte	0x1
+ 1875 07d6 5902     		.2byte	0x259
+ 1876 07d8 79000000 		.4byte	0x79
+ 1877 07dc C2030000 		.4byte	.LLST20
+ 1878 07e0 14       		.uleb128 0x14
+ 1879 07e1 DE020000 		.4byte	.LASF47
+ 1880 07e5 01       		.byte	0x1
+ 1881 07e6 5A02     		.2byte	0x25a
+ 1882 07e8 09080000 		.4byte	0x809
+ 1883 07ec 02       		.uleb128 0x2
+ 1884 07ed 91       		.byte	0x91
+ 1885 07ee 6C       		.sleb128 -20
+ 1886 07ef 07       		.uleb128 0x7
+ 1887 07f0 FC010000 		.4byte	.LASF48
+ 1888 07f4 01       		.byte	0x1
+ 1889 07f5 5B02     		.2byte	0x25b
+ 1890 07f7 79000000 		.4byte	0x79
+ 1891 07fb EC030000 		.4byte	.LLST21
+ 1892 07ff 0A       		.uleb128 0xa
+ 1893 0800 56000000 		.4byte	.LVL118
+ 1894 0804 38030000 		.4byte	0x338
+ 1895 0808 00       		.byte	0
+ 1896 0809 15       		.uleb128 0x15
+ 1897 080a AB000000 		.4byte	0xab
+ 1898 080e 19080000 		.4byte	0x819
+ 1899 0812 16       		.uleb128 0x16
+ 1900 0813 6B000000 		.4byte	0x6b
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 47
+
+
+ 1901 0817 0A       		.byte	0xa
+ 1902 0818 00       		.byte	0
+ 1903 0819 17       		.uleb128 0x17
+ 1904 081a BF030000 		.4byte	.LASF49
+ 1905 081e 01       		.byte	0x1
+ 1906 081f 23       		.byte	0x23
+ 1907 0820 79000000 		.4byte	0x79
+ 1908 0824 05       		.uleb128 0x5
+ 1909 0825 03       		.byte	0x3
+ 1910 0826 00000000 		.4byte	I2C_CLCD_initVar
+ 1911 082a 17       		.uleb128 0x17
+ 1912 082b 01010000 		.4byte	.LASF50
+ 1913 082f 01       		.byte	0x1
+ 1914 0830 21       		.byte	0x21
+ 1915 0831 79000000 		.4byte	0x79
+ 1916 0835 05       		.uleb128 0x5
+ 1917 0836 03       		.byte	0x3
+ 1918 0837 00000000 		.4byte	I2C_CLCD_enableState
+ 1919 083b 17       		.uleb128 0x17
+ 1920 083c BE020000 		.4byte	.LASF51
+ 1921 0840 01       		.byte	0x1
+ 1922 0841 2B       		.byte	0x2b
+ 1923 0842 79000000 		.4byte	0x79
+ 1924 0846 05       		.uleb128 0x5
+ 1925 0847 03       		.byte	0x3
+ 1926 0848 00000000 		.4byte	slaveAddress
+ 1927 084c 17       		.uleb128 0x17
+ 1928 084d 06000000 		.4byte	.LASF52
+ 1929 0851 01       		.byte	0x1
+ 1930 0852 2C       		.byte	0x2c
+ 1931 0853 79000000 		.4byte	0x79
+ 1932 0857 05       		.uleb128 0x5
+ 1933 0858 03       		.byte	0x3
+ 1934 0859 00000000 		.4byte	I2C_CLCD_BackLight
+ 1935 085d 18       		.uleb128 0x18
+ 1936 085e 6B000000 		.4byte	.LASF53
+ 1937 0862 03       		.byte	0x3
+ 1938 0863 B1       		.byte	0xb1
+ 1939 0864 79000000 		.4byte	0x79
+ 1940 0868 77080000 		.4byte	0x877
+ 1941 086c 19       		.uleb128 0x19
+ 1942 086d 79000000 		.4byte	0x79
+ 1943 0871 19       		.uleb128 0x19
+ 1944 0872 79000000 		.4byte	0x79
+ 1945 0876 00       		.byte	0
+ 1946 0877 1A       		.uleb128 0x1a
+ 1947 0878 FC020000 		.4byte	.LASF58
+ 1948 087c 04       		.byte	0x4
+ 1949 087d 78       		.byte	0x78
+ 1950 087e 88080000 		.4byte	0x888
+ 1951 0882 19       		.uleb128 0x19
+ 1952 0883 85000000 		.4byte	0x85
+ 1953 0887 00       		.byte	0
+ 1954 0888 18       		.uleb128 0x18
+ 1955 0889 E9030000 		.4byte	.LASF54
+ 1956 088d 03       		.byte	0x3
+ 1957 088e B6       		.byte	0xb6
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 48
+
+
+ 1958 088f 79000000 		.4byte	0x79
+ 1959 0893 9D080000 		.4byte	0x89d
+ 1960 0897 19       		.uleb128 0x19
+ 1961 0898 79000000 		.4byte	0x79
+ 1962 089c 00       		.byte	0
+ 1963 089d 1B       		.uleb128 0x1b
+ 1964 089e 6A030000 		.4byte	.LASF59
+ 1965 08a2 03       		.byte	0x3
+ 1966 08a3 B5       		.byte	0xb5
+ 1967 08a4 79000000 		.4byte	0x79
+ 1968 08a8 1C       		.uleb128 0x1c
+ 1969 08a9 A4000000 		.4byte	.LASF60
+ 1970 08ad 04       		.byte	0x4
+ 1971 08ae 77       		.byte	0x77
+ 1972 08af 19       		.uleb128 0x19
+ 1973 08b0 91000000 		.4byte	0x91
+ 1974 08b4 00       		.byte	0
+ 1975 08b5 00       		.byte	0
+ 1976              		.section	.debug_abbrev,"",%progbits
+ 1977              	.Ldebug_abbrev0:
+ 1978 0000 01       		.uleb128 0x1
+ 1979 0001 11       		.uleb128 0x11
+ 1980 0002 01       		.byte	0x1
+ 1981 0003 25       		.uleb128 0x25
+ 1982 0004 0E       		.uleb128 0xe
+ 1983 0005 13       		.uleb128 0x13
+ 1984 0006 0B       		.uleb128 0xb
+ 1985 0007 03       		.uleb128 0x3
+ 1986 0008 0E       		.uleb128 0xe
+ 1987 0009 1B       		.uleb128 0x1b
+ 1988 000a 0E       		.uleb128 0xe
+ 1989 000b 55       		.uleb128 0x55
+ 1990 000c 17       		.uleb128 0x17
+ 1991 000d 11       		.uleb128 0x11
+ 1992 000e 01       		.uleb128 0x1
+ 1993 000f 10       		.uleb128 0x10
+ 1994 0010 17       		.uleb128 0x17
+ 1995 0011 00       		.byte	0
+ 1996 0012 00       		.byte	0
+ 1997 0013 02       		.uleb128 0x2
+ 1998 0014 24       		.uleb128 0x24
+ 1999 0015 00       		.byte	0
+ 2000 0016 0B       		.uleb128 0xb
+ 2001 0017 0B       		.uleb128 0xb
+ 2002 0018 3E       		.uleb128 0x3e
+ 2003 0019 0B       		.uleb128 0xb
+ 2004 001a 03       		.uleb128 0x3
+ 2005 001b 08       		.uleb128 0x8
+ 2006 001c 00       		.byte	0
+ 2007 001d 00       		.byte	0
+ 2008 001e 03       		.uleb128 0x3
+ 2009 001f 24       		.uleb128 0x24
+ 2010 0020 00       		.byte	0
+ 2011 0021 0B       		.uleb128 0xb
+ 2012 0022 0B       		.uleb128 0xb
+ 2013 0023 3E       		.uleb128 0x3e
+ 2014 0024 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 49
+
+
+ 2015 0025 03       		.uleb128 0x3
+ 2016 0026 0E       		.uleb128 0xe
+ 2017 0027 00       		.byte	0
+ 2018 0028 00       		.byte	0
+ 2019 0029 04       		.uleb128 0x4
+ 2020 002a 16       		.uleb128 0x16
+ 2021 002b 00       		.byte	0
+ 2022 002c 03       		.uleb128 0x3
+ 2023 002d 0E       		.uleb128 0xe
+ 2024 002e 3A       		.uleb128 0x3a
+ 2025 002f 0B       		.uleb128 0xb
+ 2026 0030 3B       		.uleb128 0x3b
+ 2027 0031 05       		.uleb128 0x5
+ 2028 0032 49       		.uleb128 0x49
+ 2029 0033 13       		.uleb128 0x13
+ 2030 0034 00       		.byte	0
+ 2031 0035 00       		.byte	0
+ 2032 0036 05       		.uleb128 0x5
+ 2033 0037 2E       		.uleb128 0x2e
+ 2034 0038 01       		.byte	0x1
+ 2035 0039 03       		.uleb128 0x3
+ 2036 003a 0E       		.uleb128 0xe
+ 2037 003b 3A       		.uleb128 0x3a
+ 2038 003c 0B       		.uleb128 0xb
+ 2039 003d 3B       		.uleb128 0x3b
+ 2040 003e 05       		.uleb128 0x5
+ 2041 003f 27       		.uleb128 0x27
+ 2042 0040 19       		.uleb128 0x19
+ 2043 0041 11       		.uleb128 0x11
+ 2044 0042 01       		.uleb128 0x1
+ 2045 0043 12       		.uleb128 0x12
+ 2046 0044 06       		.uleb128 0x6
+ 2047 0045 40       		.uleb128 0x40
+ 2048 0046 18       		.uleb128 0x18
+ 2049 0047 9742     		.uleb128 0x2117
+ 2050 0049 19       		.uleb128 0x19
+ 2051 004a 01       		.uleb128 0x1
+ 2052 004b 13       		.uleb128 0x13
+ 2053 004c 00       		.byte	0
+ 2054 004d 00       		.byte	0
+ 2055 004e 06       		.uleb128 0x6
+ 2056 004f 05       		.uleb128 0x5
+ 2057 0050 00       		.byte	0
+ 2058 0051 03       		.uleb128 0x3
+ 2059 0052 0E       		.uleb128 0xe
+ 2060 0053 3A       		.uleb128 0x3a
+ 2061 0054 0B       		.uleb128 0xb
+ 2062 0055 3B       		.uleb128 0x3b
+ 2063 0056 05       		.uleb128 0x5
+ 2064 0057 49       		.uleb128 0x49
+ 2065 0058 13       		.uleb128 0x13
+ 2066 0059 02       		.uleb128 0x2
+ 2067 005a 17       		.uleb128 0x17
+ 2068 005b 00       		.byte	0
+ 2069 005c 00       		.byte	0
+ 2070 005d 07       		.uleb128 0x7
+ 2071 005e 34       		.uleb128 0x34
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 50
+
+
+ 2072 005f 00       		.byte	0
+ 2073 0060 03       		.uleb128 0x3
+ 2074 0061 0E       		.uleb128 0xe
+ 2075 0062 3A       		.uleb128 0x3a
+ 2076 0063 0B       		.uleb128 0xb
+ 2077 0064 3B       		.uleb128 0x3b
+ 2078 0065 05       		.uleb128 0x5
+ 2079 0066 49       		.uleb128 0x49
+ 2080 0067 13       		.uleb128 0x13
+ 2081 0068 02       		.uleb128 0x2
+ 2082 0069 17       		.uleb128 0x17
+ 2083 006a 00       		.byte	0
+ 2084 006b 00       		.byte	0
+ 2085 006c 08       		.uleb128 0x8
+ 2086 006d 898201   		.uleb128 0x4109
+ 2087 0070 01       		.byte	0x1
+ 2088 0071 11       		.uleb128 0x11
+ 2089 0072 01       		.uleb128 0x1
+ 2090 0073 31       		.uleb128 0x31
+ 2091 0074 13       		.uleb128 0x13
+ 2092 0075 01       		.uleb128 0x1
+ 2093 0076 13       		.uleb128 0x13
+ 2094 0077 00       		.byte	0
+ 2095 0078 00       		.byte	0
+ 2096 0079 09       		.uleb128 0x9
+ 2097 007a 8A8201   		.uleb128 0x410a
+ 2098 007d 00       		.byte	0
+ 2099 007e 02       		.uleb128 0x2
+ 2100 007f 18       		.uleb128 0x18
+ 2101 0080 9142     		.uleb128 0x2111
+ 2102 0082 18       		.uleb128 0x18
+ 2103 0083 00       		.byte	0
+ 2104 0084 00       		.byte	0
+ 2105 0085 0A       		.uleb128 0xa
+ 2106 0086 898201   		.uleb128 0x4109
+ 2107 0089 00       		.byte	0
+ 2108 008a 11       		.uleb128 0x11
+ 2109 008b 01       		.uleb128 0x1
+ 2110 008c 31       		.uleb128 0x31
+ 2111 008d 13       		.uleb128 0x13
+ 2112 008e 00       		.byte	0
+ 2113 008f 00       		.byte	0
+ 2114 0090 0B       		.uleb128 0xb
+ 2115 0091 2E       		.uleb128 0x2e
+ 2116 0092 01       		.byte	0x1
+ 2117 0093 3F       		.uleb128 0x3f
+ 2118 0094 19       		.uleb128 0x19
+ 2119 0095 03       		.uleb128 0x3
+ 2120 0096 0E       		.uleb128 0xe
+ 2121 0097 3A       		.uleb128 0x3a
+ 2122 0098 0B       		.uleb128 0xb
+ 2123 0099 3B       		.uleb128 0x3b
+ 2124 009a 05       		.uleb128 0x5
+ 2125 009b 27       		.uleb128 0x27
+ 2126 009c 19       		.uleb128 0x19
+ 2127 009d 11       		.uleb128 0x11
+ 2128 009e 01       		.uleb128 0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 51
+
+
+ 2129 009f 12       		.uleb128 0x12
+ 2130 00a0 06       		.uleb128 0x6
+ 2131 00a1 40       		.uleb128 0x40
+ 2132 00a2 18       		.uleb128 0x18
+ 2133 00a3 9742     		.uleb128 0x2117
+ 2134 00a5 19       		.uleb128 0x19
+ 2135 00a6 01       		.uleb128 0x1
+ 2136 00a7 13       		.uleb128 0x13
+ 2137 00a8 00       		.byte	0
+ 2138 00a9 00       		.byte	0
+ 2139 00aa 0C       		.uleb128 0xc
+ 2140 00ab 898201   		.uleb128 0x4109
+ 2141 00ae 01       		.byte	0x1
+ 2142 00af 11       		.uleb128 0x11
+ 2143 00b0 01       		.uleb128 0x1
+ 2144 00b1 31       		.uleb128 0x31
+ 2145 00b2 13       		.uleb128 0x13
+ 2146 00b3 00       		.byte	0
+ 2147 00b4 00       		.byte	0
+ 2148 00b5 0D       		.uleb128 0xd
+ 2149 00b6 2E       		.uleb128 0x2e
+ 2150 00b7 01       		.byte	0x1
+ 2151 00b8 3F       		.uleb128 0x3f
+ 2152 00b9 19       		.uleb128 0x19
+ 2153 00ba 03       		.uleb128 0x3
+ 2154 00bb 0E       		.uleb128 0xe
+ 2155 00bc 3A       		.uleb128 0x3a
+ 2156 00bd 0B       		.uleb128 0xb
+ 2157 00be 3B       		.uleb128 0x3b
+ 2158 00bf 0B       		.uleb128 0xb
+ 2159 00c0 27       		.uleb128 0x27
+ 2160 00c1 19       		.uleb128 0x19
+ 2161 00c2 11       		.uleb128 0x11
+ 2162 00c3 01       		.uleb128 0x1
+ 2163 00c4 12       		.uleb128 0x12
+ 2164 00c5 06       		.uleb128 0x6
+ 2165 00c6 40       		.uleb128 0x40
+ 2166 00c7 18       		.uleb128 0x18
+ 2167 00c8 9742     		.uleb128 0x2117
+ 2168 00ca 19       		.uleb128 0x19
+ 2169 00cb 01       		.uleb128 0x1
+ 2170 00cc 13       		.uleb128 0x13
+ 2171 00cd 00       		.byte	0
+ 2172 00ce 00       		.byte	0
+ 2173 00cf 0E       		.uleb128 0xe
+ 2174 00d0 05       		.uleb128 0x5
+ 2175 00d1 00       		.byte	0
+ 2176 00d2 03       		.uleb128 0x3
+ 2177 00d3 0E       		.uleb128 0xe
+ 2178 00d4 3A       		.uleb128 0x3a
+ 2179 00d5 0B       		.uleb128 0xb
+ 2180 00d6 3B       		.uleb128 0x3b
+ 2181 00d7 0B       		.uleb128 0xb
+ 2182 00d8 49       		.uleb128 0x49
+ 2183 00d9 13       		.uleb128 0x13
+ 2184 00da 02       		.uleb128 0x2
+ 2185 00db 17       		.uleb128 0x17
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 52
+
+
+ 2186 00dc 00       		.byte	0
+ 2187 00dd 00       		.byte	0
+ 2188 00de 0F       		.uleb128 0xf
+ 2189 00df 34       		.uleb128 0x34
+ 2190 00e0 00       		.byte	0
+ 2191 00e1 03       		.uleb128 0x3
+ 2192 00e2 0E       		.uleb128 0xe
+ 2193 00e3 3A       		.uleb128 0x3a
+ 2194 00e4 0B       		.uleb128 0xb
+ 2195 00e5 3B       		.uleb128 0x3b
+ 2196 00e6 0B       		.uleb128 0xb
+ 2197 00e7 49       		.uleb128 0x49
+ 2198 00e8 13       		.uleb128 0x13
+ 2199 00e9 02       		.uleb128 0x2
+ 2200 00ea 17       		.uleb128 0x17
+ 2201 00eb 00       		.byte	0
+ 2202 00ec 00       		.byte	0
+ 2203 00ed 10       		.uleb128 0x10
+ 2204 00ee 0F       		.uleb128 0xf
+ 2205 00ef 00       		.byte	0
+ 2206 00f0 0B       		.uleb128 0xb
+ 2207 00f1 0B       		.uleb128 0xb
+ 2208 00f2 49       		.uleb128 0x49
+ 2209 00f3 13       		.uleb128 0x13
+ 2210 00f4 00       		.byte	0
+ 2211 00f5 00       		.byte	0
+ 2212 00f6 11       		.uleb128 0x11
+ 2213 00f7 26       		.uleb128 0x26
+ 2214 00f8 00       		.byte	0
+ 2215 00f9 49       		.uleb128 0x49
+ 2216 00fa 13       		.uleb128 0x13
+ 2217 00fb 00       		.byte	0
+ 2218 00fc 00       		.byte	0
+ 2219 00fd 12       		.uleb128 0x12
+ 2220 00fe 05       		.uleb128 0x5
+ 2221 00ff 00       		.byte	0
+ 2222 0100 03       		.uleb128 0x3
+ 2223 0101 08       		.uleb128 0x8
+ 2224 0102 3A       		.uleb128 0x3a
+ 2225 0103 0B       		.uleb128 0xb
+ 2226 0104 3B       		.uleb128 0x3b
+ 2227 0105 0B       		.uleb128 0xb
+ 2228 0106 49       		.uleb128 0x49
+ 2229 0107 13       		.uleb128 0x13
+ 2230 0108 02       		.uleb128 0x2
+ 2231 0109 17       		.uleb128 0x17
+ 2232 010a 00       		.byte	0
+ 2233 010b 00       		.byte	0
+ 2234 010c 13       		.uleb128 0x13
+ 2235 010d 05       		.uleb128 0x5
+ 2236 010e 00       		.byte	0
+ 2237 010f 03       		.uleb128 0x3
+ 2238 0110 08       		.uleb128 0x8
+ 2239 0111 3A       		.uleb128 0x3a
+ 2240 0112 0B       		.uleb128 0xb
+ 2241 0113 3B       		.uleb128 0x3b
+ 2242 0114 05       		.uleb128 0x5
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 53
+
+
+ 2243 0115 49       		.uleb128 0x49
+ 2244 0116 13       		.uleb128 0x13
+ 2245 0117 02       		.uleb128 0x2
+ 2246 0118 17       		.uleb128 0x17
+ 2247 0119 00       		.byte	0
+ 2248 011a 00       		.byte	0
+ 2249 011b 14       		.uleb128 0x14
+ 2250 011c 34       		.uleb128 0x34
+ 2251 011d 00       		.byte	0
+ 2252 011e 03       		.uleb128 0x3
+ 2253 011f 0E       		.uleb128 0xe
+ 2254 0120 3A       		.uleb128 0x3a
+ 2255 0121 0B       		.uleb128 0xb
+ 2256 0122 3B       		.uleb128 0x3b
+ 2257 0123 05       		.uleb128 0x5
+ 2258 0124 49       		.uleb128 0x49
+ 2259 0125 13       		.uleb128 0x13
+ 2260 0126 02       		.uleb128 0x2
+ 2261 0127 18       		.uleb128 0x18
+ 2262 0128 00       		.byte	0
+ 2263 0129 00       		.byte	0
+ 2264 012a 15       		.uleb128 0x15
+ 2265 012b 01       		.uleb128 0x1
+ 2266 012c 01       		.byte	0x1
+ 2267 012d 49       		.uleb128 0x49
+ 2268 012e 13       		.uleb128 0x13
+ 2269 012f 01       		.uleb128 0x1
+ 2270 0130 13       		.uleb128 0x13
+ 2271 0131 00       		.byte	0
+ 2272 0132 00       		.byte	0
+ 2273 0133 16       		.uleb128 0x16
+ 2274 0134 21       		.uleb128 0x21
+ 2275 0135 00       		.byte	0
+ 2276 0136 49       		.uleb128 0x49
+ 2277 0137 13       		.uleb128 0x13
+ 2278 0138 2F       		.uleb128 0x2f
+ 2279 0139 0B       		.uleb128 0xb
+ 2280 013a 00       		.byte	0
+ 2281 013b 00       		.byte	0
+ 2282 013c 17       		.uleb128 0x17
+ 2283 013d 34       		.uleb128 0x34
+ 2284 013e 00       		.byte	0
+ 2285 013f 03       		.uleb128 0x3
+ 2286 0140 0E       		.uleb128 0xe
+ 2287 0141 3A       		.uleb128 0x3a
+ 2288 0142 0B       		.uleb128 0xb
+ 2289 0143 3B       		.uleb128 0x3b
+ 2290 0144 0B       		.uleb128 0xb
+ 2291 0145 49       		.uleb128 0x49
+ 2292 0146 13       		.uleb128 0x13
+ 2293 0147 3F       		.uleb128 0x3f
+ 2294 0148 19       		.uleb128 0x19
+ 2295 0149 02       		.uleb128 0x2
+ 2296 014a 18       		.uleb128 0x18
+ 2297 014b 00       		.byte	0
+ 2298 014c 00       		.byte	0
+ 2299 014d 18       		.uleb128 0x18
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 54
+
+
+ 2300 014e 2E       		.uleb128 0x2e
+ 2301 014f 01       		.byte	0x1
+ 2302 0150 3F       		.uleb128 0x3f
+ 2303 0151 19       		.uleb128 0x19
+ 2304 0152 03       		.uleb128 0x3
+ 2305 0153 0E       		.uleb128 0xe
+ 2306 0154 3A       		.uleb128 0x3a
+ 2307 0155 0B       		.uleb128 0xb
+ 2308 0156 3B       		.uleb128 0x3b
+ 2309 0157 0B       		.uleb128 0xb
+ 2310 0158 27       		.uleb128 0x27
+ 2311 0159 19       		.uleb128 0x19
+ 2312 015a 49       		.uleb128 0x49
+ 2313 015b 13       		.uleb128 0x13
+ 2314 015c 3C       		.uleb128 0x3c
+ 2315 015d 19       		.uleb128 0x19
+ 2316 015e 01       		.uleb128 0x1
+ 2317 015f 13       		.uleb128 0x13
+ 2318 0160 00       		.byte	0
+ 2319 0161 00       		.byte	0
+ 2320 0162 19       		.uleb128 0x19
+ 2321 0163 05       		.uleb128 0x5
+ 2322 0164 00       		.byte	0
+ 2323 0165 49       		.uleb128 0x49
+ 2324 0166 13       		.uleb128 0x13
+ 2325 0167 00       		.byte	0
+ 2326 0168 00       		.byte	0
+ 2327 0169 1A       		.uleb128 0x1a
+ 2328 016a 2E       		.uleb128 0x2e
+ 2329 016b 01       		.byte	0x1
+ 2330 016c 3F       		.uleb128 0x3f
+ 2331 016d 19       		.uleb128 0x19
+ 2332 016e 03       		.uleb128 0x3
+ 2333 016f 0E       		.uleb128 0xe
+ 2334 0170 3A       		.uleb128 0x3a
+ 2335 0171 0B       		.uleb128 0xb
+ 2336 0172 3B       		.uleb128 0x3b
+ 2337 0173 0B       		.uleb128 0xb
+ 2338 0174 27       		.uleb128 0x27
+ 2339 0175 19       		.uleb128 0x19
+ 2340 0176 3C       		.uleb128 0x3c
+ 2341 0177 19       		.uleb128 0x19
+ 2342 0178 01       		.uleb128 0x1
+ 2343 0179 13       		.uleb128 0x13
+ 2344 017a 00       		.byte	0
+ 2345 017b 00       		.byte	0
+ 2346 017c 1B       		.uleb128 0x1b
+ 2347 017d 2E       		.uleb128 0x2e
+ 2348 017e 00       		.byte	0
+ 2349 017f 3F       		.uleb128 0x3f
+ 2350 0180 19       		.uleb128 0x19
+ 2351 0181 03       		.uleb128 0x3
+ 2352 0182 0E       		.uleb128 0xe
+ 2353 0183 3A       		.uleb128 0x3a
+ 2354 0184 0B       		.uleb128 0xb
+ 2355 0185 3B       		.uleb128 0x3b
+ 2356 0186 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 55
+
+
+ 2357 0187 27       		.uleb128 0x27
+ 2358 0188 19       		.uleb128 0x19
+ 2359 0189 49       		.uleb128 0x49
+ 2360 018a 13       		.uleb128 0x13
+ 2361 018b 3C       		.uleb128 0x3c
+ 2362 018c 19       		.uleb128 0x19
+ 2363 018d 00       		.byte	0
+ 2364 018e 00       		.byte	0
+ 2365 018f 1C       		.uleb128 0x1c
+ 2366 0190 2E       		.uleb128 0x2e
+ 2367 0191 01       		.byte	0x1
+ 2368 0192 3F       		.uleb128 0x3f
+ 2369 0193 19       		.uleb128 0x19
+ 2370 0194 03       		.uleb128 0x3
+ 2371 0195 0E       		.uleb128 0xe
+ 2372 0196 3A       		.uleb128 0x3a
+ 2373 0197 0B       		.uleb128 0xb
+ 2374 0198 3B       		.uleb128 0x3b
+ 2375 0199 0B       		.uleb128 0xb
+ 2376 019a 27       		.uleb128 0x27
+ 2377 019b 19       		.uleb128 0x19
+ 2378 019c 3C       		.uleb128 0x3c
+ 2379 019d 19       		.uleb128 0x19
+ 2380 019e 00       		.byte	0
+ 2381 019f 00       		.byte	0
+ 2382 01a0 00       		.byte	0
+ 2383              		.section	.debug_loc,"",%progbits
+ 2384              	.Ldebug_loc0:
+ 2385              	.LLST0:
+ 2386 0000 00000000 		.4byte	.LVL0
+ 2387 0004 0A000000 		.4byte	.LVL2
+ 2388 0008 0100     		.2byte	0x1
+ 2389 000a 50       		.byte	0x50
+ 2390 000b 0A000000 		.4byte	.LVL2
+ 2391 000f 58000000 		.4byte	.LFE12
+ 2392 0013 0400     		.2byte	0x4
+ 2393 0015 F3       		.byte	0xf3
+ 2394 0016 01       		.uleb128 0x1
+ 2395 0017 50       		.byte	0x50
+ 2396 0018 9F       		.byte	0x9f
+ 2397 0019 00000000 		.4byte	0
+ 2398 001d 00000000 		.4byte	0
+ 2399              	.LLST1:
+ 2400 0021 08000000 		.4byte	.LVL1
+ 2401 0025 16000000 		.4byte	.LVL4
+ 2402 0029 0100     		.2byte	0x1
+ 2403 002b 55       		.byte	0x55
+ 2404 002c 16000000 		.4byte	.LVL4
+ 2405 0030 22000000 		.4byte	.LVL6
+ 2406 0034 0600     		.2byte	0x6
+ 2407 0036 75       		.byte	0x75
+ 2408 0037 00       		.sleb128 0
+ 2409 0038 08       		.byte	0x8
+ 2410 0039 FC       		.byte	0xfc
+ 2411 003a 21       		.byte	0x21
+ 2412 003b 9F       		.byte	0x9f
+ 2413 003c 26000000 		.4byte	.LVL7
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 56
+
+
+ 2414 0040 30000000 		.4byte	.LVL9
+ 2415 0044 0100     		.2byte	0x1
+ 2416 0046 54       		.byte	0x54
+ 2417 0047 30000000 		.4byte	.LVL9
+ 2418 004b 32000000 		.4byte	.LVL10
+ 2419 004f 0500     		.2byte	0x5
+ 2420 0051 75       		.byte	0x75
+ 2421 0052 00       		.sleb128 0
+ 2422 0053 3C       		.byte	0x3c
+ 2423 0054 21       		.byte	0x21
+ 2424 0055 9F       		.byte	0x9f
+ 2425 0056 32000000 		.4byte	.LVL10
+ 2426 005a 40000000 		.4byte	.LVL12
+ 2427 005e 0500     		.2byte	0x5
+ 2428 0060 74       		.byte	0x74
+ 2429 0061 00       		.sleb128 0
+ 2430 0062 34       		.byte	0x34
+ 2431 0063 21       		.byte	0x21
+ 2432 0064 9F       		.byte	0x9f
+ 2433 0065 40000000 		.4byte	.LVL12
+ 2434 0069 54000000 		.4byte	.LVL16
+ 2435 006d 0600     		.2byte	0x6
+ 2436 006f 74       		.byte	0x74
+ 2437 0070 00       		.sleb128 0
+ 2438 0071 08       		.byte	0x8
+ 2439 0072 FB       		.byte	0xfb
+ 2440 0073 1A       		.byte	0x1a
+ 2441 0074 9F       		.byte	0x9f
+ 2442 0075 00000000 		.4byte	0
+ 2443 0079 00000000 		.4byte	0
+ 2444              	.LLST2:
+ 2445 007d 00000000 		.4byte	.LVL17
+ 2446 0081 0A000000 		.4byte	.LVL19
+ 2447 0085 0100     		.2byte	0x1
+ 2448 0087 50       		.byte	0x50
+ 2449 0088 0A000000 		.4byte	.LVL19
+ 2450 008c 6C000000 		.4byte	.LFE11
+ 2451 0090 0400     		.2byte	0x4
+ 2452 0092 F3       		.byte	0xf3
+ 2453 0093 01       		.uleb128 0x1
+ 2454 0094 50       		.byte	0x50
+ 2455 0095 9F       		.byte	0x9f
+ 2456 0096 00000000 		.4byte	0
+ 2457 009a 00000000 		.4byte	0
+ 2458              	.LLST3:
+ 2459 009e 08000000 		.4byte	.LVL18
+ 2460 00a2 16000000 		.4byte	.LVL21
+ 2461 00a6 0100     		.2byte	0x1
+ 2462 00a8 54       		.byte	0x54
+ 2463 00a9 16000000 		.4byte	.LVL21
+ 2464 00ad 22000000 		.4byte	.LVL23
+ 2465 00b1 0500     		.2byte	0x5
+ 2466 00b3 74       		.byte	0x74
+ 2467 00b4 00       		.sleb128 0
+ 2468 00b5 31       		.byte	0x31
+ 2469 00b6 21       		.byte	0x21
+ 2470 00b7 9F       		.byte	0x9f
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 57
+
+
+ 2471 00b8 22000000 		.4byte	.LVL23
+ 2472 00bc 26000000 		.4byte	.LVL24
+ 2473 00c0 0500     		.2byte	0x5
+ 2474 00c2 70       		.byte	0x70
+ 2475 00c3 00       		.sleb128 0
+ 2476 00c4 31       		.byte	0x31
+ 2477 00c5 21       		.byte	0x21
+ 2478 00c6 9F       		.byte	0x9f
+ 2479 00c7 26000000 		.4byte	.LVL24
+ 2480 00cb 38000000 		.4byte	.LVL27
+ 2481 00cf 0800     		.2byte	0x8
+ 2482 00d1 74       		.byte	0x74
+ 2483 00d2 00       		.sleb128 0
+ 2484 00d3 08       		.byte	0x8
+ 2485 00d4 FC       		.byte	0xfc
+ 2486 00d5 1A       		.byte	0x1a
+ 2487 00d6 31       		.byte	0x31
+ 2488 00d7 21       		.byte	0x21
+ 2489 00d8 9F       		.byte	0x9f
+ 2490 00d9 38000000 		.4byte	.LVL27
+ 2491 00dd 42000000 		.4byte	.LVL29
+ 2492 00e1 0100     		.2byte	0x1
+ 2493 00e3 54       		.byte	0x54
+ 2494 00e4 44000000 		.4byte	.LVL30
+ 2495 00e8 52000000 		.4byte	.LVL32
+ 2496 00ec 0500     		.2byte	0x5
+ 2497 00ee 74       		.byte	0x74
+ 2498 00ef 00       		.sleb128 0
+ 2499 00f0 34       		.byte	0x34
+ 2500 00f1 21       		.byte	0x21
+ 2501 00f2 9F       		.byte	0x9f
+ 2502 00f3 52000000 		.4byte	.LVL32
+ 2503 00f7 66000000 		.4byte	.LVL36
+ 2504 00fb 0600     		.2byte	0x6
+ 2505 00fd 74       		.byte	0x74
+ 2506 00fe 00       		.sleb128 0
+ 2507 00ff 08       		.byte	0x8
+ 2508 0100 F9       		.byte	0xf9
+ 2509 0101 1A       		.byte	0x1a
+ 2510 0102 9F       		.byte	0x9f
+ 2511 0103 00000000 		.4byte	0
+ 2512 0107 00000000 		.4byte	0
+ 2513              	.LLST4:
+ 2514 010b 00000000 		.4byte	.LVL38
+ 2515 010f 07000000 		.4byte	.LVL39-1
+ 2516 0113 0100     		.2byte	0x1
+ 2517 0115 50       		.byte	0x50
+ 2518 0116 07000000 		.4byte	.LVL39-1
+ 2519 011a 18000000 		.4byte	.LFE8
+ 2520 011e 0400     		.2byte	0x4
+ 2521 0120 F3       		.byte	0xf3
+ 2522 0121 01       		.uleb128 0x1
+ 2523 0122 50       		.byte	0x50
+ 2524 0123 9F       		.byte	0x9f
+ 2525 0124 00000000 		.4byte	0
+ 2526 0128 00000000 		.4byte	0
+ 2527              	.LLST5:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 58
+
+
+ 2528 012c 08000000 		.4byte	.LVL39
+ 2529 0130 0E000000 		.4byte	.LVL40
+ 2530 0134 0500     		.2byte	0x5
+ 2531 0136 74       		.byte	0x74
+ 2532 0137 00       		.sleb128 0
+ 2533 0138 34       		.byte	0x34
+ 2534 0139 25       		.byte	0x25
+ 2535 013a 9F       		.byte	0x9f
+ 2536 013b 0E000000 		.4byte	.LVL40
+ 2537 013f 18000000 		.4byte	.LFE8
+ 2538 0143 0500     		.2byte	0x5
+ 2539 0145 74       		.byte	0x74
+ 2540 0146 00       		.sleb128 0
+ 2541 0147 3F       		.byte	0x3f
+ 2542 0148 1A       		.byte	0x1a
+ 2543 0149 9F       		.byte	0x9f
+ 2544 014a 00000000 		.4byte	0
+ 2545 014e 00000000 		.4byte	0
+ 2546              	.LLST6:
+ 2547 0152 00000000 		.4byte	.LVL42
+ 2548 0156 06000000 		.4byte	.LVL44
+ 2549 015a 0100     		.2byte	0x1
+ 2550 015c 50       		.byte	0x50
+ 2551 015d 06000000 		.4byte	.LVL44
+ 2552 0161 1A000000 		.4byte	.LFE5
+ 2553 0165 0100     		.2byte	0x1
+ 2554 0167 55       		.byte	0x55
+ 2555 0168 00000000 		.4byte	0
+ 2556 016c 00000000 		.4byte	0
+ 2557              	.LLST7:
+ 2558 0170 04000000 		.4byte	.LVL43
+ 2559 0174 0A000000 		.4byte	.LVL45
+ 2560 0178 0200     		.2byte	0x2
+ 2561 017a 31       		.byte	0x31
+ 2562 017b 9F       		.byte	0x9f
+ 2563 017c 0A000000 		.4byte	.LVL45
+ 2564 0180 12000000 		.4byte	.LVL48
+ 2565 0184 0100     		.2byte	0x1
+ 2566 0186 54       		.byte	0x54
+ 2567 0187 14000000 		.4byte	.LVL49
+ 2568 018b 1A000000 		.4byte	.LFE5
+ 2569 018f 0100     		.2byte	0x1
+ 2570 0191 54       		.byte	0x54
+ 2571 0192 00000000 		.4byte	0
+ 2572 0196 00000000 		.4byte	0
+ 2573              	.LLST8:
+ 2574 019a 06000000 		.4byte	.LVL44
+ 2575 019e 0D000000 		.4byte	.LVL46-1
+ 2576 01a2 0100     		.2byte	0x1
+ 2577 01a4 50       		.byte	0x50
+ 2578 01a5 10000000 		.4byte	.LVL47
+ 2579 01a9 1A000000 		.4byte	.LFE5
+ 2580 01ad 0100     		.2byte	0x1
+ 2581 01af 50       		.byte	0x50
+ 2582 01b0 00000000 		.4byte	0
+ 2583 01b4 00000000 		.4byte	0
+ 2584              	.LLST9:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 59
+
+
+ 2585 01b8 00000000 		.4byte	.LVL50
+ 2586 01bc 05000000 		.4byte	.LVL51-1
+ 2587 01c0 0100     		.2byte	0x1
+ 2588 01c2 50       		.byte	0x50
+ 2589 01c3 05000000 		.4byte	.LVL51-1
+ 2590 01c7 08000000 		.4byte	.LFE7
+ 2591 01cb 0400     		.2byte	0x4
+ 2592 01cd F3       		.byte	0xf3
+ 2593 01ce 01       		.uleb128 0x1
+ 2594 01cf 50       		.byte	0x50
+ 2595 01d0 9F       		.byte	0x9f
+ 2596 01d1 00000000 		.4byte	0
+ 2597 01d5 00000000 		.4byte	0
+ 2598              	.LLST10:
+ 2599 01d9 00000000 		.4byte	.LVL52
+ 2600 01dd 07000000 		.4byte	.LVL53-1
+ 2601 01e1 0100     		.2byte	0x1
+ 2602 01e3 50       		.byte	0x50
+ 2603 01e4 07000000 		.4byte	.LVL53-1
+ 2604 01e8 18000000 		.4byte	.LFE9
+ 2605 01ec 0400     		.2byte	0x4
+ 2606 01ee F3       		.byte	0xf3
+ 2607 01ef 01       		.uleb128 0x1
+ 2608 01f0 50       		.byte	0x50
+ 2609 01f1 9F       		.byte	0x9f
+ 2610 01f2 00000000 		.4byte	0
+ 2611 01f6 00000000 		.4byte	0
+ 2612              	.LLST11:
+ 2613 01fa 08000000 		.4byte	.LVL53
+ 2614 01fe 0E000000 		.4byte	.LVL54
+ 2615 0202 0500     		.2byte	0x5
+ 2616 0204 74       		.byte	0x74
+ 2617 0205 00       		.sleb128 0
+ 2618 0206 34       		.byte	0x34
+ 2619 0207 25       		.byte	0x25
+ 2620 0208 9F       		.byte	0x9f
+ 2621 0209 0E000000 		.4byte	.LVL54
+ 2622 020d 18000000 		.4byte	.LFE9
+ 2623 0211 0500     		.2byte	0x5
+ 2624 0213 74       		.byte	0x74
+ 2625 0214 00       		.sleb128 0
+ 2626 0215 3F       		.byte	0x3f
+ 2627 0216 1A       		.byte	0x1a
+ 2628 0217 9F       		.byte	0x9f
+ 2629 0218 00000000 		.4byte	0
+ 2630 021c 00000000 		.4byte	0
+ 2631              	.LLST12:
+ 2632 0220 00000000 		.4byte	.LVL77
+ 2633 0224 12000000 		.4byte	.LVL78
+ 2634 0228 0100     		.2byte	0x1
+ 2635 022a 50       		.byte	0x50
+ 2636 022b 12000000 		.4byte	.LVL78
+ 2637 022f 18000000 		.4byte	.LVL80
+ 2638 0233 0400     		.2byte	0x4
+ 2639 0235 F3       		.byte	0xf3
+ 2640 0236 01       		.uleb128 0x1
+ 2641 0237 50       		.byte	0x50
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 60
+
+
+ 2642 0238 9F       		.byte	0x9f
+ 2643 0239 18000000 		.4byte	.LVL80
+ 2644 023d 1C000000 		.4byte	.LVL81
+ 2645 0241 0100     		.2byte	0x1
+ 2646 0243 50       		.byte	0x50
+ 2647 0244 1C000000 		.4byte	.LVL81
+ 2648 0248 24000000 		.4byte	.LVL83
+ 2649 024c 0400     		.2byte	0x4
+ 2650 024e F3       		.byte	0xf3
+ 2651 024f 01       		.uleb128 0x1
+ 2652 0250 50       		.byte	0x50
+ 2653 0251 9F       		.byte	0x9f
+ 2654 0252 24000000 		.4byte	.LVL83
+ 2655 0256 28000000 		.4byte	.LVL84
+ 2656 025a 0100     		.2byte	0x1
+ 2657 025c 50       		.byte	0x50
+ 2658 025d 28000000 		.4byte	.LVL84
+ 2659 0261 30000000 		.4byte	.LVL86
+ 2660 0265 0400     		.2byte	0x4
+ 2661 0267 F3       		.byte	0xf3
+ 2662 0268 01       		.uleb128 0x1
+ 2663 0269 50       		.byte	0x50
+ 2664 026a 9F       		.byte	0x9f
+ 2665 026b 30000000 		.4byte	.LVL86
+ 2666 026f 34000000 		.4byte	.LVL87
+ 2667 0273 0100     		.2byte	0x1
+ 2668 0275 50       		.byte	0x50
+ 2669 0276 34000000 		.4byte	.LVL87
+ 2670 027a 3C000000 		.4byte	.LFE4
+ 2671 027e 0400     		.2byte	0x4
+ 2672 0280 F3       		.byte	0xf3
+ 2673 0281 01       		.uleb128 0x1
+ 2674 0282 50       		.byte	0x50
+ 2675 0283 9F       		.byte	0x9f
+ 2676 0284 00000000 		.4byte	0
+ 2677 0288 00000000 		.4byte	0
+ 2678              	.LLST13:
+ 2679 028c 00000000 		.4byte	.LVL77
+ 2680 0290 15000000 		.4byte	.LVL79-1
+ 2681 0294 0100     		.2byte	0x1
+ 2682 0296 51       		.byte	0x51
+ 2683 0297 15000000 		.4byte	.LVL79-1
+ 2684 029b 18000000 		.4byte	.LVL80
+ 2685 029f 0400     		.2byte	0x4
+ 2686 02a1 F3       		.byte	0xf3
+ 2687 02a2 01       		.uleb128 0x1
+ 2688 02a3 51       		.byte	0x51
+ 2689 02a4 9F       		.byte	0x9f
+ 2690 02a5 18000000 		.4byte	.LVL80
+ 2691 02a9 21000000 		.4byte	.LVL82-1
+ 2692 02ad 0100     		.2byte	0x1
+ 2693 02af 51       		.byte	0x51
+ 2694 02b0 21000000 		.4byte	.LVL82-1
+ 2695 02b4 24000000 		.4byte	.LVL83
+ 2696 02b8 0400     		.2byte	0x4
+ 2697 02ba F3       		.byte	0xf3
+ 2698 02bb 01       		.uleb128 0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 61
+
+
+ 2699 02bc 51       		.byte	0x51
+ 2700 02bd 9F       		.byte	0x9f
+ 2701 02be 24000000 		.4byte	.LVL83
+ 2702 02c2 2D000000 		.4byte	.LVL85-1
+ 2703 02c6 0100     		.2byte	0x1
+ 2704 02c8 51       		.byte	0x51
+ 2705 02c9 2D000000 		.4byte	.LVL85-1
+ 2706 02cd 30000000 		.4byte	.LVL86
+ 2707 02d1 0400     		.2byte	0x4
+ 2708 02d3 F3       		.byte	0xf3
+ 2709 02d4 01       		.uleb128 0x1
+ 2710 02d5 51       		.byte	0x51
+ 2711 02d6 9F       		.byte	0x9f
+ 2712 02d7 30000000 		.4byte	.LVL86
+ 2713 02db 39000000 		.4byte	.LVL88-1
+ 2714 02df 0100     		.2byte	0x1
+ 2715 02e1 51       		.byte	0x51
+ 2716 02e2 39000000 		.4byte	.LVL88-1
+ 2717 02e6 3C000000 		.4byte	.LFE4
+ 2718 02ea 0400     		.2byte	0x4
+ 2719 02ec F3       		.byte	0xf3
+ 2720 02ed 01       		.uleb128 0x1
+ 2721 02ee 51       		.byte	0x51
+ 2722 02ef 9F       		.byte	0x9f
+ 2723 02f0 00000000 		.4byte	0
+ 2724 02f4 00000000 		.4byte	0
+ 2725              	.LLST14:
+ 2726 02f8 00000000 		.4byte	.LVL89
+ 2727 02fc 07000000 		.4byte	.LVL90-1
+ 2728 0300 0100     		.2byte	0x1
+ 2729 0302 50       		.byte	0x50
+ 2730 0303 07000000 		.4byte	.LVL90-1
+ 2731 0307 14000000 		.4byte	.LFE6
+ 2732 030b 0400     		.2byte	0x4
+ 2733 030d F3       		.byte	0xf3
+ 2734 030e 01       		.uleb128 0x1
+ 2735 030f 50       		.byte	0x50
+ 2736 0310 9F       		.byte	0x9f
+ 2737 0311 00000000 		.4byte	0
+ 2738 0315 00000000 		.4byte	0
+ 2739              	.LLST15:
+ 2740 0319 00000000 		.4byte	.LVL92
+ 2741 031d 0A000000 		.4byte	.LVL93
+ 2742 0321 0100     		.2byte	0x1
+ 2743 0323 50       		.byte	0x50
+ 2744 0324 0A000000 		.4byte	.LVL93
+ 2745 0328 20000000 		.4byte	.LFE13
+ 2746 032c 0400     		.2byte	0x4
+ 2747 032e F3       		.byte	0xf3
+ 2748 032f 01       		.uleb128 0x1
+ 2749 0330 50       		.byte	0x50
+ 2750 0331 9F       		.byte	0x9f
+ 2751 0332 00000000 		.4byte	0
+ 2752 0336 00000000 		.4byte	0
+ 2753              	.LLST16:
+ 2754 033a 00000000 		.4byte	.LVL96
+ 2755 033e 06000000 		.4byte	.LVL97
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 62
+
+
+ 2756 0342 0100     		.2byte	0x1
+ 2757 0344 50       		.byte	0x50
+ 2758 0345 06000000 		.4byte	.LVL97
+ 2759 0349 12000000 		.4byte	.LFE14
+ 2760 034d 0400     		.2byte	0x4
+ 2761 034f F3       		.byte	0xf3
+ 2762 0350 01       		.uleb128 0x1
+ 2763 0351 50       		.byte	0x50
+ 2764 0352 9F       		.byte	0x9f
+ 2765 0353 00000000 		.4byte	0
+ 2766 0357 00000000 		.4byte	0
+ 2767              	.LLST17:
+ 2768 035b 00000000 		.4byte	.LVL100
+ 2769 035f 08000000 		.4byte	.LVL102
+ 2770 0363 0100     		.2byte	0x1
+ 2771 0365 50       		.byte	0x50
+ 2772 0366 08000000 		.4byte	.LVL102
+ 2773 036a 1C000000 		.4byte	.LFE15
+ 2774 036e 0100     		.2byte	0x1
+ 2775 0370 55       		.byte	0x55
+ 2776 0371 00000000 		.4byte	0
+ 2777 0375 00000000 		.4byte	0
+ 2778              	.LLST18:
+ 2779 0379 04000000 		.4byte	.LVL101
+ 2780 037d 08000000 		.4byte	.LVL102
+ 2781 0381 0300     		.2byte	0x3
+ 2782 0383 08       		.byte	0x8
+ 2783 0384 20       		.byte	0x20
+ 2784 0385 9F       		.byte	0x9f
+ 2785 0386 08000000 		.4byte	.LVL102
+ 2786 038a 0A000000 		.4byte	.LVL103
+ 2787 038e 0100     		.2byte	0x1
+ 2788 0390 54       		.byte	0x54
+ 2789 0391 0C000000 		.4byte	.LVL104
+ 2790 0395 1C000000 		.4byte	.LFE15
+ 2791 0399 0100     		.2byte	0x1
+ 2792 039b 54       		.byte	0x54
+ 2793 039c 00000000 		.4byte	0
+ 2794 03a0 00000000 		.4byte	0
+ 2795              	.LLST19:
+ 2796 03a4 00000000 		.4byte	.LVL106
+ 2797 03a8 24000000 		.4byte	.LVL111
+ 2798 03ac 0100     		.2byte	0x1
+ 2799 03ae 50       		.byte	0x50
+ 2800 03af 2C000000 		.4byte	.LVL112
+ 2801 03b3 52000000 		.4byte	.LVL117
+ 2802 03b7 0100     		.2byte	0x1
+ 2803 03b9 50       		.byte	0x50
+ 2804 03ba 00000000 		.4byte	0
+ 2805 03be 00000000 		.4byte	0
+ 2806              	.LLST20:
+ 2807 03c2 22000000 		.4byte	.LVL110
+ 2808 03c6 30000000 		.4byte	.LVL114
+ 2809 03ca 0100     		.2byte	0x1
+ 2810 03cc 53       		.byte	0x53
+ 2811 03cd 46000000 		.4byte	.LVL115
+ 2812 03d1 50000000 		.4byte	.LVL116
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 63
+
+
+ 2813 03d5 0100     		.2byte	0x1
+ 2814 03d7 53       		.byte	0x53
+ 2815 03d8 50000000 		.4byte	.LVL116
+ 2816 03dc 55000000 		.4byte	.LVL118-1
+ 2817 03e0 0200     		.2byte	0x2
+ 2818 03e2 71       		.byte	0x71
+ 2819 03e3 74       		.sleb128 -12
+ 2820 03e4 00000000 		.4byte	0
+ 2821 03e8 00000000 		.4byte	0
+ 2822              	.LLST21:
+ 2823 03ec 04000000 		.4byte	.LVL107
+ 2824 03f0 0A000000 		.4byte	.LVL108
+ 2825 03f4 0200     		.2byte	0x2
+ 2826 03f6 3A       		.byte	0x3a
+ 2827 03f7 9F       		.byte	0x9f
+ 2828 03f8 0A000000 		.4byte	.LVL108
+ 2829 03fc 0E000000 		.4byte	.LVL109
+ 2830 0400 0200     		.2byte	0x2
+ 2831 0402 39       		.byte	0x39
+ 2832 0403 9F       		.byte	0x9f
+ 2833 0404 0E000000 		.4byte	.LVL109
+ 2834 0408 2E000000 		.4byte	.LVL113
+ 2835 040c 0100     		.2byte	0x1
+ 2836 040e 52       		.byte	0x52
+ 2837 040f 30000000 		.4byte	.LVL114
+ 2838 0413 55000000 		.4byte	.LVL118-1
+ 2839 0417 0100     		.2byte	0x1
+ 2840 0419 52       		.byte	0x52
+ 2841 041a 00000000 		.4byte	0
+ 2842 041e 00000000 		.4byte	0
+ 2843              		.section	.debug_aranges,"",%progbits
+ 2844 0000 9C000000 		.4byte	0x9c
+ 2845 0004 0200     		.2byte	0x2
+ 2846 0006 00000000 		.4byte	.Ldebug_info0
+ 2847 000a 04       		.byte	0x4
+ 2848 000b 00       		.byte	0
+ 2849 000c 0000     		.2byte	0
+ 2850 000e 0000     		.2byte	0
+ 2851 0010 00000000 		.4byte	.LFB12
+ 2852 0014 58000000 		.4byte	.LFE12-.LFB12
+ 2853 0018 00000000 		.4byte	.LFB11
+ 2854 001c 6C000000 		.4byte	.LFE11-.LFB11
+ 2855 0020 00000000 		.4byte	.LFB10
+ 2856 0024 0A000000 		.4byte	.LFE10-.LFB10
+ 2857 0028 00000000 		.4byte	.LFB8
+ 2858 002c 18000000 		.4byte	.LFE8-.LFB8
+ 2859 0030 00000000 		.4byte	.LFB5
+ 2860 0034 1A000000 		.4byte	.LFE5-.LFB5
+ 2861 0038 00000000 		.4byte	.LFB7
+ 2862 003c 08000000 		.4byte	.LFE7-.LFB7
+ 2863 0040 00000000 		.4byte	.LFB9
+ 2864 0044 18000000 		.4byte	.LFE9-.LFB9
+ 2865 0048 00000000 		.4byte	.LFB0
+ 2866 004c 6A000000 		.4byte	.LFE0-.LFB0
+ 2867 0050 00000000 		.4byte	.LFB1
+ 2868 0054 14000000 		.4byte	.LFE1-.LFB1
+ 2869 0058 00000000 		.4byte	.LFB2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 64
+
+
+ 2870 005c 1C000000 		.4byte	.LFE2-.LFB2
+ 2871 0060 00000000 		.4byte	.LFB3
+ 2872 0064 14000000 		.4byte	.LFE3-.LFB3
+ 2873 0068 00000000 		.4byte	.LFB4
+ 2874 006c 3C000000 		.4byte	.LFE4-.LFB4
+ 2875 0070 00000000 		.4byte	.LFB6
+ 2876 0074 14000000 		.4byte	.LFE6-.LFB6
+ 2877 0078 00000000 		.4byte	.LFB13
+ 2878 007c 20000000 		.4byte	.LFE13-.LFB13
+ 2879 0080 00000000 		.4byte	.LFB14
+ 2880 0084 12000000 		.4byte	.LFE14-.LFB14
+ 2881 0088 00000000 		.4byte	.LFB15
+ 2882 008c 1C000000 		.4byte	.LFE15-.LFB15
+ 2883 0090 00000000 		.4byte	.LFB16
+ 2884 0094 60000000 		.4byte	.LFE16-.LFB16
+ 2885 0098 00000000 		.4byte	0
+ 2886 009c 00000000 		.4byte	0
+ 2887              		.section	.debug_ranges,"",%progbits
+ 2888              	.Ldebug_ranges0:
+ 2889 0000 00000000 		.4byte	.LFB12
+ 2890 0004 58000000 		.4byte	.LFE12
+ 2891 0008 00000000 		.4byte	.LFB11
+ 2892 000c 6C000000 		.4byte	.LFE11
+ 2893 0010 00000000 		.4byte	.LFB10
+ 2894 0014 0A000000 		.4byte	.LFE10
+ 2895 0018 00000000 		.4byte	.LFB8
+ 2896 001c 18000000 		.4byte	.LFE8
+ 2897 0020 00000000 		.4byte	.LFB5
+ 2898 0024 1A000000 		.4byte	.LFE5
+ 2899 0028 00000000 		.4byte	.LFB7
+ 2900 002c 08000000 		.4byte	.LFE7
+ 2901 0030 00000000 		.4byte	.LFB9
+ 2902 0034 18000000 		.4byte	.LFE9
+ 2903 0038 00000000 		.4byte	.LFB0
+ 2904 003c 6A000000 		.4byte	.LFE0
+ 2905 0040 00000000 		.4byte	.LFB1
+ 2906 0044 14000000 		.4byte	.LFE1
+ 2907 0048 00000000 		.4byte	.LFB2
+ 2908 004c 1C000000 		.4byte	.LFE2
+ 2909 0050 00000000 		.4byte	.LFB3
+ 2910 0054 14000000 		.4byte	.LFE3
+ 2911 0058 00000000 		.4byte	.LFB4
+ 2912 005c 3C000000 		.4byte	.LFE4
+ 2913 0060 00000000 		.4byte	.LFB6
+ 2914 0064 14000000 		.4byte	.LFE6
+ 2915 0068 00000000 		.4byte	.LFB13
+ 2916 006c 20000000 		.4byte	.LFE13
+ 2917 0070 00000000 		.4byte	.LFB14
+ 2918 0074 12000000 		.4byte	.LFE14
+ 2919 0078 00000000 		.4byte	.LFB15
+ 2920 007c 1C000000 		.4byte	.LFE15
+ 2921 0080 00000000 		.4byte	.LFB16
+ 2922 0084 60000000 		.4byte	.LFE16
+ 2923 0088 00000000 		.4byte	0
+ 2924 008c 00000000 		.4byte	0
+ 2925              		.section	.debug_line,"",%progbits
+ 2926              	.Ldebug_line0:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 65
+
+
+ 2927 0000 E4010000 		.section	.debug_str,"MS",%progbits,1
+ 2927      02006200 
+ 2927      00000201 
+ 2927      FB0E0D00 
+ 2927      01010101 
+ 2928              	.LASF44:
+ 2929 0000 73686966 		.ascii	"shift\000"
+ 2929      7400
+ 2930              	.LASF52:
+ 2931 0006 4932435F 		.ascii	"I2C_CLCD_BackLight\000"
+ 2931      434C4344 
+ 2931      5F426163 
+ 2931      6B4C6967 
+ 2931      687400
+ 2932              	.LASF19:
+ 2933 0019 6E696262 		.ascii	"nibble\000"
+ 2933      6C6500
+ 2934              	.LASF21:
+ 2935 0020 4932435F 		.ascii	"I2C_CLCD_IsReady\000"
+ 2935      434C4344 
+ 2935      5F497352 
+ 2935      65616479 
+ 2935      00
+ 2936              	.LASF30:
+ 2937 0031 4932435F 		.ascii	"I2C_CLCD_WriteControl\000"
+ 2937      434C4344 
+ 2937      5F577269 
+ 2937      7465436F 
+ 2937      6E74726F 
+ 2938              	.LASF29:
+ 2939 0047 63686172 		.ascii	"character\000"
+ 2939      61637465 
+ 2939      7200
+ 2940              	.LASF40:
+ 2941 0051 76616C75 		.ascii	"value\000"
+ 2941      6500
+ 2942              	.LASF42:
+ 2943 0057 4932435F 		.ascii	"I2C_CLCD_PrintInt16\000"
+ 2943      434C4344 
+ 2943      5F507269 
+ 2943      6E74496E 
+ 2943      74313600 
+ 2944              	.LASF53:
+ 2945 006b 4932435F 		.ascii	"I2C_1_MasterSendStart\000"
+ 2945      315F4D61 
+ 2945      73746572 
+ 2945      53656E64 
+ 2945      53746172 
+ 2946              	.LASF43:
+ 2947 0081 4932435F 		.ascii	"I2C_CLCD_PrintInt32\000"
+ 2947      434C4344 
+ 2947      5F507269 
+ 2947      6E74496E 
+ 2947      74333200 
+ 2948              	.LASF26:
+ 2949 0095 696E6465 		.ascii	"indexU8\000"
+ 2949      78553800 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 66
+
+
+ 2950              	.LASF25:
+ 2951 009d 73747269 		.ascii	"string\000"
+ 2951      6E6700
+ 2952              	.LASF60:
+ 2953 00a4 43794465 		.ascii	"CyDelay\000"
+ 2953      6C617900 
+ 2954              	.LASF37:
+ 2955 00ac 636F6C75 		.ascii	"column\000"
+ 2955      6D6E00
+ 2956              	.LASF38:
+ 2957 00b3 4932435F 		.ascii	"I2C_CLCD_ClearLine\000"
+ 2957      434C4344 
+ 2957      5F436C65 
+ 2957      61724C69 
+ 2957      6E6500
+ 2958              	.LASF14:
+ 2959 00c6 666C6F61 		.ascii	"float\000"
+ 2959      7400
+ 2960              	.LASF20:
+ 2961 00cc 64617461 		.ascii	"data\000"
+ 2961      00
+ 2962              	.LASF32:
+ 2963 00d1 4932435F 		.ascii	"I2C_CLCD_Init\000"
+ 2963      434C4344 
+ 2963      5F496E69 
+ 2963      7400
+ 2964              	.LASF36:
+ 2965 00df 4932435F 		.ascii	"I2C_CLCD_Position\000"
+ 2965      434C4344 
+ 2965      5F506F73 
+ 2965      6974696F 
+ 2965      6E00
+ 2966              	.LASF33:
+ 2967 00f1 4932435F 		.ascii	"I2C_CLCD_Enable\000"
+ 2967      434C4344 
+ 2967      5F456E61 
+ 2967      626C6500 
+ 2968              	.LASF50:
+ 2969 0101 4932435F 		.ascii	"I2C_CLCD_enableState\000"
+ 2969      434C4344 
+ 2969      5F656E61 
+ 2969      626C6553 
+ 2969      74617465 
+ 2970              	.LASF16:
+ 2971 0116 63686172 		.ascii	"char8\000"
+ 2971      3800
+ 2972              	.LASF6:
+ 2973 011c 6C6F6E67 		.ascii	"long unsigned int\000"
+ 2973      20756E73 
+ 2973      69676E65 
+ 2973      6420696E 
+ 2973      7400
+ 2974              	.LASF11:
+ 2975 012e 75696E74 		.ascii	"uint8\000"
+ 2975      3800
+ 2976              	.LASF34:
+ 2977 0134 4932435F 		.ascii	"I2C_CLCD_Start\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 67
+
+
+ 2977      434C4344 
+ 2977      5F537461 
+ 2977      727400
+ 2978              	.LASF2:
+ 2979 0143 756E7369 		.ascii	"unsigned char\000"
+ 2979      676E6564 
+ 2979      20636861 
+ 2979      7200
+ 2980              	.LASF56:
+ 2981 0151 2E2E5C41 		.ascii	"..\\API\\I2C_CLCD.c\000"
+ 2981      50495C49 
+ 2981      32435F43 
+ 2981      4C43442E 
+ 2981      6300
+ 2982              	.LASF15:
+ 2983 0163 646F7562 		.ascii	"double\000"
+ 2983      6C6500
+ 2984              	.LASF24:
+ 2985 016a 4932435F 		.ascii	"I2C_CLCD_PrintString\000"
+ 2985      434C4344 
+ 2985      5F507269 
+ 2985      6E745374 
+ 2985      72696E67 
+ 2986              	.LASF17:
+ 2987 017f 4932435F 		.ascii	"I2C_CLCD_WrCntrlNib\000"
+ 2987      434C4344 
+ 2987      5F577243 
+ 2987      6E74726C 
+ 2987      4E696200 
+ 2988              	.LASF57:
+ 2989 0193 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 2989      536F435F 
+ 2989      43726561 
+ 2989      746F725C 
+ 2989      43593843 
+ 2990 01c3 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 2990      65636569 
+ 2990      7665725C 
+ 2990      43593843 
+ 2990      4B49542D 
+ 2991              	.LASF12:
+ 2992 01f5 75696E74 		.ascii	"uint16\000"
+ 2992      313600
+ 2993              	.LASF48:
+ 2994 01fc 64696749 		.ascii	"digIndex\000"
+ 2994      6E646578 
+ 2994      00
+ 2995              	.LASF13:
+ 2996 0205 75696E74 		.ascii	"uint32\000"
+ 2996      333200
+ 2997              	.LASF55:
+ 2998 020c 474E5520 		.ascii	"GNU C 4.9.3 20150303 (release) [ARM/embedded-4_9-br"
+ 2998      4320342E 
+ 2998      392E3320 
+ 2998      32303135 
+ 2998      30333033 
+ 2999 023f 616E6368 		.ascii	"anch revision 221220] -mcpu=cortex-m3 -mthumb -g -O"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 68
+
+
+ 2999      20726576 
+ 2999      6973696F 
+ 2999      6E203232 
+ 2999      31323230 
+ 3000 0272 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 3000      66756E63 
+ 3000      74696F6E 
+ 3000      2D736563 
+ 3000      74696F6E 
+ 3001              	.LASF0:
+ 3002 029a 756E7369 		.ascii	"unsigned int\000"
+ 3002      676E6564 
+ 3002      20696E74 
+ 3002      00
+ 3003              	.LASF8:
+ 3004 02a7 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 3004      206C6F6E 
+ 3004      6720756E 
+ 3004      7369676E 
+ 3004      65642069 
+ 3005              	.LASF51:
+ 3006 02be 736C6176 		.ascii	"slaveAddress\000"
+ 3006      65416464 
+ 3006      72657373 
+ 3006      00
+ 3007              	.LASF22:
+ 3008 02cb 4932435F 		.ascii	"I2C_CLCD_WriteData\000"
+ 3008      434C4344 
+ 3008      5F577269 
+ 3008      74654461 
+ 3008      746100
+ 3009              	.LASF47:
+ 3010 02de 6E756D62 		.ascii	"number\000"
+ 3010      657200
+ 3011              	.LASF9:
+ 3012 02e5 73697A65 		.ascii	"sizetype\000"
+ 3012      74797065 
+ 3012      00
+ 3013              	.LASF7:
+ 3014 02ee 6C6F6E67 		.ascii	"long long int\000"
+ 3014      206C6F6E 
+ 3014      6720696E 
+ 3014      7400
+ 3015              	.LASF58:
+ 3016 02fc 43794465 		.ascii	"CyDelayUs\000"
+ 3016      6C617955 
+ 3016      7300
+ 3017              	.LASF10:
+ 3018 0306 63686172 		.ascii	"char\000"
+ 3018      00
+ 3019              	.LASF28:
+ 3020 030b 4932435F 		.ascii	"I2C_CLCD_PutChar\000"
+ 3020      434C4344 
+ 3020      5F507574 
+ 3020      43686172 
+ 3020      00
+ 3021              	.LASF46:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 69
+
+
+ 3022 031c 746D7044 		.ascii	"tmpDigit\000"
+ 3022      69676974 
+ 3022      00
+ 3023              	.LASF3:
+ 3024 0325 73686F72 		.ascii	"short int\000"
+ 3024      7420696E 
+ 3024      7400
+ 3025              	.LASF27:
+ 3026 032f 63757272 		.ascii	"current\000"
+ 3026      656E7400 
+ 3027              	.LASF45:
+ 3028 0337 4932435F 		.ascii	"I2C_CLCD_PrintU32Number\000"
+ 3028      434C4344 
+ 3028      5F507269 
+ 3028      6E745533 
+ 3028      324E756D 
+ 3029              	.LASF35:
+ 3030 034f 4932435F 		.ascii	"I2C_CLCD_Stop\000"
+ 3030      434C4344 
+ 3030      5F53746F 
+ 3030      7000
+ 3031              	.LASF41:
+ 3032 035d 4932435F 		.ascii	"I2C_CLCD_hex\000"
+ 3032      434C4344 
+ 3032      5F686578 
+ 3032      00
+ 3033              	.LASF59:
+ 3034 036a 4932435F 		.ascii	"I2C_1_MasterSendStop\000"
+ 3034      315F4D61 
+ 3034      73746572 
+ 3034      53656E64 
+ 3034      53746F70 
+ 3035              	.LASF5:
+ 3036 037f 6C6F6E67 		.ascii	"long int\000"
+ 3036      20696E74 
+ 3036      00
+ 3037              	.LASF18:
+ 3038 0388 4932435F 		.ascii	"I2C_CLCD_WrDatNib\000"
+ 3038      434C4344 
+ 3038      5F577244 
+ 3038      61744E69 
+ 3038      6200
+ 3039              	.LASF1:
+ 3040 039a 7369676E 		.ascii	"signed char\000"
+ 3040      65642063 
+ 3040      68617200 
+ 3041              	.LASF23:
+ 3042 03a6 64427974 		.ascii	"dByte\000"
+ 3042      6500
+ 3043              	.LASF4:
+ 3044 03ac 73686F72 		.ascii	"short unsigned int\000"
+ 3044      7420756E 
+ 3044      7369676E 
+ 3044      65642069 
+ 3044      6E7400
+ 3045              	.LASF49:
+ 3046 03bf 4932435F 		.ascii	"I2C_CLCD_initVar\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccNfJjkt.s 			page 70
+
+
+ 3046      434C4344 
+ 3046      5F696E69 
+ 3046      74566172 
+ 3046      00
+ 3047              	.LASF31:
+ 3048 03d0 63427974 		.ascii	"cByte\000"
+ 3048      6500
+ 3049              	.LASF39:
+ 3050 03d6 4932435F 		.ascii	"I2C_CLCD_PrintInt8\000"
+ 3050      434C4344 
+ 3050      5F507269 
+ 3050      6E74496E 
+ 3050      743800
+ 3051              	.LASF54:
+ 3052 03e9 4932435F 		.ascii	"I2C_1_MasterWriteByte\000"
+ 3052      315F4D61 
+ 3052      73746572 
+ 3052      57726974 
+ 3052      65427974 
+ 3053              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.9.3 20150303 (release) [ARM/embedded-4_9-br

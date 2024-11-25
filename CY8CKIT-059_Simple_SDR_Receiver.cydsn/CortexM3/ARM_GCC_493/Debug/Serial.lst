@@ -1,0 +1,2749 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"Serial.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.section	.text.ProcessComRx,"ax",%progbits
+  19              		.align	2
+  20              		.global	ProcessComRx
+  21              		.thumb
+  22              		.thumb_func
+  23              		.type	ProcessComRx, %function
+  24              	ProcessComRx:
+  25              	.LFB63:
+  26              		.file 1 "Serial.c"
+   1:Serial.c      **** //----------------------------------------------------------------------------
+   2:Serial.c      **** //
+   3:Serial.c      **** //	SIMPLE SDR RECEIVER PSoC3 FIRMWARE for Hardware Rev -
+   4:Serial.c      **** //
+   5:Serial.c      **** //	Copyright 2011 Simple Circuits Inc.
+   6:Serial.c      **** //
+   7:Serial.c      **** //	06/03/2011	Original release.
+   8:Serial.c      **** //
+   9:Serial.c      **** //----------------------------------------------------------------------------
+  10:Serial.c      **** #include <device.h>
+  11:Serial.c      **** #include <string.h>
+  12:Serial.c      **** #include "main.h"
+  13:Serial.c      **** // PSoC3 => PSoC5LP
+  14:Serial.c      **** #include "USBUART_API.h"
+  15:Serial.c      **** #include <stdlib.h>
+  16:Serial.c      **** #include <stdio.h>
+  17:Serial.c      **** 
+  18:Serial.c      **** //----------------------------------------------------------------------------
+  19:Serial.c      **** //
+  20:Serial.c      **** //	Global variables
+  21:Serial.c      **** //
+  22:Serial.c      **** //----------------------------------------------------------------------------
+  23:Serial.c      **** extern uint8	ComRxCmd [32];				// remote command rx buffer
+  24:Serial.c      **** extern uint8	UsbTxBuffer [64];
+  25:Serial.c      **** extern uint8	ComRxPtr;					// pointer into com rx buffer
+  26:Serial.c      **** 
+  27:Serial.c      **** extern uint8	Freq [8];					// frequency in ASCII BCD
+  28:Serial.c      **** extern int32	Frequency;					// receive frequency in binary
+  29:Serial.c      **** 
+  30:Serial.c      **** extern uint8	LedTimer;					// LED on timer
+  31:Serial.c      **** extern uint8	DisplayIndex;				// index for status display
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 2
+
+
+  32:Serial.c      **** 
+  33:Serial.c      **** extern uint8	AgcDisable;					// Agc disable flag
+  34:Serial.c      **** extern uint8	AgcGain;					// AGC for ADC input, power of 2 scaling factor
+  35:Serial.c      **** extern uint8	AgcIntegrator;				// AGC integrator
+  36:Serial.c      **** extern uint8	AgcTimeConstant;            // AGC time constant
+  37:Serial.c      **** extern uint8	Mode;						// operating mode
+  38:Serial.c      **** extern uint8	Filter;						// audio filter bandwidth
+  39:Serial.c      **** extern uint8	AttenuatorOn;				// rx attenuator on/off flag
+  40:Serial.c      **** extern uint8	Squelch;					// squelch level, 0 - 250.
+  41:Serial.c      **** 
+  42:Serial.c      **** extern const uint8 FREQ_ERROR[8];			// freq offset is 1st row of eeprom
+  43:Serial.c      **** extern const uint8 SERIAL_NUM[8];			// serial number is 2nd row of eeprom
+  44:Serial.c      **** 
+  45:Serial.c      **** //----------------------------------------------------------------------------
+  46:Serial.c      **** //
+  47:Serial.c      **** //	SERIAL ROUTINES
+  48:Serial.c      **** //
+  49:Serial.c      **** //----------------------------------------------------------------------------
+  50:Serial.c      **** 
+  51:Serial.c      **** //
+  52:Serial.c      **** //	Process com rx commands
+  53:Serial.c      **** //
+  54:Serial.c      **** void ProcessComRx (void)
+  55:Serial.c      **** {
+  27              		.loc 1 55 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 8
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+  32              		.cfi_def_cfa_offset 20
+  33              		.cfi_offset 4, -20
+  34              		.cfi_offset 5, -16
+  35              		.cfi_offset 6, -12
+  36              		.cfi_offset 7, -8
+  37              		.cfi_offset 14, -4
+  38 0002 83B0     		sub	sp, sp, #12
+  39              		.cfi_def_cfa_offset 32
+  40              	.LVL0:
+  56:Serial.c      **** #define GET_CMD		(ComRxCmd [2] == ';')
+  57:Serial.c      **** 	uint8	i;
+  58:Serial.c      **** 	uint8	sendUsb = FALSE;
+  59:Serial.c      ****     char    str[8];
+  60:Serial.c      **** 	
+  61:Serial.c      **** 	switch ((ComRxCmd [0] * 256) + ComRxCmd [1])
+  41              		.loc 1 61 0
+  42 0004 B74A     		ldr	r2, .L69
+  43 0006 1178     		ldrb	r1, [r2]	@ zero_extendqisi2
+  44 0008 5378     		ldrb	r3, [r2, #1]	@ zero_extendqisi2
+  45 000a 03EB0123 		add	r3, r3, r1, lsl #8
+  46 000e 44F64412 		movw	r2, #18756
+  47 0012 9342     		cmp	r3, r2
+  48 0014 00F0D481 		beq	.L3
+  49 0018 35DC     		bgt	.L4
+  50 001a 44F24162 		movw	r2, #17985
+  51 001e 9342     		cmp	r3, r2
+  52 0020 00F0DE80 		beq	.L5
+  53 0024 13DC     		bgt	.L6
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 3
+
+
+  54 0026 44F24E12 		movw	r2, #16718
+  55 002a 9342     		cmp	r3, r2
+  56 002c 74D0     		beq	.L7
+  57 002e 04DC     		bgt	.L8
+  58 0030 44F24912 		movw	r2, #16713
+  59 0034 9342     		cmp	r3, r2
+  60 0036 64D0     		beq	.L9
+  61 0038 B4E2     		b	.L52
+  62              	.L8:
+  63 003a 44F24722 		movw	r2, #16967
+  64 003e 9342     		cmp	r3, r2
+  65 0040 75D0     		beq	.L10
+  66 0042 44F25342 		movw	r2, #17491
+  67 0046 9342     		cmp	r3, r2
+  68 0048 00F08F80 		beq	.L11
+  69 004c AAE2     		b	.L52
+  70              	.L6:
+  71 004e 44F25462 		movw	r2, #18004
+  72 0052 9342     		cmp	r3, r2
+  73 0054 00F0FD80 		beq	.L12
+  74 0058 0ADC     		bgt	.L13
+  75 005a 44F24262 		movw	r2, #17986
+  76 005e 9342     		cmp	r3, r2
+  77 0060 00F0DD80 		beq	.L14
+  78 0064 44F25262 		movw	r2, #18002
+  79 0068 9342     		cmp	r3, r2
+  80 006a 00F0E780 		beq	.L15
+  81 006e 99E2     		b	.L52
+  82              	.L13:
+  83 0070 44F25762 		movw	r2, #18007
+  84 0074 9342     		cmp	r3, r2
+  85 0076 00F0F780 		beq	.L16
+  86 007a 44F25472 		movw	r2, #18260
+  87 007e 9342     		cmp	r3, r2
+  88 0080 00F07381 		beq	.L17
+  89 0084 8EE2     		b	.L52
+  90              	.L4:
+  91 0086 44F64262 		movw	r2, #20034
+  92 008a 9342     		cmp	r3, r2
+  93 008c 00F0F881 		beq	.L18
+  94 0090 1BDC     		bgt	.L19
+  95 0092 44F65332 		movw	r2, #19283
+  96 0096 9342     		cmp	r3, r2
+  97 0098 00F0C181 		beq	.L20
+  98 009c 0ADC     		bgt	.L21
+  99 009e 44F64612 		movw	r2, #18758
+ 100 00a2 9342     		cmp	r3, r2
+ 101 00a4 00F09481 		beq	.L22
+ 102 00a8 44F63232 		movw	r2, #19250
+ 103 00ac 9342     		cmp	r3, r2
+ 104 00ae 00F0AB81 		beq	.L23
+ 105 00b2 77E2     		b	.L52
+ 106              	.L21:
+ 107 00b4 44F64B42 		movw	r2, #19531
+ 108 00b8 9342     		cmp	r3, r2
+ 109 00ba 00F0BD81 		beq	.L24
+ 110 00be 44F64452 		movw	r2, #19780
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 4
+
+
+ 111 00c2 9342     		cmp	r3, r2
+ 112 00c4 00F0C381 		beq	.L25
+ 113 00c8 6CE2     		b	.L52
+ 114              	.L19:
+ 115 00ca 45F25302 		movw	r2, #20563
+ 116 00ce 9342     		cmp	r3, r2
+ 117 00d0 00F0FD81 		beq	.L26
+ 118 00d4 0ADC     		bgt	.L27
+ 119 00d6 45F24102 		movw	r2, #20545
+ 120 00da 9342     		cmp	r3, r2
+ 121 00dc 00F0DD81 		beq	.L28
+ 122 00e0 45F24302 		movw	r2, #20547
+ 123 00e4 9342     		cmp	r3, r2
+ 124 00e6 00F0E381 		beq	.L29
+ 125 00ea 5BE2     		b	.L52
+ 126              	.L27:
+ 127 00ec 45F24122 		movw	r2, #21057
+ 128 00f0 9342     		cmp	r3, r2
+ 129 00f2 00F0F281 		beq	.L30
+ 130 00f6 45F25132 		movw	r2, #21329
+ 131 00fa 9342     		cmp	r3, r2
+ 132 00fc 00F01682 		beq	.L31
+ 133 0100 50E2     		b	.L52
+ 134              	.L9:
+  62:Serial.c      **** 	{
+  63:Serial.c      **** 		case CMD_AI:					// auto-information, make always mode 0
+  64:Serial.c      **** 			if (GET_CMD)
+ 135              		.loc 1 64 0
+ 136 0102 784B     		ldr	r3, .L69
+ 137 0104 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 138 0106 3B2B     		cmp	r3, #59
+ 139 0108 40F04E82 		bne	.L53
+ 140              	.LVL1:
+  65:Serial.c      **** 			{
+  66:Serial.c      **** 				sendUsb = 4;			// flag to send response
+  67:Serial.c      **** 				memcpy (UsbTxBuffer, "AI0;", sendUsb);
+ 141              		.loc 1 67 0
+ 142 010c 764B     		ldr	r3, .L69+4
+ 143 010e 1868     		ldr	r0, [r3]	@ unaligned
+ 144 0110 764B     		ldr	r3, .L69+8
+ 145 0112 1860     		str	r0, [r3]	@ unaligned
+  66:Serial.c      **** 				memcpy (UsbTxBuffer, "AI0;", sendUsb);
+ 146              		.loc 1 66 0
+ 147 0114 0423     		movs	r3, #4
+ 148 0116 5EE2     		b	.L2
+ 149              	.LVL2:
+ 150              	.L7:
+  68:Serial.c      **** 			}
+  69:Serial.c      **** 			break;
+  70:Serial.c      **** 
+  71:Serial.c      **** 		case CMD_AN:					// antenna select, always 1
+  72:Serial.c      **** 			if (GET_CMD)
+ 151              		.loc 1 72 0
+ 152 0118 724B     		ldr	r3, .L69
+ 153 011a 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 154 011c 3B2B     		cmp	r3, #59
+ 155 011e 40F04582 		bne	.L54
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 5
+
+
+ 156              	.LVL3:
+  73:Serial.c      **** 			{
+  74:Serial.c      **** 				sendUsb = 4;
+  75:Serial.c      **** 				memcpy (UsbTxBuffer, "AN1;", sendUsb);
+ 157              		.loc 1 75 0
+ 158 0122 734B     		ldr	r3, .L69+12
+ 159 0124 1868     		ldr	r0, [r3]	@ unaligned
+ 160 0126 714B     		ldr	r3, .L69+8
+ 161 0128 1860     		str	r0, [r3]	@ unaligned
+  74:Serial.c      **** 				memcpy (UsbTxBuffer, "AN1;", sendUsb);
+ 162              		.loc 1 74 0
+ 163 012a 0423     		movs	r3, #4
+ 164 012c 53E2     		b	.L2
+ 165              	.LVL4:
+ 166              	.L10:
+  76:Serial.c      **** 			}
+  77:Serial.c      **** 			break;
+  78:Serial.c      **** 
+  79:Serial.c      **** 		case CMD_BG:					// bar graph, return BG12 thru BG22
+  80:Serial.c      **** 			sendUsb = 5;
+  81:Serial.c      **** 			i = AgcGain / 6;			// 64 >= AgcGain >= 0, 10 >= i >= 0
+ 167              		.loc 1 81 0
+ 168 012e 714B     		ldr	r3, .L69+16
+ 169 0130 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 170 0132 714A     		ldr	r2, .L69+20
+ 171 0134 A2FB0323 		umull	r2, r3, r2, r3
+ 172 0138 9B08     		lsrs	r3, r3, #2
+ 173              	.LVL5:
+  82:Serial.c      **** 			i = (10 - i) + 12;			// between 22 and 12.
+ 174              		.loc 1 82 0
+ 175 013a C3F11603 		rsb	r3, r3, #22
+ 176              	.LVL6:
+ 177 013e DBB2     		uxtb	r3, r3
+ 178              	.LVL7:
+  83:Serial.c      **** 			memcpy (UsbTxBuffer, "BG12;", sendUsb);
+ 179              		.loc 1 83 0
+ 180 0140 6A49     		ldr	r1, .L69+8
+ 181 0142 6E4A     		ldr	r2, .L69+24
+ 182 0144 1068     		ldr	r0, [r2]	@ unaligned
+ 183 0146 0860     		str	r0, [r1]	@ unaligned
+ 184 0148 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 185 014a 0A71     		strb	r2, [r1, #4]
+  84:Serial.c      **** 			UsbTxBuffer [2] = (i / 10) + '0';	// either '1' or '2'
+ 186              		.loc 1 84 0
+ 187 014c 6C4A     		ldr	r2, .L69+28
+ 188 014e A2FB0302 		umull	r0, r2, r2, r3
+ 189 0152 D208     		lsrs	r2, r2, #3
+ 190 0154 02F13000 		add	r0, r2, #48
+ 191 0158 8870     		strb	r0, [r1, #2]
+  85:Serial.c      **** 			UsbTxBuffer [3] = (i % 10) + '0';	// '0' thru '9'
+ 192              		.loc 1 85 0
+ 193 015a 02EB8202 		add	r2, r2, r2, lsl #2
+ 194 015e A3EB4203 		sub	r3, r3, r2, lsl #1
+ 195              	.LVL8:
+ 196 0162 3033     		adds	r3, r3, #48
+ 197 0164 CB70     		strb	r3, [r1, #3]
+  80:Serial.c      **** 			i = AgcGain / 6;			// 64 >= AgcGain >= 0, 10 >= i >= 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 6
+
+
+ 198              		.loc 1 80 0
+ 199 0166 0523     		movs	r3, #5
+  86:Serial.c      **** 			break;
+ 200              		.loc 1 86 0
+ 201 0168 35E2     		b	.L2
+ 202              	.LVL9:
+ 203              	.L11:
+  87:Serial.c      **** 
+  88:Serial.c      **** 		case CMD_DS:					// display read
+  89:Serial.c      **** 			sendUsb = 13;
+  90:Serial.c      **** 			DisplayIndex++;
+ 204              		.loc 1 90 0
+ 205 016a 6649     		ldr	r1, .L69+32
+ 206 016c 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 207 016e 0133     		adds	r3, r3, #1
+ 208 0170 DBB2     		uxtb	r3, r3
+  91:Serial.c      **** 			DisplayIndex %= 12;
+ 209              		.loc 1 91 0
+ 210 0172 614A     		ldr	r2, .L69+20
+ 211 0174 A2FB0302 		umull	r0, r2, r2, r3
+ 212 0178 D208     		lsrs	r2, r2, #3
+ 213 017a 02EB4202 		add	r2, r2, r2, lsl #1
+ 214 017e A3EB8203 		sub	r3, r3, r2, lsl #2
+ 215 0182 DBB2     		uxtb	r3, r3
+ 216 0184 0B70     		strb	r3, [r1]
+  92:Serial.c      **** 			if (DisplayIndex < 4)		// display version info
+ 217              		.loc 1 92 0
+ 218 0186 032B     		cmp	r3, #3
+ 219 0188 07D8     		bhi	.L32
+  93:Serial.c      **** 				memcpy (UsbTxBuffer, VERSION, 10);
+ 220              		.loc 1 93 0
+ 221 018a 584A     		ldr	r2, .L69+8
+ 222 018c 5E4B     		ldr	r3, .L69+36
+ 223 018e 03CB     		ldmia	r3!, {r0, r1}
+ 224 0190 1060     		str	r0, [r2]	@ unaligned
+ 225 0192 5160     		str	r1, [r2, #4]	@ unaligned
+ 226 0194 1B88     		ldrh	r3, [r3]	@ unaligned
+ 227 0196 1381     		strh	r3, [r2, #8]	@ unaligned
+ 228 0198 1AE0     		b	.L33
+ 229              	.L32:
+  94:Serial.c      **** 			else if (DisplayIndex < 8)
+ 230              		.loc 1 94 0
+ 231 019a 072B     		cmp	r3, #7
+ 232 019c 0CD8     		bhi	.L34
+  95:Serial.c      **** 			{
+  96:Serial.c      **** 				memcpy (UsbTxBuffer, "DSSN ", 5);
+ 233              		.loc 1 96 0
+ 234 019e 534B     		ldr	r3, .L69+8
+ 235 01a0 5A4A     		ldr	r2, .L69+40
+ 236 01a2 1068     		ldr	r0, [r2]	@ unaligned
+ 237 01a4 1860     		str	r0, [r3]	@ unaligned
+ 238 01a6 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 239 01a8 1A71     		strb	r2, [r3, #4]
+  97:Serial.c      **** 				memcpy (&UsbTxBuffer [5], &SERIAL_NUM [3], 5);
+ 240              		.loc 1 97 0
+ 241 01aa 594A     		ldr	r2, .L69+44
+ 242 01ac 1168     		ldr	r1, [r2]	@ unaligned
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 7
+
+
+ 243 01ae C3F80510 		str	r1, [r3, #5]	@ unaligned
+ 244 01b2 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 245 01b4 5A72     		strb	r2, [r3, #9]
+ 246 01b6 0BE0     		b	.L33
+ 247              	.L34:
+  98:Serial.c      **** 			}
+  99:Serial.c      **** 			else
+ 100:Serial.c      **** 			{
+ 101:Serial.c      **** 				memcpy (UsbTxBuffer, "DSFR ", 5);
+ 248              		.loc 1 101 0
+ 249 01b8 4C4B     		ldr	r3, .L69+8
+ 250 01ba 564A     		ldr	r2, .L69+48
+ 251 01bc 1068     		ldr	r0, [r2]	@ unaligned
+ 252 01be 1860     		str	r0, [r3]	@ unaligned
+ 253 01c0 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 254 01c2 1A71     		strb	r2, [r3, #4]
+ 102:Serial.c      **** 				memcpy (&UsbTxBuffer [5], &FREQ_ERROR [3], 5);
+ 255              		.loc 1 102 0
+ 256 01c4 544A     		ldr	r2, .L69+52
+ 257 01c6 1168     		ldr	r1, [r2]	@ unaligned
+ 258 01c8 C3F80510 		str	r1, [r3, #5]	@ unaligned
+ 259 01cc 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 260 01ce 5A72     		strb	r2, [r3, #9]
+ 261              	.L33:
+ 103:Serial.c      **** 			}
+ 104:Serial.c      **** 			UsbTxBuffer [10] = UsbTxBuffer [11] = 0x80;
+ 262              		.loc 1 104 0
+ 263 01d0 464B     		ldr	r3, .L69+8
+ 264 01d2 8022     		movs	r2, #128
+ 265 01d4 DA72     		strb	r2, [r3, #11]
+ 266 01d6 9A72     		strb	r2, [r3, #10]
+ 105:Serial.c      **** 			UsbTxBuffer [12] = ';';
+ 267              		.loc 1 105 0
+ 268 01d8 3B22     		movs	r2, #59
+ 269 01da 1A73     		strb	r2, [r3, #12]
+  89:Serial.c      **** 			DisplayIndex++;
+ 270              		.loc 1 89 0
+ 271 01dc 0D23     		movs	r3, #13
+ 106:Serial.c      **** 			break;
+ 272              		.loc 1 106 0
+ 273 01de FAE1     		b	.L2
+ 274              	.LVL10:
+ 275              	.L5:
+ 107:Serial.c      **** 		
+ 108:Serial.c      **** 		case CMD_FA:					// set/get frequency
+ 109:Serial.c      **** 			if (GET_CMD)
+ 276              		.loc 1 109 0
+ 277 01e0 404B     		ldr	r3, .L69
+ 278 01e2 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 279 01e4 3B2B     		cmp	r3, #59
+ 280 01e6 0FD1     		bne	.L35
+ 281              	.LVL11:
+ 110:Serial.c      **** 			{
+ 111:Serial.c      **** 				sendUsb = 14;
+ 112:Serial.c      **** 				memcpy (UsbTxBuffer, "FA00000000000;", sendUsb);
+ 282              		.loc 1 112 0
+ 283 01e8 404C     		ldr	r4, .L69+8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 8
+
+
+ 284 01ea 4C4B     		ldr	r3, .L69+56
+ 285 01ec 07CB     		ldmia	r3!, {r0, r1, r2}
+ 286 01ee 2060     		str	r0, [r4]	@ unaligned
+ 287 01f0 6160     		str	r1, [r4, #4]	@ unaligned
+ 288 01f2 1B88     		ldrh	r3, [r3]	@ unaligned
+ 289 01f4 A381     		strh	r3, [r4, #12]	@ unaligned
+ 113:Serial.c      **** 				memcpy (&UsbTxBuffer [5], Freq, 8);
+ 290              		.loc 1 113 0
+ 291 01f6 4A4B     		ldr	r3, .L69+60
+ 292 01f8 1A68     		ldr	r2, [r3]	@ unaligned
+ 293 01fa 5B68     		ldr	r3, [r3, #4]	@ unaligned
+ 294 01fc C4F80520 		str	r2, [r4, #5]	@ unaligned
+ 295 0200 C4F80930 		str	r3, [r4, #9]	@ unaligned
+ 111:Serial.c      **** 				memcpy (UsbTxBuffer, "FA00000000000;", sendUsb);
+ 296              		.loc 1 111 0
+ 297 0204 0E23     		movs	r3, #14
+ 298 0206 E6E1     		b	.L2
+ 299              	.LVL12:
+ 300              	.L35:
+ 114:Serial.c      **** 			}
+ 115:Serial.c      **** 			else
+ 116:Serial.c      **** 			{
+ 117:Serial.c      **** 				memcpy (Freq, &ComRxCmd [5], 8);
+ 301              		.loc 1 117 0
+ 302 0208 454A     		ldr	r2, .L69+60
+ 303 020a 364B     		ldr	r3, .L69
+ 304 020c 53F8051F 		ldr	r1, [r3, #5]!	@ unaligned
+ 305 0210 5B68     		ldr	r3, [r3, #4]	@ unaligned
+ 306 0212 1160     		str	r1, [r2]	@ unaligned
+ 307 0214 5360     		str	r3, [r2, #4]	@ unaligned
+ 118:Serial.c      **** 				SetFrequency ();		// set new frequency
+ 308              		.loc 1 118 0
+ 309 0216 FFF7FEFF 		bl	SetFrequency
+ 310              	.LVL13:
+  58:Serial.c      ****     char    str[8];
+ 311              		.loc 1 58 0
+ 312 021a 0023     		movs	r3, #0
+ 313 021c DBE1     		b	.L2
+ 314              	.L14:
+ 119:Serial.c      **** 			}
+ 120:Serial.c      **** 			break;
+ 121:Serial.c      **** 
+ 122:Serial.c      **** 		case CMD_FB:					// no VFO B to set/get
+ 123:Serial.c      **** 			if (GET_CMD)
+ 315              		.loc 1 123 0
+ 316 021e 314B     		ldr	r3, .L69
+ 317 0220 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 318 0222 3B2B     		cmp	r3, #59
+ 319 0224 40F0C481 		bne	.L55
+ 320              	.LVL14:
+ 124:Serial.c      **** 			{
+ 125:Serial.c      **** 				sendUsb = 14;
+ 126:Serial.c      **** 				memcpy (UsbTxBuffer, "FB00000000000;", sendUsb);
+ 321              		.loc 1 126 0
+ 322 0228 304C     		ldr	r4, .L69+8
+ 323 022a 3E4B     		ldr	r3, .L69+64
+ 324 022c 07CB     		ldmia	r3!, {r0, r1, r2}
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 9
+
+
+ 325 022e 2060     		str	r0, [r4]	@ unaligned
+ 326 0230 6160     		str	r1, [r4, #4]	@ unaligned
+ 327 0232 A260     		str	r2, [r4, #8]	@ unaligned
+ 328 0234 1B88     		ldrh	r3, [r3]	@ unaligned
+ 329 0236 A381     		strh	r3, [r4, #12]	@ unaligned
+ 125:Serial.c      **** 				memcpy (UsbTxBuffer, "FB00000000000;", sendUsb);
+ 330              		.loc 1 125 0
+ 331 0238 0E23     		movs	r3, #14
+ 332 023a CCE1     		b	.L2
+ 333              	.LVL15:
+ 334              	.L15:
+ 127:Serial.c      **** 			}
+ 128:Serial.c      **** 			break;
+ 129:Serial.c      **** 
+ 130:Serial.c      **** 		case CMD_FR:					// no receive split mode, always 0
+ 131:Serial.c      **** 			if (GET_CMD)
+ 335              		.loc 1 131 0
+ 336 023c 294B     		ldr	r3, .L69
+ 337 023e 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 338 0240 3B2B     		cmp	r3, #59
+ 339 0242 40F0B781 		bne	.L56
+ 340              	.LVL16:
+ 132:Serial.c      **** 			{
+ 133:Serial.c      **** 				sendUsb = 4;
+ 134:Serial.c      **** 				memcpy (UsbTxBuffer, "FR0;", sendUsb);
+ 341              		.loc 1 134 0
+ 342 0246 384B     		ldr	r3, .L69+68
+ 343 0248 1868     		ldr	r0, [r3]	@ unaligned
+ 344 024a 284B     		ldr	r3, .L69+8
+ 345 024c 1860     		str	r0, [r3]	@ unaligned
+ 133:Serial.c      **** 				memcpy (UsbTxBuffer, "FR0;", sendUsb);
+ 346              		.loc 1 133 0
+ 347 024e 0423     		movs	r3, #4
+ 348 0250 C1E1     		b	.L2
+ 349              	.LVL17:
+ 350              	.L12:
+ 135:Serial.c      **** 			}
+ 136:Serial.c      **** 			break;
+ 137:Serial.c      **** 
+ 138:Serial.c      **** 		case CMD_FT:					// no transmit split mode, always 0
+ 139:Serial.c      **** 			if (GET_CMD)
+ 351              		.loc 1 139 0
+ 352 0252 244B     		ldr	r3, .L69
+ 353 0254 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 354 0256 3B2B     		cmp	r3, #59
+ 355 0258 40F0AE81 		bne	.L57
+ 356              	.LVL18:
+ 140:Serial.c      **** 			{
+ 141:Serial.c      **** 				sendUsb = 4;
+ 142:Serial.c      **** 				memcpy (UsbTxBuffer, "FT0;", sendUsb);
+ 357              		.loc 1 142 0
+ 358 025c 334B     		ldr	r3, .L69+72
+ 359 025e 1868     		ldr	r0, [r3]	@ unaligned
+ 360 0260 224B     		ldr	r3, .L69+8
+ 361 0262 1860     		str	r0, [r3]	@ unaligned
+ 141:Serial.c      **** 				memcpy (UsbTxBuffer, "FT0;", sendUsb);
+ 362              		.loc 1 141 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 10
+
+
+ 363 0264 0423     		movs	r3, #4
+ 364 0266 B6E1     		b	.L2
+ 365              	.LVL19:
+ 366              	.L16:
+ 143:Serial.c      **** 			}
+ 144:Serial.c      **** 			break;
+ 145:Serial.c      **** 
+ 146:Serial.c      **** 		case CMD_FW:					// filter bandwidth
+ 147:Serial.c      **** 			if (GET_CMD)
+ 367              		.loc 1 147 0
+ 368 0268 1E4B     		ldr	r3, .L69
+ 369 026a 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 370 026c 3B2B     		cmp	r3, #59
+ 371 026e 6BD1     		bne	.L36
+ 372              	.LVL20:
+ 148:Serial.c      **** 			{
+ 149:Serial.c      **** 				sendUsb = 9;
+ 150:Serial.c      **** 				if (Filter == FILTER_FL1)
+ 373              		.loc 1 150 0
+ 374 0270 2F4B     		ldr	r3, .L69+76
+ 375 0272 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 376 0274 43B9     		cbnz	r3, .L37
+ 151:Serial.c      **** 					memcpy (UsbTxBuffer, "FW250010;", sendUsb);
+ 377              		.loc 1 151 0
+ 378 0276 1D4A     		ldr	r2, .L69+8
+ 379 0278 2E4B     		ldr	r3, .L69+80
+ 380 027a 03CB     		ldmia	r3!, {r0, r1}
+ 381 027c 1060     		str	r0, [r2]	@ unaligned
+ 382 027e 5160     		str	r1, [r2, #4]	@ unaligned
+ 383 0280 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 384 0282 1372     		strb	r3, [r2, #8]
+ 149:Serial.c      **** 				if (Filter == FILTER_FL1)
+ 385              		.loc 1 149 0
+ 386 0284 0923     		movs	r3, #9
+ 387 0286 A6E1     		b	.L2
+ 388              	.L37:
+ 152:Serial.c      **** 				else if (Filter == FILTER_FL2)
+ 389              		.loc 1 152 0
+ 390 0288 012B     		cmp	r3, #1
+ 391 028a 08D1     		bne	.L38
+ 153:Serial.c      **** 					memcpy (UsbTxBuffer, "FW200020;", sendUsb);
+ 392              		.loc 1 153 0
+ 393 028c 174A     		ldr	r2, .L69+8
+ 394 028e 2A4B     		ldr	r3, .L69+84
+ 395 0290 03CB     		ldmia	r3!, {r0, r1}
+ 396 0292 1060     		str	r0, [r2]	@ unaligned
+ 397 0294 5160     		str	r1, [r2, #4]	@ unaligned
+ 398 0296 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 399 0298 1372     		strb	r3, [r2, #8]
+ 149:Serial.c      **** 				if (Filter == FILTER_FL1)
+ 400              		.loc 1 149 0
+ 401 029a 0923     		movs	r3, #9
+ 402 029c 9BE1     		b	.L2
+ 403              	.L38:
+ 154:Serial.c      **** 				else if (Filter == FILTER_FL3)
+ 404              		.loc 1 154 0
+ 405 029e 022B     		cmp	r3, #2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 11
+
+
+ 406 02a0 08D1     		bne	.L39
+ 155:Serial.c      **** 					memcpy (UsbTxBuffer, "FW150030;", sendUsb);
+ 407              		.loc 1 155 0
+ 408 02a2 124A     		ldr	r2, .L69+8
+ 409 02a4 254B     		ldr	r3, .L69+88
+ 410 02a6 03CB     		ldmia	r3!, {r0, r1}
+ 411 02a8 1060     		str	r0, [r2]	@ unaligned
+ 412 02aa 5160     		str	r1, [r2, #4]	@ unaligned
+ 413 02ac 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 414 02ae 1372     		strb	r3, [r2, #8]
+ 149:Serial.c      **** 				if (Filter == FILTER_FL1)
+ 415              		.loc 1 149 0
+ 416 02b0 0923     		movs	r3, #9
+ 417 02b2 90E1     		b	.L2
+ 418              	.L39:
+ 156:Serial.c      **** 				else if (Filter == FILTER_FL4)
+ 419              		.loc 1 156 0
+ 420 02b4 032B     		cmp	r3, #3
+ 421 02b6 08D1     		bne	.L40
+ 157:Serial.c      **** 					memcpy (UsbTxBuffer, "FW100040;", sendUsb);
+ 422              		.loc 1 157 0
+ 423 02b8 0C4A     		ldr	r2, .L69+8
+ 424 02ba 214B     		ldr	r3, .L69+92
+ 425 02bc 03CB     		ldmia	r3!, {r0, r1}
+ 426 02be 1060     		str	r0, [r2]	@ unaligned
+ 427 02c0 5160     		str	r1, [r2, #4]	@ unaligned
+ 428 02c2 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 429 02c4 1372     		strb	r3, [r2, #8]
+ 149:Serial.c      **** 				if (Filter == FILTER_FL1)
+ 430              		.loc 1 149 0
+ 431 02c6 0923     		movs	r3, #9
+ 432 02c8 85E1     		b	.L2
+ 433              	.L40:
+ 158:Serial.c      **** 				else if (Filter == FILTER_AM)
+ 434              		.loc 1 158 0
+ 435 02ca 042B     		cmp	r3, #4
+ 436 02cc 40F07681 		bne	.L58
+ 159:Serial.c      **** 					memcpy (UsbTxBuffer, "FW400050;", sendUsb);     // 4kHz LPF (2017.6.1)koseki
+ 437              		.loc 1 159 0
+ 438 02d0 064A     		ldr	r2, .L69+8
+ 439 02d2 1C4B     		ldr	r3, .L69+96
+ 440 02d4 03CB     		ldmia	r3!, {r0, r1}
+ 441 02d6 1060     		str	r0, [r2]	@ unaligned
+ 442 02d8 5160     		str	r1, [r2, #4]	@ unaligned
+ 443 02da 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 444 02dc 1372     		strb	r3, [r2, #8]
+ 149:Serial.c      **** 				if (Filter == FILTER_FL1)
+ 445              		.loc 1 149 0
+ 446 02de 0923     		movs	r3, #9
+ 447 02e0 79E1     		b	.L2
+ 448              	.L70:
+ 449 02e2 00BF     		.align	2
+ 450              	.L69:
+ 451 02e4 00000000 		.word	ComRxCmd
+ 452 02e8 00000000 		.word	.LC0
+ 453 02ec 00000000 		.word	UsbTxBuffer
+ 454 02f0 08000000 		.word	.LC1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 12
+
+
+ 455 02f4 00000000 		.word	AgcGain
+ 456 02f8 ABAAAAAA 		.word	-1431655765
+ 457 02fc 10000000 		.word	.LC2
+ 458 0300 CDCCCCCC 		.word	-858993459
+ 459 0304 00000000 		.word	DisplayIndex
+ 460 0308 18000000 		.word	.LC3
+ 461 030c 24000000 		.word	.LC4
+ 462 0310 03000000 		.word	SERIAL_NUM+3
+ 463 0314 2C000000 		.word	.LC5
+ 464 0318 03000000 		.word	FREQ_ERROR+3
+ 465 031c 34000000 		.word	.LC6
+ 466 0320 00000000 		.word	Freq
+ 467 0324 44000000 		.word	.LC7
+ 468 0328 54000000 		.word	.LC8
+ 469 032c 5C000000 		.word	.LC9
+ 470 0330 00000000 		.word	Filter
+ 471 0334 64000000 		.word	.LC10
+ 472 0338 70000000 		.word	.LC11
+ 473 033c 7C000000 		.word	.LC12
+ 474 0340 88000000 		.word	.LC13
+ 475 0344 94000000 		.word	.LC14
+ 476              	.LVL21:
+ 477              	.L36:
+ 160:Serial.c      **** 			}
+ 161:Serial.c      **** 			else
+ 162:Serial.c      **** 			{
+ 163:Serial.c      **** 				Filter = ComRxCmd [6] - '1';
+ 478              		.loc 1 163 0
+ 479 0348 AA4B     		ldr	r3, .L71
+ 480 034a 9B79     		ldrb	r3, [r3, #6]	@ zero_extendqisi2
+ 481 034c 313B     		subs	r3, r3, #49
+ 482 034e DBB2     		uxtb	r3, r3
+ 483 0350 A94A     		ldr	r2, .L71+4
+ 484 0352 1370     		strb	r3, [r2]
+ 164:Serial.c      **** 				if (Filter > FILTER_RST)
+ 485              		.loc 1 164 0
+ 486 0354 052B     		cmp	r3, #5
+ 487 0356 02D9     		bls	.L41
+ 165:Serial.c      **** 					Filter = FILTER_FL1;
+ 488              		.loc 1 165 0
+ 489 0358 0022     		movs	r2, #0
+ 490 035a A74B     		ldr	r3, .L71+4
+ 491 035c 1A70     		strb	r2, [r3]
+ 492              	.L41:
+ 166:Serial.c      **** 				LoadFilter (Filter);
+ 493              		.loc 1 166 0
+ 494 035e A64B     		ldr	r3, .L71+4
+ 495 0360 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 496 0362 FFF7FEFF 		bl	LoadFilter
+ 497              	.LVL22:
+  58:Serial.c      ****     char    str[8];
+ 498              		.loc 1 58 0
+ 499 0366 0023     		movs	r3, #0
+ 500 0368 35E1     		b	.L2
+ 501              	.L17:
+ 167:Serial.c      **** 			}
+ 168:Serial.c      **** 			break;
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 13
+
+
+ 169:Serial.c      **** 
+ 170:Serial.c      **** 		case CMD_GT:					// AGC time constant, slow, on/off
+ 171:Serial.c      **** 			if (GET_CMD)
+ 502              		.loc 1 171 0
+ 503 036a A24B     		ldr	r3, .L71
+ 504 036c 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 505 036e 3B2B     		cmp	r3, #59
+ 506 0370 18D1     		bne	.L42
+ 507              	.LVL23:
+ 172:Serial.c      **** 			{
+ 173:Serial.c      **** 				sendUsb = 7;
+ 174:Serial.c      **** 				//memcpy (UsbTxBuffer, "GT0040;", sendUsb);
+ 175:Serial.c      ****                 sprintf(str, "GT%03d0;", AgcTimeConstant);
+ 508              		.loc 1 175 0
+ 509 0372 6846     		mov	r0, sp
+ 510 0374 A149     		ldr	r1, .L71+8
+ 511 0376 A24B     		ldr	r3, .L71+12
+ 512 0378 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 513 037a FFF7FEFF 		bl	sprintf
+ 514              	.LVL24:
+ 176:Serial.c      **** 				memcpy (UsbTxBuffer, str, sendUsb);
+ 515              		.loc 1 176 0
+ 516 037e A14B     		ldr	r3, .L71+16
+ 517 0380 0098     		ldr	r0, [sp]	@ unaligned
+ 518 0382 1860     		str	r0, [r3]	@ unaligned
+ 519 0384 BDF80410 		ldrh	r1, [sp, #4]	@ unaligned
+ 520 0388 9DF80620 		ldrb	r2, [sp, #6]	@ zero_extendqisi2
+ 521 038c 9980     		strh	r1, [r3, #4]	@ unaligned
+ 522 038e 9A71     		strb	r2, [r3, #6]
+ 177:Serial.c      **** 				UsbTxBuffer [5] = (AgcDisable) ? '0' : '1';
+ 523              		.loc 1 177 0
+ 524 0390 9D4B     		ldr	r3, .L71+20
+ 525 0392 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 526 0394 0BB1     		cbz	r3, .L59
+ 527 0396 3023     		movs	r3, #48
+ 528 0398 00E0     		b	.L43
+ 529              	.L59:
+ 530 039a 3123     		movs	r3, #49
+ 531              	.L43:
+ 532              		.loc 1 177 0 is_stmt 0 discriminator 4
+ 533 039c 994A     		ldr	r2, .L71+16
+ 534 039e 5371     		strb	r3, [r2, #5]
+ 173:Serial.c      **** 				//memcpy (UsbTxBuffer, "GT0040;", sendUsb);
+ 535              		.loc 1 173 0 is_stmt 1 discriminator 4
+ 536 03a0 0723     		movs	r3, #7
+ 537 03a2 18E1     		b	.L2
+ 538              	.LVL25:
+ 539              	.L42:
+ 178:Serial.c      **** 			}
+ 179:Serial.c      **** 			else
+ 180:Serial.c      ****             {
+ 181:Serial.c      ****                 AgcTimeConstant = ComRxCmd [4] - '0';
+ 540              		.loc 1 181 0
+ 541 03a4 934A     		ldr	r2, .L71
+ 542 03a6 1379     		ldrb	r3, [r2, #4]	@ zero_extendqisi2
+ 543 03a8 303B     		subs	r3, r3, #48
+ 544 03aa 9549     		ldr	r1, .L71+12
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 14
+
+
+ 545 03ac 0B70     		strb	r3, [r1]
+ 182:Serial.c      ****                 AgcDisable = (ComRxCmd [5] == '0');
+ 546              		.loc 1 182 0
+ 547 03ae 5379     		ldrb	r3, [r2, #5]	@ zero_extendqisi2
+ 548 03b0 302B     		cmp	r3, #48
+ 549 03b2 14BF     		ite	ne
+ 550 03b4 0023     		movne	r3, #0
+ 551 03b6 0123     		moveq	r3, #1
+ 552 03b8 934A     		ldr	r2, .L71+20
+ 553 03ba 1370     		strb	r3, [r2]
+  58:Serial.c      ****     char    str[8];
+ 554              		.loc 1 58 0
+ 555 03bc 0023     		movs	r3, #0
+ 556 03be 0AE1     		b	.L2
+ 557              	.L3:
+ 558              	.LVL26:
+ 183:Serial.c      **** 			}
+ 184:Serial.c      ****             break;
+ 185:Serial.c      **** 
+ 186:Serial.c      **** 		case CMD_ID:					// K2 ID number
+ 187:Serial.c      **** 			sendUsb = 6;
+ 188:Serial.c      **** 			memcpy (UsbTxBuffer, "ID017;", sendUsb);
+ 559              		.loc 1 188 0
+ 560 03c0 904B     		ldr	r3, .L71+16
+ 561 03c2 924A     		ldr	r2, .L71+24
+ 562 03c4 1068     		ldr	r0, [r2]	@ unaligned
+ 563 03c6 1860     		str	r0, [r3]	@ unaligned
+ 564 03c8 9288     		ldrh	r2, [r2, #4]	@ unaligned
+ 565 03ca 9A80     		strh	r2, [r3, #4]	@ unaligned
+ 187:Serial.c      **** 			memcpy (UsbTxBuffer, "ID017;", sendUsb);
+ 566              		.loc 1 187 0
+ 567 03cc 0623     		movs	r3, #6
+ 189:Serial.c      **** 			break;
+ 568              		.loc 1 189 0
+ 569 03ce 02E1     		b	.L2
+ 570              	.LVL27:
+ 571              	.L22:
+ 190:Serial.c      **** 
+ 191:Serial.c      **** 		case CMD_IF:					// radio info
+ 192:Serial.c      **** 			sendUsb = 35;
+ 193:Serial.c      **** 			memcpy (UsbTxBuffer, "IF00000000000     +00000001000001 ;", sendUsb);
+ 572              		.loc 1 193 0
+ 573 03d0 8F4E     		ldr	r6, .L71+28
+ 574 03d2 8C4C     		ldr	r4, .L71+16
+ 575 03d4 06F12007 		add	r7, r6, #32
+ 576              	.L44:
+ 577 03d8 3546     		mov	r5, r6
+ 578 03da 0FCD     		ldmia	r5!, {r0, r1, r2, r3}
+ 579 03dc 2060     		str	r0, [r4]	@ unaligned
+ 580 03de 6160     		str	r1, [r4, #4]	@ unaligned
+ 581 03e0 A260     		str	r2, [r4, #8]	@ unaligned
+ 582 03e2 E360     		str	r3, [r4, #12]	@ unaligned
+ 583 03e4 2E46     		mov	r6, r5
+ 584 03e6 1034     		adds	r4, r4, #16
+ 585 03e8 BD42     		cmp	r5, r7
+ 586 03ea F5D1     		bne	.L44
+ 587 03ec 2A88     		ldrh	r2, [r5]	@ unaligned
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 15
+
+
+ 588 03ee AB78     		ldrb	r3, [r5, #2]	@ zero_extendqisi2
+ 589 03f0 2280     		strh	r2, [r4]	@ unaligned
+ 590 03f2 A370     		strb	r3, [r4, #2]
+ 194:Serial.c      **** 			memcpy (&UsbTxBuffer [5], Freq, 8);
+ 591              		.loc 1 194 0
+ 592 03f4 834B     		ldr	r3, .L71+16
+ 593 03f6 874A     		ldr	r2, .L71+32
+ 594 03f8 1168     		ldr	r1, [r2]	@ unaligned
+ 595 03fa 5268     		ldr	r2, [r2, #4]	@ unaligned
+ 596 03fc C3F80510 		str	r1, [r3, #5]	@ unaligned
+ 597 0400 C3F80920 		str	r2, [r3, #9]	@ unaligned
+ 192:Serial.c      **** 			memcpy (UsbTxBuffer, "IF00000000000     +00000001000001 ;", sendUsb);
+ 598              		.loc 1 192 0
+ 599 0404 2323     		movs	r3, #35
+ 195:Serial.c      **** 			break;
+ 600              		.loc 1 195 0
+ 601 0406 E6E0     		b	.L2
+ 602              	.LVL28:
+ 603              	.L23:
+ 196:Serial.c      **** 
+ 197:Serial.c      **** 		case CMD_K2:					// meta-command
+ 198:Serial.c      **** 			if (GET_CMD)
+ 604              		.loc 1 198 0
+ 605 0408 7A4B     		ldr	r3, .L71
+ 606 040a 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 607 040c 3B2B     		cmp	r3, #59
+ 608 040e 40F0D780 		bne	.L60
+ 609              	.LVL29:
+ 199:Serial.c      **** 			{
+ 200:Serial.c      **** 				sendUsb = 4;
+ 201:Serial.c      **** 				memcpy (UsbTxBuffer, "K22;", sendUsb);
+ 610              		.loc 1 201 0
+ 611 0412 814B     		ldr	r3, .L71+36
+ 612 0414 1868     		ldr	r0, [r3]	@ unaligned
+ 613 0416 7B4B     		ldr	r3, .L71+16
+ 614 0418 1860     		str	r0, [r3]	@ unaligned
+ 200:Serial.c      **** 				memcpy (UsbTxBuffer, "K22;", sendUsb);
+ 615              		.loc 1 200 0
+ 616 041a 0423     		movs	r3, #4
+ 617 041c DBE0     		b	.L2
+ 618              	.LVL30:
+ 619              	.L20:
+ 202:Serial.c      **** 			}
+ 203:Serial.c      **** 			break;
+ 204:Serial.c      **** 
+ 205:Serial.c      **** 		case CMD_KS:					// keyer speed, not used
+ 206:Serial.c      **** 			if (GET_CMD)
+ 620              		.loc 1 206 0
+ 621 041e 754B     		ldr	r3, .L71
+ 622 0420 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 623 0422 3B2B     		cmp	r3, #59
+ 624 0424 40F0CE80 		bne	.L61
+ 625              	.LVL31:
+ 207:Serial.c      **** 			{
+ 208:Serial.c      **** 				sendUsb = 6;
+ 209:Serial.c      **** 				memcpy (UsbTxBuffer, "KS009;", sendUsb);
+ 626              		.loc 1 209 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 16
+
+
+ 627 0428 764B     		ldr	r3, .L71+16
+ 628 042a 7C4A     		ldr	r2, .L71+40
+ 629 042c 1068     		ldr	r0, [r2]	@ unaligned
+ 630 042e 1860     		str	r0, [r3]	@ unaligned
+ 631 0430 9288     		ldrh	r2, [r2, #4]	@ unaligned
+ 632 0432 9A80     		strh	r2, [r3, #4]	@ unaligned
+ 208:Serial.c      **** 				memcpy (UsbTxBuffer, "KS009;", sendUsb);
+ 633              		.loc 1 208 0
+ 634 0434 0623     		movs	r3, #6
+ 635 0436 CEE0     		b	.L2
+ 636              	.LVL32:
+ 637              	.L24:
+ 210:Serial.c      **** 			}
+ 211:Serial.c      **** 			break;
+ 212:Serial.c      **** 
+ 213:Serial.c      **** 		case CMD_LK:					// VFO lock, always unlocked
+ 214:Serial.c      **** 			if (GET_CMD)
+ 638              		.loc 1 214 0
+ 639 0438 6E4B     		ldr	r3, .L71
+ 640 043a 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 641 043c 3B2B     		cmp	r3, #59
+ 642 043e 40F0C380 		bne	.L62
+ 643              	.LVL33:
+ 215:Serial.c      **** 			{
+ 216:Serial.c      **** 				sendUsb = 4;
+ 217:Serial.c      **** 				memcpy (UsbTxBuffer, "LK0;", sendUsb);
+ 644              		.loc 1 217 0
+ 645 0442 774B     		ldr	r3, .L71+44
+ 646 0444 1868     		ldr	r0, [r3]	@ unaligned
+ 647 0446 6F4B     		ldr	r3, .L71+16
+ 648 0448 1860     		str	r0, [r3]	@ unaligned
+ 216:Serial.c      **** 				memcpy (UsbTxBuffer, "LK0;", sendUsb);
+ 649              		.loc 1 216 0
+ 650 044a 0423     		movs	r3, #4
+ 651 044c C3E0     		b	.L2
+ 652              	.LVL34:
+ 653              	.L25:
+ 218:Serial.c      **** 			}
+ 219:Serial.c      **** 			break;
+ 220:Serial.c      **** 
+ 221:Serial.c      **** 		case CMD_MD:					// operating mode
+ 222:Serial.c      **** 			if (GET_CMD)
+ 654              		.loc 1 222 0
+ 655 044e 694B     		ldr	r3, .L71
+ 656 0450 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 657 0452 3B2B     		cmp	r3, #59
+ 658 0454 09D1     		bne	.L45
+ 659              	.LVL35:
+ 223:Serial.c      **** 			{
+ 224:Serial.c      **** 				sendUsb = 4;
+ 225:Serial.c      **** 				memcpy (UsbTxBuffer, "MD1;", sendUsb);
+ 660              		.loc 1 225 0
+ 661 0456 6B4A     		ldr	r2, .L71+16
+ 662 0458 724B     		ldr	r3, .L71+48
+ 663 045a 1868     		ldr	r0, [r3]	@ unaligned
+ 664 045c 1060     		str	r0, [r2]	@ unaligned
+ 226:Serial.c      **** 				UsbTxBuffer [2] = Mode + '1';	// Mode = 0 - 9
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 17
+
+
+ 665              		.loc 1 226 0
+ 666 045e 724B     		ldr	r3, .L71+52
+ 667 0460 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 668 0462 3133     		adds	r3, r3, #49
+ 669 0464 9370     		strb	r3, [r2, #2]
+ 224:Serial.c      **** 				memcpy (UsbTxBuffer, "MD1;", sendUsb);
+ 670              		.loc 1 224 0
+ 671 0466 0423     		movs	r3, #4
+ 672 0468 B5E0     		b	.L2
+ 673              	.LVL36:
+ 674              	.L45:
+ 227:Serial.c      **** 			}
+ 228:Serial.c      **** 			else
+ 229:Serial.c      ****             {
+ 230:Serial.c      **** 				SetMode (ComRxCmd [2] - '1');	// map Mode to 0 - 9
+ 675              		.loc 1 230 0
+ 676 046a A3F13100 		sub	r0, r3, #49
+ 677 046e C0B2     		uxtb	r0, r0
+ 678 0470 FFF7FEFF 		bl	SetMode
+ 679              	.LVL37:
+ 231:Serial.c      ****                 LoadFilter (Filter);
+ 680              		.loc 1 231 0
+ 681 0474 604B     		ldr	r3, .L71+4
+ 682 0476 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 683 0478 FFF7FEFF 		bl	LoadFilter
+ 684              	.LVL38:
+  58:Serial.c      ****     char    str[8];
+ 685              		.loc 1 58 0
+ 686 047c 0023     		movs	r3, #0
+ 687 047e AAE0     		b	.L2
+ 688              	.L18:
+ 232:Serial.c      ****             }   
+ 233:Serial.c      **** 			break;
+ 234:Serial.c      **** 
+ 235:Serial.c      **** 		case CMD_NB:					// noise blanker mode, extended
+ 236:Serial.c      **** 			if (GET_CMD)
+ 689              		.loc 1 236 0
+ 690 0480 5C4B     		ldr	r3, .L71
+ 691 0482 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 692 0484 3B2B     		cmp	r3, #59
+ 693 0486 40F0A180 		bne	.L63
+ 694              	.LVL39:
+ 237:Serial.c      **** 			{
+ 238:Serial.c      **** 				sendUsb = 5;
+ 239:Serial.c      **** 				memcpy (UsbTxBuffer, "NB01;", sendUsb);
+ 695              		.loc 1 239 0
+ 696 048a 5E4B     		ldr	r3, .L71+16
+ 697 048c 674A     		ldr	r2, .L71+56
+ 698 048e 1068     		ldr	r0, [r2]	@ unaligned
+ 699 0490 1860     		str	r0, [r3]	@ unaligned
+ 700 0492 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 701 0494 1A71     		strb	r2, [r3, #4]
+ 238:Serial.c      **** 				memcpy (UsbTxBuffer, "NB01;", sendUsb);
+ 702              		.loc 1 238 0
+ 703 0496 0523     		movs	r3, #5
+ 704 0498 9DE0     		b	.L2
+ 705              	.LVL40:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 18
+
+
+ 706              	.L28:
+ 240:Serial.c      **** 			}
+ 241:Serial.c      **** #if PSoC3            
+ 242:Serial.c      **** 			else if (!memcmp (Freq, "10101010", 8))	// special frequency test
+ 243:Serial.c      **** 				CyBtldr_Load();			// enter USB boot loader mode
+ 244:Serial.c      **** 			else
+ 245:Serial.c      **** 			{
+ 246:Serial.c      **** 				Clock_FracN_SetDividerValue (10);	// unlock and reloack PLL
+ 247:Serial.c      **** 				CyDelay (100);						// delay in msec
+ 248:Serial.c      **** 				Clock_FracN_SetDividerValue (9);
+ 249:Serial.c      **** 			}
+ 250:Serial.c      **** #endif
+ 251:Serial.c      ****             break;
+ 252:Serial.c      **** 
+ 253:Serial.c      **** 		case CMD_PA:					// rx preamp, always off
+ 254:Serial.c      **** 			if (GET_CMD)
+ 707              		.loc 1 254 0
+ 708 049a 564B     		ldr	r3, .L71
+ 709 049c 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 710 049e 3B2B     		cmp	r3, #59
+ 711 04a0 40F09680 		bne	.L64
+ 712              	.LVL41:
+ 255:Serial.c      **** 			{
+ 256:Serial.c      **** 				sendUsb = 4;
+ 257:Serial.c      **** 				memcpy (UsbTxBuffer, "PA0;", sendUsb);
+ 713              		.loc 1 257 0
+ 714 04a4 624B     		ldr	r3, .L71+60
+ 715 04a6 1868     		ldr	r0, [r3]	@ unaligned
+ 716 04a8 564B     		ldr	r3, .L71+16
+ 717 04aa 1860     		str	r0, [r3]	@ unaligned
+ 256:Serial.c      **** 				memcpy (UsbTxBuffer, "PA0;", sendUsb);
+ 718              		.loc 1 256 0
+ 719 04ac 0423     		movs	r3, #4
+ 720 04ae 92E0     		b	.L2
+ 721              	.LVL42:
+ 722              	.L29:
+ 258:Serial.c      **** 			}
+ 259:Serial.c      **** 			break;
+ 260:Serial.c      **** 
+ 261:Serial.c      **** 		case CMD_PC:					// power output level
+ 262:Serial.c      **** 			if (GET_CMD)
+ 723              		.loc 1 262 0
+ 724 04b0 504B     		ldr	r3, .L71
+ 725 04b2 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 726 04b4 3B2B     		cmp	r3, #59
+ 727 04b6 40F08D80 		bne	.L65
+ 728              	.LVL43:
+ 263:Serial.c      **** 			{
+ 264:Serial.c      **** 				sendUsb = 7;
+ 265:Serial.c      **** 				memcpy (UsbTxBuffer, "PC0000;", sendUsb);
+ 729              		.loc 1 265 0
+ 730 04ba 524B     		ldr	r3, .L71+16
+ 731 04bc 5D4A     		ldr	r2, .L71+64
+ 732 04be 1068     		ldr	r0, [r2]	@ unaligned
+ 733 04c0 1860     		str	r0, [r3]	@ unaligned
+ 734 04c2 9188     		ldrh	r1, [r2, #4]	@ unaligned
+ 735 04c4 9279     		ldrb	r2, [r2, #6]	@ zero_extendqisi2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 19
+
+
+ 736 04c6 9980     		strh	r1, [r3, #4]	@ unaligned
+ 737 04c8 9A71     		strb	r2, [r3, #6]
+ 264:Serial.c      **** 				memcpy (UsbTxBuffer, "PC0000;", sendUsb);
+ 738              		.loc 1 264 0
+ 739 04ca 0723     		movs	r3, #7
+ 740 04cc 83E0     		b	.L2
+ 741              	.LVL44:
+ 742              	.L26:
+ 266:Serial.c      **** 			}
+ 267:Serial.c      **** 			break;
+ 268:Serial.c      **** 
+ 269:Serial.c      **** 		case CMD_PS:					// radio power status, always on
+ 270:Serial.c      **** 			sendUsb = 4;
+ 271:Serial.c      **** 			memcpy (UsbTxBuffer, "PS1;", sendUsb);
+ 743              		.loc 1 271 0
+ 744 04ce 5A4B     		ldr	r3, .L71+68
+ 745 04d0 1868     		ldr	r0, [r3]	@ unaligned
+ 746 04d2 4C4B     		ldr	r3, .L71+16
+ 747 04d4 1860     		str	r0, [r3]	@ unaligned
+ 270:Serial.c      **** 			memcpy (UsbTxBuffer, "PS1;", sendUsb);
+ 748              		.loc 1 270 0
+ 749 04d6 0423     		movs	r3, #4
+ 272:Serial.c      **** 			break;
+ 750              		.loc 1 272 0
+ 751 04d8 7DE0     		b	.L2
+ 752              	.LVL45:
+ 753              	.L30:
+ 273:Serial.c      **** 
+ 274:Serial.c      **** 		case CMD_RA:					// rx attenuator, 0 = off, 1 = on
+ 275:Serial.c      **** 			if (GET_CMD)
+ 754              		.loc 1 275 0
+ 755 04da 464B     		ldr	r3, .L71
+ 756 04dc 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 757 04de 3B2B     		cmp	r3, #59
+ 758 04e0 0FD1     		bne	.L46
+ 759              	.LVL46:
+ 276:Serial.c      **** 			{
+ 277:Serial.c      **** 				sendUsb = 5;
+ 278:Serial.c      **** 				memcpy (UsbTxBuffer, "RA00;", sendUsb);
+ 760              		.loc 1 278 0
+ 761 04e2 484B     		ldr	r3, .L71+16
+ 762 04e4 554A     		ldr	r2, .L71+72
+ 763 04e6 1068     		ldr	r0, [r2]	@ unaligned
+ 764 04e8 1860     		str	r0, [r3]	@ unaligned
+ 765 04ea 1279     		ldrb	r2, [r2, #4]	@ zero_extendqisi2
+ 766 04ec 1A71     		strb	r2, [r3, #4]
+ 279:Serial.c      **** 				UsbTxBuffer [3] = (AttenuatorOn) ? '1' : '0';
+ 767              		.loc 1 279 0
+ 768 04ee 544B     		ldr	r3, .L71+76
+ 769 04f0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 770 04f2 0BB1     		cbz	r3, .L66
+ 771 04f4 3123     		movs	r3, #49
+ 772 04f6 00E0     		b	.L47
+ 773              	.L66:
+ 774 04f8 3023     		movs	r3, #48
+ 775              	.L47:
+ 776              		.loc 1 279 0 is_stmt 0 discriminator 4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 20
+
+
+ 777 04fa 424A     		ldr	r2, .L71+16
+ 778 04fc D370     		strb	r3, [r2, #3]
+ 277:Serial.c      **** 				memcpy (UsbTxBuffer, "RA00;", sendUsb);
+ 779              		.loc 1 277 0 is_stmt 1 discriminator 4
+ 780 04fe 0523     		movs	r3, #5
+ 781 0500 69E0     		b	.L2
+ 782              	.LVL47:
+ 783              	.L46:
+ 280:Serial.c      **** 			}
+ 281:Serial.c      **** 			else
+ 282:Serial.c      **** 			{
+ 283:Serial.c      **** 				AttenuatorOn = (ComRxCmd [3] == '1');
+ 784              		.loc 1 283 0
+ 785 0502 3C4B     		ldr	r3, .L71
+ 786 0504 DB78     		ldrb	r3, [r3, #3]	@ zero_extendqisi2
+ 787 0506 312B     		cmp	r3, #49
+ 788 0508 14BF     		ite	ne
+ 789 050a 0023     		movne	r3, #0
+ 790 050c 0123     		moveq	r3, #1
+ 791 050e 4C4A     		ldr	r2, .L71+76
+ 792 0510 1370     		strb	r3, [r2]
+ 284:Serial.c      **** 				AgcGain = AgcIntegrator = 0;	// mute the input signal during ADC range changes
+ 793              		.loc 1 284 0
+ 794 0512 0022     		movs	r2, #0
+ 795 0514 4B49     		ldr	r1, .L71+80
+ 796 0516 0A70     		strb	r2, [r1]
+ 797 0518 4B49     		ldr	r1, .L71+84
+ 798 051a 0A70     		strb	r2, [r1]
+ 285:Serial.c      **** 				ADC_SetBufferGain ( (AttenuatorOn) ? 1 : 4 );
+ 799              		.loc 1 285 0
+ 800 051c 0BB1     		cbz	r3, .L67
+ 801 051e 0120     		movs	r0, #1
+ 802 0520 00E0     		b	.L48
+ 803              	.L67:
+ 804 0522 0420     		movs	r0, #4
+ 805              	.L48:
+ 806              		.loc 1 285 0 is_stmt 0 discriminator 4
+ 807 0524 FFF7FEFF 		bl	ADC_SetBufferGain
+ 808              	.LVL48:
+  58:Serial.c      ****     char    str[8];
+ 809              		.loc 1 58 0 is_stmt 1 discriminator 4
+ 810 0528 0023     		movs	r3, #0
+ 811 052a 54E0     		b	.L2
+ 812              	.L31:
+ 286:Serial.c      **** 			}	
+ 287:Serial.c      **** 			break;
+ 288:Serial.c      **** 							
+ 289:Serial.c      **** 		case CMD_SQ:					// squelch, 0 2 250.
+ 290:Serial.c      **** 			if (GET_CMD)
+ 813              		.loc 1 290 0
+ 814 052c 314B     		ldr	r3, .L71
+ 815 052e 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 816 0530 3B2B     		cmp	r3, #59
+ 817 0532 21D1     		bne	.L49
+ 818              	.LVL49:
+ 291:Serial.c      **** 			{
+ 292:Serial.c      **** 				sendUsb = 6;
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 21
+
+
+ 293:Serial.c      **** 				memcpy (UsbTxBuffer, "SQ000;", sendUsb);
+ 819              		.loc 1 293 0
+ 820 0534 3349     		ldr	r1, .L71+16
+ 821 0536 454B     		ldr	r3, .L71+88
+ 822 0538 1868     		ldr	r0, [r3]	@ unaligned
+ 823 053a 0860     		str	r0, [r1]	@ unaligned
+ 824 053c 9B88     		ldrh	r3, [r3, #4]	@ unaligned
+ 825 053e 8B80     		strh	r3, [r1, #4]	@ unaligned
+ 294:Serial.c      **** 				i = Squelch;
+ 826              		.loc 1 294 0
+ 827 0540 434B     		ldr	r3, .L71+92
+ 828 0542 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 829              	.LVL50:
+ 295:Serial.c      **** 				UsbTxBuffer [2] = (i / 100) + '0';	// hundreds
+ 830              		.loc 1 295 0
+ 831 0544 434A     		ldr	r2, .L71+96
+ 832 0546 A2FB0032 		umull	r3, r2, r2, r0
+ 833 054a 5309     		lsrs	r3, r2, #5
+ 834 054c 03F13002 		add	r2, r3, #48
+ 835 0550 8A70     		strb	r2, [r1, #2]
+ 296:Serial.c      **** 				i = i % 100;
+ 836              		.loc 1 296 0
+ 837 0552 6422     		movs	r2, #100
+ 838 0554 02FB1303 		mls	r3, r2, r3, r0
+ 839 0558 DBB2     		uxtb	r3, r3
+ 840              	.LVL51:
+ 297:Serial.c      **** 				UsbTxBuffer [3] = (i / 10) + '0';	// tens
+ 841              		.loc 1 297 0
+ 842 055a 3F4A     		ldr	r2, .L71+100
+ 843 055c A2FB0302 		umull	r0, r2, r2, r3
+ 844 0560 D208     		lsrs	r2, r2, #3
+ 845 0562 02F13000 		add	r0, r2, #48
+ 846 0566 C870     		strb	r0, [r1, #3]
+ 298:Serial.c      **** 				UsbTxBuffer [4] = (i % 10) + '0';	// units
+ 847              		.loc 1 298 0
+ 848 0568 02EB8202 		add	r2, r2, r2, lsl #2
+ 849 056c A3EB4203 		sub	r3, r3, r2, lsl #1
+ 850              	.LVL52:
+ 851 0570 3033     		adds	r3, r3, #48
+ 852 0572 0B71     		strb	r3, [r1, #4]
+ 292:Serial.c      **** 				memcpy (UsbTxBuffer, "SQ000;", sendUsb);
+ 853              		.loc 1 292 0
+ 854 0574 0623     		movs	r3, #6
+ 855 0576 2EE0     		b	.L2
+ 856              	.LVL53:
+ 857              	.L49:
+ 299:Serial.c      **** 			}
+ 300:Serial.c      **** 			else
+ 301:Serial.c      **** 			{
+ 302:Serial.c      **** 				Squelch = 100 * (ComRxCmd [2] - '0');
+ 858              		.loc 1 302 0
+ 859 0578 303B     		subs	r3, r3, #48
+ 860 057a 03EB8303 		add	r3, r3, r3, lsl #2
+ 861 057e 03EB8303 		add	r3, r3, r3, lsl #2
+ 862 0582 9A00     		lsls	r2, r3, #2
+ 303:Serial.c      **** 				Squelch += 10 * (ComRxCmd [3] - '0');
+ 863              		.loc 1 303 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 22
+
+
+ 864 0584 1B49     		ldr	r1, .L71
+ 865 0586 CB78     		ldrb	r3, [r1, #3]	@ zero_extendqisi2
+ 866 0588 303B     		subs	r3, r3, #48
+ 867 058a 03EB8303 		add	r3, r3, r3, lsl #2
+ 868 058e 02EB4303 		add	r3, r2, r3, lsl #1
+ 869 0592 03F0FE03 		and	r3, r3, #254
+ 304:Serial.c      **** 				Squelch += ComRxCmd [4] - '0';
+ 870              		.loc 1 304 0
+ 871 0596 0A79     		ldrb	r2, [r1, #4]	@ zero_extendqisi2
+ 872 0598 1344     		add	r3, r3, r2
+ 873 059a 303B     		subs	r3, r3, #48
+ 874 059c 2C4A     		ldr	r2, .L71+92
+ 875 059e 1370     		strb	r3, [r2]
+  58:Serial.c      ****     char    str[8];
+ 876              		.loc 1 58 0
+ 877 05a0 0023     		movs	r3, #0
+ 878 05a2 18E0     		b	.L2
+ 879              	.L52:
+ 880 05a4 0023     		movs	r3, #0
+ 881 05a6 16E0     		b	.L2
+ 882              	.L53:
+ 883 05a8 0023     		movs	r3, #0
+ 884 05aa 14E0     		b	.L2
+ 885              	.L54:
+ 886 05ac 0023     		movs	r3, #0
+ 887 05ae 12E0     		b	.L2
+ 888              	.L55:
+ 889 05b0 0023     		movs	r3, #0
+ 890 05b2 10E0     		b	.L2
+ 891              	.L56:
+ 892 05b4 0023     		movs	r3, #0
+ 893 05b6 0EE0     		b	.L2
+ 894              	.L57:
+ 895 05b8 0023     		movs	r3, #0
+ 896 05ba 0CE0     		b	.L2
+ 897              	.LVL54:
+ 898              	.L58:
+ 149:Serial.c      **** 				if (Filter == FILTER_FL1)
+ 899              		.loc 1 149 0
+ 900 05bc 0923     		movs	r3, #9
+ 901 05be 0AE0     		b	.L2
+ 902              	.LVL55:
+ 903              	.L60:
+  58:Serial.c      ****     char    str[8];
+ 904              		.loc 1 58 0
+ 905 05c0 0023     		movs	r3, #0
+ 906 05c2 08E0     		b	.L2
+ 907              	.L61:
+ 908 05c4 0023     		movs	r3, #0
+ 909 05c6 06E0     		b	.L2
+ 910              	.L62:
+ 911 05c8 0023     		movs	r3, #0
+ 912 05ca 04E0     		b	.L2
+ 913              	.L63:
+ 914 05cc 0023     		movs	r3, #0
+ 915 05ce 02E0     		b	.L2
+ 916              	.L64:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 23
+
+
+ 917 05d0 0023     		movs	r3, #0
+ 918 05d2 00E0     		b	.L2
+ 919              	.L65:
+ 920 05d4 0023     		movs	r3, #0
+ 921              	.LVL56:
+ 922              	.L2:
+ 305:Serial.c      **** 			}
+ 306:Serial.c      **** 			break;
+ 307:Serial.c      **** 	}
+ 308:Serial.c      **** 
+ 309:Serial.c      **** 	if (sendUsb)
+ 923              		.loc 1 309 0
+ 924 05d6 5BB1     		cbz	r3, .L1
+ 310:Serial.c      **** 	{
+ 311:Serial.c      **** #if PSoC3 // original code
+ 312:Serial.c      **** 		USBUART_Write(UsbTxBuffer, sendUsb);	// send response
+ 313:Serial.c      **** #else
+ 314:Serial.c      ****         UsbTxBuffer[sendUsb] = '\0';
+ 925              		.loc 1 314 0
+ 926 05d8 0A48     		ldr	r0, .L71+16
+ 927 05da 0022     		movs	r2, #0
+ 928 05dc C254     		strb	r2, [r0, r3]
+ 315:Serial.c      **** 		USBUART_Write(UsbTxBuffer);	// send response
+ 929              		.loc 1 315 0
+ 930 05de FFF7FEFF 		bl	USBUART_Write
+ 931              	.LVL57:
+ 316:Serial.c      **** 		USBUART_Write((uint8*)"\r\n");	// send response
+ 932              		.loc 1 316 0
+ 933 05e2 1E48     		ldr	r0, .L71+104
+ 934 05e4 FFF7FEFF 		bl	USBUART_Write
+ 935              	.LVL58:
+ 936              	.L51:
+ 317:Serial.c      **** 		while(!USBUART_bTxIsReady()) ;
+ 937              		.loc 1 317 0 discriminator 1
+ 938 05e8 FFF7FEFF 		bl	USBUART_bTxIsReady
+ 939              	.LVL59:
+ 940 05ec 0028     		cmp	r0, #0
+ 941 05ee FBD0     		beq	.L51
+ 942              	.L1:
+ 318:Serial.c      **** #endif
+ 319:Serial.c      ****     }
+ 320:Serial.c      **** }
+ 943              		.loc 1 320 0
+ 944 05f0 03B0     		add	sp, sp, #12
+ 945              		.cfi_def_cfa_offset 20
+ 946              		@ sp needed
+ 947 05f2 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 948              	.L72:
+ 949              		.align	2
+ 950              	.L71:
+ 951 05f4 00000000 		.word	ComRxCmd
+ 952 05f8 00000000 		.word	Filter
+ 953 05fc A0000000 		.word	.LC15
+ 954 0600 00000000 		.word	AgcTimeConstant
+ 955 0604 00000000 		.word	UsbTxBuffer
+ 956 0608 00000000 		.word	AgcDisable
+ 957 060c AC000000 		.word	.LC16
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 24
+
+
+ 958 0610 B4000000 		.word	.LC17
+ 959 0614 00000000 		.word	Freq
+ 960 0618 D8000000 		.word	.LC18
+ 961 061c E0000000 		.word	.LC19
+ 962 0620 E8000000 		.word	.LC20
+ 963 0624 F0000000 		.word	.LC21
+ 964 0628 00000000 		.word	Mode
+ 965 062c F8000000 		.word	.LC22
+ 966 0630 00010000 		.word	.LC23
+ 967 0634 08010000 		.word	.LC24
+ 968 0638 10010000 		.word	.LC25
+ 969 063c 18010000 		.word	.LC26
+ 970 0640 00000000 		.word	AttenuatorOn
+ 971 0644 00000000 		.word	AgcIntegrator
+ 972 0648 00000000 		.word	AgcGain
+ 973 064c 20010000 		.word	.LC27
+ 974 0650 00000000 		.word	Squelch
+ 975 0654 1F85EB51 		.word	1374389535
+ 976 0658 CDCCCCCC 		.word	-858993459
+ 977 065c 28010000 		.word	.LC28
+ 978              		.cfi_endproc
+ 979              	.LFE63:
+ 980              		.size	ProcessComRx, .-ProcessComRx
+ 981              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 982              		.align	2
+ 983              	.LC0:
+ 984 0000 4149303B 		.ascii	"AI0;\000"
+ 984      00
+ 985 0005 000000   		.space	3
+ 986              	.LC1:
+ 987 0008 414E313B 		.ascii	"AN1;\000"
+ 987      00
+ 988 000d 000000   		.space	3
+ 989              	.LC2:
+ 990 0010 42473132 		.ascii	"BG12;\000"
+ 990      3B00
+ 991 0016 0000     		.space	2
+ 992              	.LC3:
+ 993 0018 4453483A 		.ascii	"DSH:S 0000\000"
+ 993      53203030 
+ 993      303000
+ 994 0023 00       		.space	1
+ 995              	.LC4:
+ 996 0024 4453534E 		.ascii	"DSSN \000"
+ 996      2000
+ 997 002a 0000     		.space	2
+ 998              	.LC5:
+ 999 002c 44534652 		.ascii	"DSFR \000"
+ 999      2000
+ 1000 0032 0000     		.space	2
+ 1001              	.LC6:
+ 1002 0034 46413030 		.ascii	"FA00000000000;\000"
+ 1002      30303030 
+ 1002      30303030 
+ 1002      303B00
+ 1003 0043 00       		.space	1
+ 1004              	.LC7:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 25
+
+
+ 1005 0044 46423030 		.ascii	"FB00000000000;\000"
+ 1005      30303030 
+ 1005      30303030 
+ 1005      303B00
+ 1006 0053 00       		.space	1
+ 1007              	.LC8:
+ 1008 0054 4652303B 		.ascii	"FR0;\000"
+ 1008      00
+ 1009 0059 000000   		.space	3
+ 1010              	.LC9:
+ 1011 005c 4654303B 		.ascii	"FT0;\000"
+ 1011      00
+ 1012 0061 000000   		.space	3
+ 1013              	.LC10:
+ 1014 0064 46573235 		.ascii	"FW250010;\000"
+ 1014      30303130 
+ 1014      3B00
+ 1015 006e 0000     		.space	2
+ 1016              	.LC11:
+ 1017 0070 46573230 		.ascii	"FW200020;\000"
+ 1017      30303230 
+ 1017      3B00
+ 1018 007a 0000     		.space	2
+ 1019              	.LC12:
+ 1020 007c 46573135 		.ascii	"FW150030;\000"
+ 1020      30303330 
+ 1020      3B00
+ 1021 0086 0000     		.space	2
+ 1022              	.LC13:
+ 1023 0088 46573130 		.ascii	"FW100040;\000"
+ 1023      30303430 
+ 1023      3B00
+ 1024 0092 0000     		.space	2
+ 1025              	.LC14:
+ 1026 0094 46573430 		.ascii	"FW400050;\000"
+ 1026      30303530 
+ 1026      3B00
+ 1027 009e 0000     		.space	2
+ 1028              	.LC15:
+ 1029 00a0 47542530 		.ascii	"GT%03d0;\000"
+ 1029      3364303B 
+ 1029      00
+ 1030 00a9 000000   		.space	3
+ 1031              	.LC16:
+ 1032 00ac 49443031 		.ascii	"ID017;\000"
+ 1032      373B00
+ 1033 00b3 00       		.space	1
+ 1034              	.LC17:
+ 1035 00b4 49463030 		.ascii	"IF00000000000     +00000001000001 ;\000"
+ 1035      30303030 
+ 1035      30303030 
+ 1035      30202020 
+ 1035      20202B30 
+ 1036              	.LC18:
+ 1037 00d8 4B32323B 		.ascii	"K22;\000"
+ 1037      00
+ 1038 00dd 000000   		.space	3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 26
+
+
+ 1039              	.LC19:
+ 1040 00e0 4B533030 		.ascii	"KS009;\000"
+ 1040      393B00
+ 1041 00e7 00       		.space	1
+ 1042              	.LC20:
+ 1043 00e8 4C4B303B 		.ascii	"LK0;\000"
+ 1043      00
+ 1044 00ed 000000   		.space	3
+ 1045              	.LC21:
+ 1046 00f0 4D44313B 		.ascii	"MD1;\000"
+ 1046      00
+ 1047 00f5 000000   		.space	3
+ 1048              	.LC22:
+ 1049 00f8 4E423031 		.ascii	"NB01;\000"
+ 1049      3B00
+ 1050 00fe 0000     		.space	2
+ 1051              	.LC23:
+ 1052 0100 5041303B 		.ascii	"PA0;\000"
+ 1052      00
+ 1053 0105 000000   		.space	3
+ 1054              	.LC24:
+ 1055 0108 50433030 		.ascii	"PC0000;\000"
+ 1055      30303B00 
+ 1056              	.LC25:
+ 1057 0110 5053313B 		.ascii	"PS1;\000"
+ 1057      00
+ 1058 0115 000000   		.space	3
+ 1059              	.LC26:
+ 1060 0118 52413030 		.ascii	"RA00;\000"
+ 1060      3B00
+ 1061 011e 0000     		.space	2
+ 1062              	.LC27:
+ 1063 0120 53513030 		.ascii	"SQ000;\000"
+ 1063      303B00
+ 1064 0127 00       		.space	1
+ 1065              	.LC28:
+ 1066 0128 0D0A00   		.ascii	"\015\012\000"
+ 1067 012b 00       		.text
+ 1068              	.Letext0:
+ 1069              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.0\\psoc creator\\import\\gnu\\arm\\4.9.
+ 1070              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.0\\psoc creator\\import\\gnu\\arm\\4.9.
+ 1071              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 1072              		.file 5 "Generated_Source\\PSoC5/core_cm3.h"
+ 1073              		.file 6 "main.h"
+ 1074              		.file 7 "Generated_Source\\PSoC5/ADC.h"
+ 1075              		.file 8 "USBUART_API.h"
+ 1076              		.file 9 "c:\\program files (x86)\\cypress\\psoc creator\\4.0\\psoc creator\\import\\gnu\\arm\\4.9.
+ 1077              		.section	.debug_info,"",%progbits
+ 1078              	.Ldebug_info0:
+ 1079 0000 D6020000 		.4byte	0x2d6
+ 1080 0004 0400     		.2byte	0x4
+ 1081 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 1082 000a 04       		.byte	0x4
+ 1083 000b 01       		.uleb128 0x1
+ 1084 000c 60010000 		.4byte	.LASF36
+ 1085 0010 01       		.byte	0x1
+ 1086 0011 4C010000 		.4byte	.LASF37
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 27
+
+
+ 1087 0015 C1000000 		.4byte	.LASF38
+ 1088 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 1089 001d 00000000 		.4byte	0
+ 1090 0021 00000000 		.4byte	.Ldebug_line0
+ 1091 0025 02       		.uleb128 0x2
+ 1092 0026 01       		.byte	0x1
+ 1093 0027 06       		.byte	0x6
+ 1094 0028 A8020000 		.4byte	.LASF0
+ 1095 002c 02       		.uleb128 0x2
+ 1096 002d 01       		.byte	0x1
+ 1097 002e 08       		.byte	0x8
+ 1098 002f 75000000 		.4byte	.LASF1
+ 1099 0033 02       		.uleb128 0x2
+ 1100 0034 02       		.byte	0x2
+ 1101 0035 05       		.byte	0x5
+ 1102 0036 42010000 		.4byte	.LASF2
+ 1103 003a 02       		.uleb128 0x2
+ 1104 003b 02       		.byte	0x2
+ 1105 003c 07       		.byte	0x7
+ 1106 003d A1000000 		.4byte	.LASF3
+ 1107 0041 03       		.uleb128 0x3
+ 1108 0042 13000000 		.4byte	.LASF9
+ 1109 0046 02       		.byte	0x2
+ 1110 0047 3F       		.byte	0x3f
+ 1111 0048 4C000000 		.4byte	0x4c
+ 1112 004c 02       		.uleb128 0x2
+ 1113 004d 04       		.byte	0x4
+ 1114 004e 05       		.byte	0x5
+ 1115 004f 9A020000 		.4byte	.LASF4
+ 1116 0053 02       		.uleb128 0x2
+ 1117 0054 04       		.byte	0x4
+ 1118 0055 07       		.byte	0x7
+ 1119 0056 8F000000 		.4byte	.LASF5
+ 1120 005a 02       		.uleb128 0x2
+ 1121 005b 08       		.byte	0x8
+ 1122 005c 05       		.byte	0x5
+ 1123 005d 51020000 		.4byte	.LASF6
+ 1124 0061 02       		.uleb128 0x2
+ 1125 0062 08       		.byte	0x8
+ 1126 0063 07       		.byte	0x7
+ 1127 0064 FB010000 		.4byte	.LASF7
+ 1128 0068 04       		.uleb128 0x4
+ 1129 0069 04       		.byte	0x4
+ 1130 006a 05       		.byte	0x5
+ 1131 006b 696E7400 		.ascii	"int\000"
+ 1132 006f 02       		.uleb128 0x2
+ 1133 0070 04       		.byte	0x4
+ 1134 0071 07       		.byte	0x7
+ 1135 0072 EE010000 		.4byte	.LASF8
+ 1136 0076 03       		.uleb128 0x3
+ 1137 0077 35020000 		.4byte	.LASF10
+ 1138 007b 03       		.byte	0x3
+ 1139 007c 2C       		.byte	0x2c
+ 1140 007d 41000000 		.4byte	0x41
+ 1141 0081 05       		.uleb128 0x5
+ 1142 0082 05000000 		.4byte	.LASF11
+ 1143 0086 04       		.byte	0x4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 28
+
+
+ 1144 0087 3801     		.2byte	0x138
+ 1145 0089 2C000000 		.4byte	0x2c
+ 1146 008d 02       		.uleb128 0x2
+ 1147 008e 04       		.byte	0x4
+ 1148 008f 04       		.byte	0x4
+ 1149 0090 62000000 		.4byte	.LASF12
+ 1150 0094 02       		.uleb128 0x2
+ 1151 0095 08       		.byte	0x8
+ 1152 0096 04       		.byte	0x4
+ 1153 0097 3B010000 		.4byte	.LASF13
+ 1154 009b 02       		.uleb128 0x2
+ 1155 009c 01       		.byte	0x1
+ 1156 009d 08       		.byte	0x8
+ 1157 009e A3020000 		.4byte	.LASF14
+ 1158 00a2 02       		.uleb128 0x2
+ 1159 00a3 04       		.byte	0x4
+ 1160 00a4 07       		.byte	0x7
+ 1161 00a5 3D020000 		.4byte	.LASF15
+ 1162 00a9 06       		.uleb128 0x6
+ 1163 00aa 04       		.byte	0x4
+ 1164 00ab 9B000000 		.4byte	0x9b
+ 1165 00af 06       		.uleb128 0x6
+ 1166 00b0 04       		.byte	0x4
+ 1167 00b1 B5000000 		.4byte	0xb5
+ 1168 00b5 07       		.uleb128 0x7
+ 1169 00b6 9B000000 		.4byte	0x9b
+ 1170 00ba 08       		.uleb128 0x8
+ 1171 00bb 9B000000 		.4byte	0x9b
+ 1172 00bf CA000000 		.4byte	0xca
+ 1173 00c3 09       		.uleb128 0x9
+ 1174 00c4 A2000000 		.4byte	0xa2
+ 1175 00c8 07       		.byte	0x7
+ 1176 00c9 00       		.byte	0
+ 1177 00ca 08       		.uleb128 0x8
+ 1178 00cb 81000000 		.4byte	0x81
+ 1179 00cf DA000000 		.4byte	0xda
+ 1180 00d3 09       		.uleb128 0x9
+ 1181 00d4 A2000000 		.4byte	0xa2
+ 1182 00d8 07       		.byte	0x7
+ 1183 00d9 00       		.byte	0
+ 1184 00da 08       		.uleb128 0x8
+ 1185 00db 81000000 		.4byte	0x81
+ 1186 00df EA000000 		.4byte	0xea
+ 1187 00e3 09       		.uleb128 0x9
+ 1188 00e4 A2000000 		.4byte	0xa2
+ 1189 00e8 3F       		.byte	0x3f
+ 1190 00e9 00       		.byte	0
+ 1191 00ea 0A       		.uleb128 0xa
+ 1192 00eb 5F020000 		.4byte	.LASF39
+ 1193 00ef 01       		.byte	0x1
+ 1194 00f0 36       		.byte	0x36
+ 1195 00f1 00000000 		.4byte	.LFB63
+ 1196 00f5 60060000 		.4byte	.LFE63-.LFB63
+ 1197 00f9 01       		.uleb128 0x1
+ 1198 00fa 9C       		.byte	0x9c
+ 1199 00fb 9D010000 		.4byte	0x19d
+ 1200 00ff 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 29
+
+
+ 1201 0100 6900     		.ascii	"i\000"
+ 1202 0102 01       		.byte	0x1
+ 1203 0103 39       		.byte	0x39
+ 1204 0104 81000000 		.4byte	0x81
+ 1205 0108 00000000 		.4byte	.LLST0
+ 1206 010c 0C       		.uleb128 0xc
+ 1207 010d 36000000 		.4byte	.LASF16
+ 1208 0111 01       		.byte	0x1
+ 1209 0112 3A       		.byte	0x3a
+ 1210 0113 81000000 		.4byte	0x81
+ 1211 0117 34000000 		.4byte	.LLST1
+ 1212 011b 0D       		.uleb128 0xd
+ 1213 011c 73747200 		.ascii	"str\000"
+ 1214 0120 01       		.byte	0x1
+ 1215 0121 3B       		.byte	0x3b
+ 1216 0122 BA000000 		.4byte	0xba
+ 1217 0126 02       		.uleb128 0x2
+ 1218 0127 91       		.byte	0x91
+ 1219 0128 60       		.sleb128 -32
+ 1220 0129 0E       		.uleb128 0xe
+ 1221 012a 1A020000 		.4byte	.LVL13
+ 1222 012e 62020000 		.4byte	0x262
+ 1223 0132 0E       		.uleb128 0xe
+ 1224 0133 66030000 		.4byte	.LVL22
+ 1225 0137 69020000 		.4byte	0x269
+ 1226 013b 0F       		.uleb128 0xf
+ 1227 013c 7E030000 		.4byte	.LVL24
+ 1228 0140 7A020000 		.4byte	0x27a
+ 1229 0144 58010000 		.4byte	0x158
+ 1230 0148 10       		.uleb128 0x10
+ 1231 0149 01       		.uleb128 0x1
+ 1232 014a 51       		.byte	0x51
+ 1233 014b 05       		.uleb128 0x5
+ 1234 014c 03       		.byte	0x3
+ 1235 014d A0000000 		.4byte	.LC15
+ 1236 0151 10       		.uleb128 0x10
+ 1237 0152 01       		.uleb128 0x1
+ 1238 0153 50       		.byte	0x50
+ 1239 0154 02       		.uleb128 0x2
+ 1240 0155 7D       		.byte	0x7d
+ 1241 0156 00       		.sleb128 0
+ 1242 0157 00       		.byte	0
+ 1243 0158 0E       		.uleb128 0xe
+ 1244 0159 74040000 		.4byte	.LVL37
+ 1245 015d 95020000 		.4byte	0x295
+ 1246 0161 0E       		.uleb128 0xe
+ 1247 0162 7C040000 		.4byte	.LVL38
+ 1248 0166 69020000 		.4byte	0x269
+ 1249 016a 0E       		.uleb128 0xe
+ 1250 016b 28050000 		.4byte	.LVL48
+ 1251 016f A6020000 		.4byte	0x2a6
+ 1252 0173 0E       		.uleb128 0xe
+ 1253 0174 E2050000 		.4byte	.LVL57
+ 1254 0178 B7020000 		.4byte	0x2b7
+ 1255 017c 0F       		.uleb128 0xf
+ 1256 017d E8050000 		.4byte	.LVL58
+ 1257 0181 B7020000 		.4byte	0x2b7
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 30
+
+
+ 1258 0185 93010000 		.4byte	0x193
+ 1259 0189 10       		.uleb128 0x10
+ 1260 018a 01       		.uleb128 0x1
+ 1261 018b 50       		.byte	0x50
+ 1262 018c 05       		.uleb128 0x5
+ 1263 018d 03       		.byte	0x3
+ 1264 018e 28010000 		.4byte	.LC28
+ 1265 0192 00       		.byte	0
+ 1266 0193 0E       		.uleb128 0xe
+ 1267 0194 EC050000 		.4byte	.LVL59
+ 1268 0198 CE020000 		.4byte	0x2ce
+ 1269 019c 00       		.byte	0
+ 1270 019d 11       		.uleb128 0x11
+ 1271 019e 23010000 		.4byte	.LASF17
+ 1272 01a2 05       		.byte	0x5
+ 1273 01a3 5506     		.2byte	0x655
+ 1274 01a5 A9010000 		.4byte	0x1a9
+ 1275 01a9 12       		.uleb128 0x12
+ 1276 01aa 76000000 		.4byte	0x76
+ 1277 01ae 08       		.uleb128 0x8
+ 1278 01af 81000000 		.4byte	0x81
+ 1279 01b3 BE010000 		.4byte	0x1be
+ 1280 01b7 09       		.uleb128 0x9
+ 1281 01b8 A2000000 		.4byte	0xa2
+ 1282 01bc 1F       		.byte	0x1f
+ 1283 01bd 00       		.byte	0
+ 1284 01be 13       		.uleb128 0x13
+ 1285 01bf 2D000000 		.4byte	.LASF18
+ 1286 01c3 01       		.byte	0x1
+ 1287 01c4 17       		.byte	0x17
+ 1288 01c5 AE010000 		.4byte	0x1ae
+ 1289 01c9 13       		.uleb128 0x13
+ 1290 01ca 83000000 		.4byte	.LASF19
+ 1291 01ce 01       		.byte	0x1
+ 1292 01cf 18       		.byte	0x18
+ 1293 01d0 DA000000 		.4byte	0xda
+ 1294 01d4 13       		.uleb128 0x13
+ 1295 01d5 00000000 		.4byte	.LASF20
+ 1296 01d9 01       		.byte	0x1
+ 1297 01da 1B       		.byte	0x1b
+ 1298 01db CA000000 		.4byte	0xca
+ 1299 01df 13       		.uleb128 0x13
+ 1300 01e0 7A020000 		.4byte	.LASF21
+ 1301 01e4 01       		.byte	0x1
+ 1302 01e5 1F       		.byte	0x1f
+ 1303 01e6 81000000 		.4byte	0x81
+ 1304 01ea 13       		.uleb128 0x13
+ 1305 01eb 3E000000 		.4byte	.LASF22
+ 1306 01ef 01       		.byte	0x1
+ 1307 01f0 21       		.byte	0x21
+ 1308 01f1 81000000 		.4byte	0x81
+ 1309 01f5 13       		.uleb128 0x13
+ 1310 01f6 2D020000 		.4byte	.LASF23
+ 1311 01fa 01       		.byte	0x1
+ 1312 01fb 22       		.byte	0x22
+ 1313 01fc 81000000 		.4byte	0x81
+ 1314 0200 13       		.uleb128 0x13
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 31
+
+
+ 1315 0201 6C020000 		.4byte	.LASF24
+ 1316 0205 01       		.byte	0x1
+ 1317 0206 23       		.byte	0x23
+ 1318 0207 81000000 		.4byte	0x81
+ 1319 020b 13       		.uleb128 0x13
+ 1320 020c 1D000000 		.4byte	.LASF25
+ 1321 0210 01       		.byte	0x1
+ 1322 0211 24       		.byte	0x24
+ 1323 0212 81000000 		.4byte	0x81
+ 1324 0216 13       		.uleb128 0x13
+ 1325 0217 95020000 		.4byte	.LASF26
+ 1326 021b 01       		.byte	0x1
+ 1327 021c 25       		.byte	0x25
+ 1328 021d 81000000 		.4byte	0x81
+ 1329 0221 13       		.uleb128 0x13
+ 1330 0222 49000000 		.4byte	.LASF27
+ 1331 0226 01       		.byte	0x1
+ 1332 0227 26       		.byte	0x26
+ 1333 0228 81000000 		.4byte	0x81
+ 1334 022c 13       		.uleb128 0x13
+ 1335 022d B4000000 		.4byte	.LASF28
+ 1336 0231 01       		.byte	0x1
+ 1337 0232 27       		.byte	0x27
+ 1338 0233 81000000 		.4byte	0x81
+ 1339 0237 13       		.uleb128 0x13
+ 1340 0238 25020000 		.4byte	.LASF29
+ 1341 023c 01       		.byte	0x1
+ 1342 023d 28       		.byte	0x28
+ 1343 023e 81000000 		.4byte	0x81
+ 1344 0242 13       		.uleb128 0x13
+ 1345 0243 46020000 		.4byte	.LASF30
+ 1346 0247 01       		.byte	0x1
+ 1347 0248 2A       		.byte	0x2a
+ 1348 0249 4D020000 		.4byte	0x24d
+ 1349 024d 07       		.uleb128 0x7
+ 1350 024e CA000000 		.4byte	0xca
+ 1351 0252 13       		.uleb128 0x13
+ 1352 0253 30010000 		.4byte	.LASF31
+ 1353 0257 01       		.byte	0x1
+ 1354 0258 2B       		.byte	0x2b
+ 1355 0259 5D020000 		.4byte	0x25d
+ 1356 025d 07       		.uleb128 0x7
+ 1357 025e CA000000 		.4byte	0xca
+ 1358 0262 14       		.uleb128 0x14
+ 1359 0263 68000000 		.4byte	.LASF40
+ 1360 0267 06       		.byte	0x6
+ 1361 0268 64       		.byte	0x64
+ 1362 0269 15       		.uleb128 0x15
+ 1363 026a 55010000 		.4byte	.LASF32
+ 1364 026e 06       		.byte	0x6
+ 1365 026f 63       		.byte	0x63
+ 1366 0270 7A020000 		.4byte	0x27a
+ 1367 0274 16       		.uleb128 0x16
+ 1368 0275 81000000 		.4byte	0x81
+ 1369 0279 00       		.byte	0
+ 1370 027a 17       		.uleb128 0x17
+ 1371 027b B4020000 		.4byte	.LASF41
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 32
+
+
+ 1372 027f 09       		.byte	0x9
+ 1373 0280 DE       		.byte	0xde
+ 1374 0281 68000000 		.4byte	0x68
+ 1375 0285 95020000 		.4byte	0x295
+ 1376 0289 16       		.uleb128 0x16
+ 1377 028a A9000000 		.4byte	0xa9
+ 1378 028e 16       		.uleb128 0x16
+ 1379 028f AF000000 		.4byte	0xaf
+ 1380 0293 18       		.uleb128 0x18
+ 1381 0294 00       		.byte	0
+ 1382 0295 15       		.uleb128 0x15
+ 1383 0296 0B000000 		.4byte	.LASF33
+ 1384 029a 06       		.byte	0x6
+ 1385 029b 65       		.byte	0x65
+ 1386 029c A6020000 		.4byte	0x2a6
+ 1387 02a0 16       		.uleb128 0x16
+ 1388 02a1 81000000 		.4byte	0x81
+ 1389 02a5 00       		.byte	0
+ 1390 02a6 15       		.uleb128 0x15
+ 1391 02a7 50000000 		.4byte	.LASF34
+ 1392 02ab 07       		.byte	0x7
+ 1393 02ac 3C       		.byte	0x3c
+ 1394 02ad B7020000 		.4byte	0x2b7
+ 1395 02b1 16       		.uleb128 0x16
+ 1396 02b2 81000000 		.4byte	0x81
+ 1397 02b6 00       		.byte	0
+ 1398 02b7 15       		.uleb128 0x15
+ 1399 02b8 87020000 		.4byte	.LASF35
+ 1400 02bc 08       		.byte	0x8
+ 1401 02bd 3B       		.byte	0x3b
+ 1402 02be C8020000 		.4byte	0x2c8
+ 1403 02c2 16       		.uleb128 0x16
+ 1404 02c3 C8020000 		.4byte	0x2c8
+ 1405 02c7 00       		.byte	0
+ 1406 02c8 06       		.uleb128 0x6
+ 1407 02c9 04       		.byte	0x4
+ 1408 02ca 81000000 		.4byte	0x81
+ 1409 02ce 19       		.uleb128 0x19
+ 1410 02cf 12020000 		.4byte	.LASF42
+ 1411 02d3 08       		.byte	0x8
+ 1412 02d4 36       		.byte	0x36
+ 1413 02d5 81000000 		.4byte	0x81
+ 1414 02d9 00       		.byte	0
+ 1415              		.section	.debug_abbrev,"",%progbits
+ 1416              	.Ldebug_abbrev0:
+ 1417 0000 01       		.uleb128 0x1
+ 1418 0001 11       		.uleb128 0x11
+ 1419 0002 01       		.byte	0x1
+ 1420 0003 25       		.uleb128 0x25
+ 1421 0004 0E       		.uleb128 0xe
+ 1422 0005 13       		.uleb128 0x13
+ 1423 0006 0B       		.uleb128 0xb
+ 1424 0007 03       		.uleb128 0x3
+ 1425 0008 0E       		.uleb128 0xe
+ 1426 0009 1B       		.uleb128 0x1b
+ 1427 000a 0E       		.uleb128 0xe
+ 1428 000b 55       		.uleb128 0x55
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 33
+
+
+ 1429 000c 17       		.uleb128 0x17
+ 1430 000d 11       		.uleb128 0x11
+ 1431 000e 01       		.uleb128 0x1
+ 1432 000f 10       		.uleb128 0x10
+ 1433 0010 17       		.uleb128 0x17
+ 1434 0011 00       		.byte	0
+ 1435 0012 00       		.byte	0
+ 1436 0013 02       		.uleb128 0x2
+ 1437 0014 24       		.uleb128 0x24
+ 1438 0015 00       		.byte	0
+ 1439 0016 0B       		.uleb128 0xb
+ 1440 0017 0B       		.uleb128 0xb
+ 1441 0018 3E       		.uleb128 0x3e
+ 1442 0019 0B       		.uleb128 0xb
+ 1443 001a 03       		.uleb128 0x3
+ 1444 001b 0E       		.uleb128 0xe
+ 1445 001c 00       		.byte	0
+ 1446 001d 00       		.byte	0
+ 1447 001e 03       		.uleb128 0x3
+ 1448 001f 16       		.uleb128 0x16
+ 1449 0020 00       		.byte	0
+ 1450 0021 03       		.uleb128 0x3
+ 1451 0022 0E       		.uleb128 0xe
+ 1452 0023 3A       		.uleb128 0x3a
+ 1453 0024 0B       		.uleb128 0xb
+ 1454 0025 3B       		.uleb128 0x3b
+ 1455 0026 0B       		.uleb128 0xb
+ 1456 0027 49       		.uleb128 0x49
+ 1457 0028 13       		.uleb128 0x13
+ 1458 0029 00       		.byte	0
+ 1459 002a 00       		.byte	0
+ 1460 002b 04       		.uleb128 0x4
+ 1461 002c 24       		.uleb128 0x24
+ 1462 002d 00       		.byte	0
+ 1463 002e 0B       		.uleb128 0xb
+ 1464 002f 0B       		.uleb128 0xb
+ 1465 0030 3E       		.uleb128 0x3e
+ 1466 0031 0B       		.uleb128 0xb
+ 1467 0032 03       		.uleb128 0x3
+ 1468 0033 08       		.uleb128 0x8
+ 1469 0034 00       		.byte	0
+ 1470 0035 00       		.byte	0
+ 1471 0036 05       		.uleb128 0x5
+ 1472 0037 16       		.uleb128 0x16
+ 1473 0038 00       		.byte	0
+ 1474 0039 03       		.uleb128 0x3
+ 1475 003a 0E       		.uleb128 0xe
+ 1476 003b 3A       		.uleb128 0x3a
+ 1477 003c 0B       		.uleb128 0xb
+ 1478 003d 3B       		.uleb128 0x3b
+ 1479 003e 05       		.uleb128 0x5
+ 1480 003f 49       		.uleb128 0x49
+ 1481 0040 13       		.uleb128 0x13
+ 1482 0041 00       		.byte	0
+ 1483 0042 00       		.byte	0
+ 1484 0043 06       		.uleb128 0x6
+ 1485 0044 0F       		.uleb128 0xf
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 34
+
+
+ 1486 0045 00       		.byte	0
+ 1487 0046 0B       		.uleb128 0xb
+ 1488 0047 0B       		.uleb128 0xb
+ 1489 0048 49       		.uleb128 0x49
+ 1490 0049 13       		.uleb128 0x13
+ 1491 004a 00       		.byte	0
+ 1492 004b 00       		.byte	0
+ 1493 004c 07       		.uleb128 0x7
+ 1494 004d 26       		.uleb128 0x26
+ 1495 004e 00       		.byte	0
+ 1496 004f 49       		.uleb128 0x49
+ 1497 0050 13       		.uleb128 0x13
+ 1498 0051 00       		.byte	0
+ 1499 0052 00       		.byte	0
+ 1500 0053 08       		.uleb128 0x8
+ 1501 0054 01       		.uleb128 0x1
+ 1502 0055 01       		.byte	0x1
+ 1503 0056 49       		.uleb128 0x49
+ 1504 0057 13       		.uleb128 0x13
+ 1505 0058 01       		.uleb128 0x1
+ 1506 0059 13       		.uleb128 0x13
+ 1507 005a 00       		.byte	0
+ 1508 005b 00       		.byte	0
+ 1509 005c 09       		.uleb128 0x9
+ 1510 005d 21       		.uleb128 0x21
+ 1511 005e 00       		.byte	0
+ 1512 005f 49       		.uleb128 0x49
+ 1513 0060 13       		.uleb128 0x13
+ 1514 0061 2F       		.uleb128 0x2f
+ 1515 0062 0B       		.uleb128 0xb
+ 1516 0063 00       		.byte	0
+ 1517 0064 00       		.byte	0
+ 1518 0065 0A       		.uleb128 0xa
+ 1519 0066 2E       		.uleb128 0x2e
+ 1520 0067 01       		.byte	0x1
+ 1521 0068 3F       		.uleb128 0x3f
+ 1522 0069 19       		.uleb128 0x19
+ 1523 006a 03       		.uleb128 0x3
+ 1524 006b 0E       		.uleb128 0xe
+ 1525 006c 3A       		.uleb128 0x3a
+ 1526 006d 0B       		.uleb128 0xb
+ 1527 006e 3B       		.uleb128 0x3b
+ 1528 006f 0B       		.uleb128 0xb
+ 1529 0070 27       		.uleb128 0x27
+ 1530 0071 19       		.uleb128 0x19
+ 1531 0072 11       		.uleb128 0x11
+ 1532 0073 01       		.uleb128 0x1
+ 1533 0074 12       		.uleb128 0x12
+ 1534 0075 06       		.uleb128 0x6
+ 1535 0076 40       		.uleb128 0x40
+ 1536 0077 18       		.uleb128 0x18
+ 1537 0078 9742     		.uleb128 0x2117
+ 1538 007a 19       		.uleb128 0x19
+ 1539 007b 01       		.uleb128 0x1
+ 1540 007c 13       		.uleb128 0x13
+ 1541 007d 00       		.byte	0
+ 1542 007e 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 35
+
+
+ 1543 007f 0B       		.uleb128 0xb
+ 1544 0080 34       		.uleb128 0x34
+ 1545 0081 00       		.byte	0
+ 1546 0082 03       		.uleb128 0x3
+ 1547 0083 08       		.uleb128 0x8
+ 1548 0084 3A       		.uleb128 0x3a
+ 1549 0085 0B       		.uleb128 0xb
+ 1550 0086 3B       		.uleb128 0x3b
+ 1551 0087 0B       		.uleb128 0xb
+ 1552 0088 49       		.uleb128 0x49
+ 1553 0089 13       		.uleb128 0x13
+ 1554 008a 02       		.uleb128 0x2
+ 1555 008b 17       		.uleb128 0x17
+ 1556 008c 00       		.byte	0
+ 1557 008d 00       		.byte	0
+ 1558 008e 0C       		.uleb128 0xc
+ 1559 008f 34       		.uleb128 0x34
+ 1560 0090 00       		.byte	0
+ 1561 0091 03       		.uleb128 0x3
+ 1562 0092 0E       		.uleb128 0xe
+ 1563 0093 3A       		.uleb128 0x3a
+ 1564 0094 0B       		.uleb128 0xb
+ 1565 0095 3B       		.uleb128 0x3b
+ 1566 0096 0B       		.uleb128 0xb
+ 1567 0097 49       		.uleb128 0x49
+ 1568 0098 13       		.uleb128 0x13
+ 1569 0099 02       		.uleb128 0x2
+ 1570 009a 17       		.uleb128 0x17
+ 1571 009b 00       		.byte	0
+ 1572 009c 00       		.byte	0
+ 1573 009d 0D       		.uleb128 0xd
+ 1574 009e 34       		.uleb128 0x34
+ 1575 009f 00       		.byte	0
+ 1576 00a0 03       		.uleb128 0x3
+ 1577 00a1 08       		.uleb128 0x8
+ 1578 00a2 3A       		.uleb128 0x3a
+ 1579 00a3 0B       		.uleb128 0xb
+ 1580 00a4 3B       		.uleb128 0x3b
+ 1581 00a5 0B       		.uleb128 0xb
+ 1582 00a6 49       		.uleb128 0x49
+ 1583 00a7 13       		.uleb128 0x13
+ 1584 00a8 02       		.uleb128 0x2
+ 1585 00a9 18       		.uleb128 0x18
+ 1586 00aa 00       		.byte	0
+ 1587 00ab 00       		.byte	0
+ 1588 00ac 0E       		.uleb128 0xe
+ 1589 00ad 898201   		.uleb128 0x4109
+ 1590 00b0 00       		.byte	0
+ 1591 00b1 11       		.uleb128 0x11
+ 1592 00b2 01       		.uleb128 0x1
+ 1593 00b3 31       		.uleb128 0x31
+ 1594 00b4 13       		.uleb128 0x13
+ 1595 00b5 00       		.byte	0
+ 1596 00b6 00       		.byte	0
+ 1597 00b7 0F       		.uleb128 0xf
+ 1598 00b8 898201   		.uleb128 0x4109
+ 1599 00bb 01       		.byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 36
+
+
+ 1600 00bc 11       		.uleb128 0x11
+ 1601 00bd 01       		.uleb128 0x1
+ 1602 00be 31       		.uleb128 0x31
+ 1603 00bf 13       		.uleb128 0x13
+ 1604 00c0 01       		.uleb128 0x1
+ 1605 00c1 13       		.uleb128 0x13
+ 1606 00c2 00       		.byte	0
+ 1607 00c3 00       		.byte	0
+ 1608 00c4 10       		.uleb128 0x10
+ 1609 00c5 8A8201   		.uleb128 0x410a
+ 1610 00c8 00       		.byte	0
+ 1611 00c9 02       		.uleb128 0x2
+ 1612 00ca 18       		.uleb128 0x18
+ 1613 00cb 9142     		.uleb128 0x2111
+ 1614 00cd 18       		.uleb128 0x18
+ 1615 00ce 00       		.byte	0
+ 1616 00cf 00       		.byte	0
+ 1617 00d0 11       		.uleb128 0x11
+ 1618 00d1 34       		.uleb128 0x34
+ 1619 00d2 00       		.byte	0
+ 1620 00d3 03       		.uleb128 0x3
+ 1621 00d4 0E       		.uleb128 0xe
+ 1622 00d5 3A       		.uleb128 0x3a
+ 1623 00d6 0B       		.uleb128 0xb
+ 1624 00d7 3B       		.uleb128 0x3b
+ 1625 00d8 05       		.uleb128 0x5
+ 1626 00d9 49       		.uleb128 0x49
+ 1627 00da 13       		.uleb128 0x13
+ 1628 00db 3F       		.uleb128 0x3f
+ 1629 00dc 19       		.uleb128 0x19
+ 1630 00dd 3C       		.uleb128 0x3c
+ 1631 00de 19       		.uleb128 0x19
+ 1632 00df 00       		.byte	0
+ 1633 00e0 00       		.byte	0
+ 1634 00e1 12       		.uleb128 0x12
+ 1635 00e2 35       		.uleb128 0x35
+ 1636 00e3 00       		.byte	0
+ 1637 00e4 49       		.uleb128 0x49
+ 1638 00e5 13       		.uleb128 0x13
+ 1639 00e6 00       		.byte	0
+ 1640 00e7 00       		.byte	0
+ 1641 00e8 13       		.uleb128 0x13
+ 1642 00e9 34       		.uleb128 0x34
+ 1643 00ea 00       		.byte	0
+ 1644 00eb 03       		.uleb128 0x3
+ 1645 00ec 0E       		.uleb128 0xe
+ 1646 00ed 3A       		.uleb128 0x3a
+ 1647 00ee 0B       		.uleb128 0xb
+ 1648 00ef 3B       		.uleb128 0x3b
+ 1649 00f0 0B       		.uleb128 0xb
+ 1650 00f1 49       		.uleb128 0x49
+ 1651 00f2 13       		.uleb128 0x13
+ 1652 00f3 3F       		.uleb128 0x3f
+ 1653 00f4 19       		.uleb128 0x19
+ 1654 00f5 3C       		.uleb128 0x3c
+ 1655 00f6 19       		.uleb128 0x19
+ 1656 00f7 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 37
+
+
+ 1657 00f8 00       		.byte	0
+ 1658 00f9 14       		.uleb128 0x14
+ 1659 00fa 2E       		.uleb128 0x2e
+ 1660 00fb 00       		.byte	0
+ 1661 00fc 3F       		.uleb128 0x3f
+ 1662 00fd 19       		.uleb128 0x19
+ 1663 00fe 03       		.uleb128 0x3
+ 1664 00ff 0E       		.uleb128 0xe
+ 1665 0100 3A       		.uleb128 0x3a
+ 1666 0101 0B       		.uleb128 0xb
+ 1667 0102 3B       		.uleb128 0x3b
+ 1668 0103 0B       		.uleb128 0xb
+ 1669 0104 27       		.uleb128 0x27
+ 1670 0105 19       		.uleb128 0x19
+ 1671 0106 3C       		.uleb128 0x3c
+ 1672 0107 19       		.uleb128 0x19
+ 1673 0108 00       		.byte	0
+ 1674 0109 00       		.byte	0
+ 1675 010a 15       		.uleb128 0x15
+ 1676 010b 2E       		.uleb128 0x2e
+ 1677 010c 01       		.byte	0x1
+ 1678 010d 3F       		.uleb128 0x3f
+ 1679 010e 19       		.uleb128 0x19
+ 1680 010f 03       		.uleb128 0x3
+ 1681 0110 0E       		.uleb128 0xe
+ 1682 0111 3A       		.uleb128 0x3a
+ 1683 0112 0B       		.uleb128 0xb
+ 1684 0113 3B       		.uleb128 0x3b
+ 1685 0114 0B       		.uleb128 0xb
+ 1686 0115 27       		.uleb128 0x27
+ 1687 0116 19       		.uleb128 0x19
+ 1688 0117 3C       		.uleb128 0x3c
+ 1689 0118 19       		.uleb128 0x19
+ 1690 0119 01       		.uleb128 0x1
+ 1691 011a 13       		.uleb128 0x13
+ 1692 011b 00       		.byte	0
+ 1693 011c 00       		.byte	0
+ 1694 011d 16       		.uleb128 0x16
+ 1695 011e 05       		.uleb128 0x5
+ 1696 011f 00       		.byte	0
+ 1697 0120 49       		.uleb128 0x49
+ 1698 0121 13       		.uleb128 0x13
+ 1699 0122 00       		.byte	0
+ 1700 0123 00       		.byte	0
+ 1701 0124 17       		.uleb128 0x17
+ 1702 0125 2E       		.uleb128 0x2e
+ 1703 0126 01       		.byte	0x1
+ 1704 0127 3F       		.uleb128 0x3f
+ 1705 0128 19       		.uleb128 0x19
+ 1706 0129 03       		.uleb128 0x3
+ 1707 012a 0E       		.uleb128 0xe
+ 1708 012b 3A       		.uleb128 0x3a
+ 1709 012c 0B       		.uleb128 0xb
+ 1710 012d 3B       		.uleb128 0x3b
+ 1711 012e 0B       		.uleb128 0xb
+ 1712 012f 27       		.uleb128 0x27
+ 1713 0130 19       		.uleb128 0x19
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 38
+
+
+ 1714 0131 49       		.uleb128 0x49
+ 1715 0132 13       		.uleb128 0x13
+ 1716 0133 3C       		.uleb128 0x3c
+ 1717 0134 19       		.uleb128 0x19
+ 1718 0135 01       		.uleb128 0x1
+ 1719 0136 13       		.uleb128 0x13
+ 1720 0137 00       		.byte	0
+ 1721 0138 00       		.byte	0
+ 1722 0139 18       		.uleb128 0x18
+ 1723 013a 18       		.uleb128 0x18
+ 1724 013b 00       		.byte	0
+ 1725 013c 00       		.byte	0
+ 1726 013d 00       		.byte	0
+ 1727 013e 19       		.uleb128 0x19
+ 1728 013f 2E       		.uleb128 0x2e
+ 1729 0140 00       		.byte	0
+ 1730 0141 3F       		.uleb128 0x3f
+ 1731 0142 19       		.uleb128 0x19
+ 1732 0143 03       		.uleb128 0x3
+ 1733 0144 0E       		.uleb128 0xe
+ 1734 0145 3A       		.uleb128 0x3a
+ 1735 0146 0B       		.uleb128 0xb
+ 1736 0147 3B       		.uleb128 0x3b
+ 1737 0148 0B       		.uleb128 0xb
+ 1738 0149 27       		.uleb128 0x27
+ 1739 014a 19       		.uleb128 0x19
+ 1740 014b 49       		.uleb128 0x49
+ 1741 014c 13       		.uleb128 0x13
+ 1742 014d 3C       		.uleb128 0x3c
+ 1743 014e 19       		.uleb128 0x19
+ 1744 014f 00       		.byte	0
+ 1745 0150 00       		.byte	0
+ 1746 0151 00       		.byte	0
+ 1747              		.section	.debug_loc,"",%progbits
+ 1748              	.Ldebug_loc0:
+ 1749              	.LLST0:
+ 1750 0000 3A010000 		.4byte	.LVL5
+ 1751 0004 3E010000 		.4byte	.LVL6
+ 1752 0008 0100     		.2byte	0x1
+ 1753 000a 53       		.byte	0x53
+ 1754 000b 40010000 		.4byte	.LVL7
+ 1755 000f 62010000 		.4byte	.LVL8
+ 1756 0013 0100     		.2byte	0x1
+ 1757 0015 53       		.byte	0x53
+ 1758 0016 44050000 		.4byte	.LVL50
+ 1759 001a 5A050000 		.4byte	.LVL51
+ 1760 001e 0100     		.2byte	0x1
+ 1761 0020 50       		.byte	0x50
+ 1762 0021 5A050000 		.4byte	.LVL51
+ 1763 0025 70050000 		.4byte	.LVL52
+ 1764 0029 0100     		.2byte	0x1
+ 1765 002b 53       		.byte	0x53
+ 1766 002c 00000000 		.4byte	0
+ 1767 0030 00000000 		.4byte	0
+ 1768              	.LLST1:
+ 1769 0034 04000000 		.4byte	.LVL0
+ 1770 0038 0C010000 		.4byte	.LVL1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 39
+
+
+ 1771 003c 0200     		.2byte	0x2
+ 1772 003e 30       		.byte	0x30
+ 1773 003f 9F       		.byte	0x9f
+ 1774 0040 0C010000 		.4byte	.LVL1
+ 1775 0044 18010000 		.4byte	.LVL2
+ 1776 0048 0200     		.2byte	0x2
+ 1777 004a 34       		.byte	0x34
+ 1778 004b 9F       		.byte	0x9f
+ 1779 004c 18010000 		.4byte	.LVL2
+ 1780 0050 22010000 		.4byte	.LVL3
+ 1781 0054 0200     		.2byte	0x2
+ 1782 0056 30       		.byte	0x30
+ 1783 0057 9F       		.byte	0x9f
+ 1784 0058 22010000 		.4byte	.LVL3
+ 1785 005c 2E010000 		.4byte	.LVL4
+ 1786 0060 0200     		.2byte	0x2
+ 1787 0062 34       		.byte	0x34
+ 1788 0063 9F       		.byte	0x9f
+ 1789 0064 2E010000 		.4byte	.LVL4
+ 1790 0068 6A010000 		.4byte	.LVL9
+ 1791 006c 0200     		.2byte	0x2
+ 1792 006e 35       		.byte	0x35
+ 1793 006f 9F       		.byte	0x9f
+ 1794 0070 6A010000 		.4byte	.LVL9
+ 1795 0074 E0010000 		.4byte	.LVL10
+ 1796 0078 0200     		.2byte	0x2
+ 1797 007a 3D       		.byte	0x3d
+ 1798 007b 9F       		.byte	0x9f
+ 1799 007c E0010000 		.4byte	.LVL10
+ 1800 0080 E8010000 		.4byte	.LVL11
+ 1801 0084 0200     		.2byte	0x2
+ 1802 0086 30       		.byte	0x30
+ 1803 0087 9F       		.byte	0x9f
+ 1804 0088 E8010000 		.4byte	.LVL11
+ 1805 008c 08020000 		.4byte	.LVL12
+ 1806 0090 0200     		.2byte	0x2
+ 1807 0092 3E       		.byte	0x3e
+ 1808 0093 9F       		.byte	0x9f
+ 1809 0094 08020000 		.4byte	.LVL12
+ 1810 0098 28020000 		.4byte	.LVL14
+ 1811 009c 0200     		.2byte	0x2
+ 1812 009e 30       		.byte	0x30
+ 1813 009f 9F       		.byte	0x9f
+ 1814 00a0 28020000 		.4byte	.LVL14
+ 1815 00a4 3C020000 		.4byte	.LVL15
+ 1816 00a8 0200     		.2byte	0x2
+ 1817 00aa 3E       		.byte	0x3e
+ 1818 00ab 9F       		.byte	0x9f
+ 1819 00ac 3C020000 		.4byte	.LVL15
+ 1820 00b0 46020000 		.4byte	.LVL16
+ 1821 00b4 0200     		.2byte	0x2
+ 1822 00b6 30       		.byte	0x30
+ 1823 00b7 9F       		.byte	0x9f
+ 1824 00b8 46020000 		.4byte	.LVL16
+ 1825 00bc 52020000 		.4byte	.LVL17
+ 1826 00c0 0200     		.2byte	0x2
+ 1827 00c2 34       		.byte	0x34
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 40
+
+
+ 1828 00c3 9F       		.byte	0x9f
+ 1829 00c4 52020000 		.4byte	.LVL17
+ 1830 00c8 5C020000 		.4byte	.LVL18
+ 1831 00cc 0200     		.2byte	0x2
+ 1832 00ce 30       		.byte	0x30
+ 1833 00cf 9F       		.byte	0x9f
+ 1834 00d0 5C020000 		.4byte	.LVL18
+ 1835 00d4 68020000 		.4byte	.LVL19
+ 1836 00d8 0200     		.2byte	0x2
+ 1837 00da 34       		.byte	0x34
+ 1838 00db 9F       		.byte	0x9f
+ 1839 00dc 68020000 		.4byte	.LVL19
+ 1840 00e0 70020000 		.4byte	.LVL20
+ 1841 00e4 0200     		.2byte	0x2
+ 1842 00e6 30       		.byte	0x30
+ 1843 00e7 9F       		.byte	0x9f
+ 1844 00e8 70020000 		.4byte	.LVL20
+ 1845 00ec 48030000 		.4byte	.LVL21
+ 1846 00f0 0200     		.2byte	0x2
+ 1847 00f2 39       		.byte	0x39
+ 1848 00f3 9F       		.byte	0x9f
+ 1849 00f4 48030000 		.4byte	.LVL21
+ 1850 00f8 72030000 		.4byte	.LVL23
+ 1851 00fc 0200     		.2byte	0x2
+ 1852 00fe 30       		.byte	0x30
+ 1853 00ff 9F       		.byte	0x9f
+ 1854 0100 72030000 		.4byte	.LVL23
+ 1855 0104 A4030000 		.4byte	.LVL25
+ 1856 0108 0200     		.2byte	0x2
+ 1857 010a 37       		.byte	0x37
+ 1858 010b 9F       		.byte	0x9f
+ 1859 010c A4030000 		.4byte	.LVL25
+ 1860 0110 C0030000 		.4byte	.LVL26
+ 1861 0114 0200     		.2byte	0x2
+ 1862 0116 30       		.byte	0x30
+ 1863 0117 9F       		.byte	0x9f
+ 1864 0118 C0030000 		.4byte	.LVL26
+ 1865 011c D0030000 		.4byte	.LVL27
+ 1866 0120 0200     		.2byte	0x2
+ 1867 0122 36       		.byte	0x36
+ 1868 0123 9F       		.byte	0x9f
+ 1869 0124 D0030000 		.4byte	.LVL27
+ 1870 0128 08040000 		.4byte	.LVL28
+ 1871 012c 0300     		.2byte	0x3
+ 1872 012e 08       		.byte	0x8
+ 1873 012f 23       		.byte	0x23
+ 1874 0130 9F       		.byte	0x9f
+ 1875 0131 08040000 		.4byte	.LVL28
+ 1876 0135 12040000 		.4byte	.LVL29
+ 1877 0139 0200     		.2byte	0x2
+ 1878 013b 30       		.byte	0x30
+ 1879 013c 9F       		.byte	0x9f
+ 1880 013d 12040000 		.4byte	.LVL29
+ 1881 0141 1E040000 		.4byte	.LVL30
+ 1882 0145 0200     		.2byte	0x2
+ 1883 0147 34       		.byte	0x34
+ 1884 0148 9F       		.byte	0x9f
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 41
+
+
+ 1885 0149 1E040000 		.4byte	.LVL30
+ 1886 014d 28040000 		.4byte	.LVL31
+ 1887 0151 0200     		.2byte	0x2
+ 1888 0153 30       		.byte	0x30
+ 1889 0154 9F       		.byte	0x9f
+ 1890 0155 28040000 		.4byte	.LVL31
+ 1891 0159 38040000 		.4byte	.LVL32
+ 1892 015d 0200     		.2byte	0x2
+ 1893 015f 36       		.byte	0x36
+ 1894 0160 9F       		.byte	0x9f
+ 1895 0161 38040000 		.4byte	.LVL32
+ 1896 0165 42040000 		.4byte	.LVL33
+ 1897 0169 0200     		.2byte	0x2
+ 1898 016b 30       		.byte	0x30
+ 1899 016c 9F       		.byte	0x9f
+ 1900 016d 42040000 		.4byte	.LVL33
+ 1901 0171 4E040000 		.4byte	.LVL34
+ 1902 0175 0200     		.2byte	0x2
+ 1903 0177 34       		.byte	0x34
+ 1904 0178 9F       		.byte	0x9f
+ 1905 0179 4E040000 		.4byte	.LVL34
+ 1906 017d 56040000 		.4byte	.LVL35
+ 1907 0181 0200     		.2byte	0x2
+ 1908 0183 30       		.byte	0x30
+ 1909 0184 9F       		.byte	0x9f
+ 1910 0185 56040000 		.4byte	.LVL35
+ 1911 0189 6A040000 		.4byte	.LVL36
+ 1912 018d 0200     		.2byte	0x2
+ 1913 018f 34       		.byte	0x34
+ 1914 0190 9F       		.byte	0x9f
+ 1915 0191 6A040000 		.4byte	.LVL36
+ 1916 0195 8A040000 		.4byte	.LVL39
+ 1917 0199 0200     		.2byte	0x2
+ 1918 019b 30       		.byte	0x30
+ 1919 019c 9F       		.byte	0x9f
+ 1920 019d 8A040000 		.4byte	.LVL39
+ 1921 01a1 9A040000 		.4byte	.LVL40
+ 1922 01a5 0200     		.2byte	0x2
+ 1923 01a7 35       		.byte	0x35
+ 1924 01a8 9F       		.byte	0x9f
+ 1925 01a9 9A040000 		.4byte	.LVL40
+ 1926 01ad A4040000 		.4byte	.LVL41
+ 1927 01b1 0200     		.2byte	0x2
+ 1928 01b3 30       		.byte	0x30
+ 1929 01b4 9F       		.byte	0x9f
+ 1930 01b5 A4040000 		.4byte	.LVL41
+ 1931 01b9 B0040000 		.4byte	.LVL42
+ 1932 01bd 0200     		.2byte	0x2
+ 1933 01bf 34       		.byte	0x34
+ 1934 01c0 9F       		.byte	0x9f
+ 1935 01c1 B0040000 		.4byte	.LVL42
+ 1936 01c5 BA040000 		.4byte	.LVL43
+ 1937 01c9 0200     		.2byte	0x2
+ 1938 01cb 30       		.byte	0x30
+ 1939 01cc 9F       		.byte	0x9f
+ 1940 01cd BA040000 		.4byte	.LVL43
+ 1941 01d1 CE040000 		.4byte	.LVL44
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 42
+
+
+ 1942 01d5 0200     		.2byte	0x2
+ 1943 01d7 37       		.byte	0x37
+ 1944 01d8 9F       		.byte	0x9f
+ 1945 01d9 CE040000 		.4byte	.LVL44
+ 1946 01dd DA040000 		.4byte	.LVL45
+ 1947 01e1 0200     		.2byte	0x2
+ 1948 01e3 34       		.byte	0x34
+ 1949 01e4 9F       		.byte	0x9f
+ 1950 01e5 DA040000 		.4byte	.LVL45
+ 1951 01e9 E2040000 		.4byte	.LVL46
+ 1952 01ed 0200     		.2byte	0x2
+ 1953 01ef 30       		.byte	0x30
+ 1954 01f0 9F       		.byte	0x9f
+ 1955 01f1 E2040000 		.4byte	.LVL46
+ 1956 01f5 02050000 		.4byte	.LVL47
+ 1957 01f9 0200     		.2byte	0x2
+ 1958 01fb 35       		.byte	0x35
+ 1959 01fc 9F       		.byte	0x9f
+ 1960 01fd 02050000 		.4byte	.LVL47
+ 1961 0201 34050000 		.4byte	.LVL49
+ 1962 0205 0200     		.2byte	0x2
+ 1963 0207 30       		.byte	0x30
+ 1964 0208 9F       		.byte	0x9f
+ 1965 0209 34050000 		.4byte	.LVL49
+ 1966 020d 78050000 		.4byte	.LVL53
+ 1967 0211 0200     		.2byte	0x2
+ 1968 0213 36       		.byte	0x36
+ 1969 0214 9F       		.byte	0x9f
+ 1970 0215 78050000 		.4byte	.LVL53
+ 1971 0219 BC050000 		.4byte	.LVL54
+ 1972 021d 0200     		.2byte	0x2
+ 1973 021f 30       		.byte	0x30
+ 1974 0220 9F       		.byte	0x9f
+ 1975 0221 BC050000 		.4byte	.LVL54
+ 1976 0225 C0050000 		.4byte	.LVL55
+ 1977 0229 0200     		.2byte	0x2
+ 1978 022b 39       		.byte	0x39
+ 1979 022c 9F       		.byte	0x9f
+ 1980 022d C0050000 		.4byte	.LVL55
+ 1981 0231 D6050000 		.4byte	.LVL56
+ 1982 0235 0200     		.2byte	0x2
+ 1983 0237 30       		.byte	0x30
+ 1984 0238 9F       		.byte	0x9f
+ 1985 0239 D6050000 		.4byte	.LVL56
+ 1986 023d E1050000 		.4byte	.LVL57-1
+ 1987 0241 0100     		.2byte	0x1
+ 1988 0243 53       		.byte	0x53
+ 1989 0244 00000000 		.4byte	0
+ 1990 0248 00000000 		.4byte	0
+ 1991              		.section	.debug_aranges,"",%progbits
+ 1992 0000 1C000000 		.4byte	0x1c
+ 1993 0004 0200     		.2byte	0x2
+ 1994 0006 00000000 		.4byte	.Ldebug_info0
+ 1995 000a 04       		.byte	0x4
+ 1996 000b 00       		.byte	0
+ 1997 000c 0000     		.2byte	0
+ 1998 000e 0000     		.2byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 43
+
+
+ 1999 0010 00000000 		.4byte	.LFB63
+ 2000 0014 60060000 		.4byte	.LFE63-.LFB63
+ 2001 0018 00000000 		.4byte	0
+ 2002 001c 00000000 		.4byte	0
+ 2003              		.section	.debug_ranges,"",%progbits
+ 2004              	.Ldebug_ranges0:
+ 2005 0000 00000000 		.4byte	.LFB63
+ 2006 0004 60060000 		.4byte	.LFE63
+ 2007 0008 00000000 		.4byte	0
+ 2008 000c 00000000 		.4byte	0
+ 2009              		.section	.debug_line,"",%progbits
+ 2010              	.Ldebug_line0:
+ 2011 0000 7B020000 		.section	.debug_str,"MS",%progbits,1
+ 2011      02007801 
+ 2011      00000201 
+ 2011      FB0E0D00 
+ 2011      01010101 
+ 2012              	.LASF20:
+ 2013 0000 46726571 		.ascii	"Freq\000"
+ 2013      00
+ 2014              	.LASF11:
+ 2015 0005 75696E74 		.ascii	"uint8\000"
+ 2015      3800
+ 2016              	.LASF33:
+ 2017 000b 5365744D 		.ascii	"SetMode\000"
+ 2017      6F646500 
+ 2018              	.LASF9:
+ 2019 0013 5F5F696E 		.ascii	"__int32_t\000"
+ 2019      7433325F 
+ 2019      7400
+ 2020              	.LASF25:
+ 2021 001d 41676354 		.ascii	"AgcTimeConstant\000"
+ 2021      696D6543 
+ 2021      6F6E7374 
+ 2021      616E7400 
+ 2022              	.LASF18:
+ 2023 002d 436F6D52 		.ascii	"ComRxCmd\000"
+ 2023      78436D64 
+ 2023      00
+ 2024              	.LASF16:
+ 2025 0036 73656E64 		.ascii	"sendUsb\000"
+ 2025      55736200 
+ 2026              	.LASF22:
+ 2027 003e 41676344 		.ascii	"AgcDisable\000"
+ 2027      69736162 
+ 2027      6C6500
+ 2028              	.LASF27:
+ 2029 0049 46696C74 		.ascii	"Filter\000"
+ 2029      657200
+ 2030              	.LASF34:
+ 2031 0050 4144435F 		.ascii	"ADC_SetBufferGain\000"
+ 2031      53657442 
+ 2031      75666665 
+ 2031      72476169 
+ 2031      6E00
+ 2032              	.LASF12:
+ 2033 0062 666C6F61 		.ascii	"float\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 44
+
+
+ 2033      7400
+ 2034              	.LASF40:
+ 2035 0068 53657446 		.ascii	"SetFrequency\000"
+ 2035      72657175 
+ 2035      656E6379 
+ 2035      00
+ 2036              	.LASF1:
+ 2037 0075 756E7369 		.ascii	"unsigned char\000"
+ 2037      676E6564 
+ 2037      20636861 
+ 2037      7200
+ 2038              	.LASF19:
+ 2039 0083 55736254 		.ascii	"UsbTxBuffer\000"
+ 2039      78427566 
+ 2039      66657200 
+ 2040              	.LASF5:
+ 2041 008f 6C6F6E67 		.ascii	"long unsigned int\000"
+ 2041      20756E73 
+ 2041      69676E65 
+ 2041      6420696E 
+ 2041      7400
+ 2042              	.LASF3:
+ 2043 00a1 73686F72 		.ascii	"short unsigned int\000"
+ 2043      7420756E 
+ 2043      7369676E 
+ 2043      65642069 
+ 2043      6E7400
+ 2044              	.LASF28:
+ 2045 00b4 41747465 		.ascii	"AttenuatorOn\000"
+ 2045      6E756174 
+ 2045      6F724F6E 
+ 2045      00
+ 2046              	.LASF38:
+ 2047 00c1 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 2047      536F435F 
+ 2047      43726561 
+ 2047      746F725C 
+ 2047      43593843 
+ 2048 00f1 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 2048      65636569 
+ 2048      7665725C 
+ 2048      43593843 
+ 2048      4B49542D 
+ 2049              	.LASF17:
+ 2050 0123 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 2050      52784275 
+ 2050      66666572 
+ 2050      00
+ 2051              	.LASF31:
+ 2052 0130 53455249 		.ascii	"SERIAL_NUM\000"
+ 2052      414C5F4E 
+ 2052      554D00
+ 2053              	.LASF13:
+ 2054 013b 646F7562 		.ascii	"double\000"
+ 2054      6C6500
+ 2055              	.LASF2:
+ 2056 0142 73686F72 		.ascii	"short int\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 45
+
+
+ 2056      7420696E 
+ 2056      7400
+ 2057              	.LASF37:
+ 2058 014c 53657269 		.ascii	"Serial.c\000"
+ 2058      616C2E63 
+ 2058      00
+ 2059              	.LASF32:
+ 2060 0155 4C6F6164 		.ascii	"LoadFilter\000"
+ 2060      46696C74 
+ 2060      657200
+ 2061              	.LASF36:
+ 2062 0160 474E5520 		.ascii	"GNU C 4.9.3 20150303 (release) [ARM/embedded-4_9-br"
+ 2062      4320342E 
+ 2062      392E3320 
+ 2062      32303135 
+ 2062      30333033 
+ 2063 0193 616E6368 		.ascii	"anch revision 221220] -mcpu=cortex-m3 -mthumb -g -O"
+ 2063      20726576 
+ 2063      6973696F 
+ 2063      6E203232 
+ 2063      31323230 
+ 2064 01c6 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 2064      66756E63 
+ 2064      74696F6E 
+ 2064      2D736563 
+ 2064      74696F6E 
+ 2065              	.LASF8:
+ 2066 01ee 756E7369 		.ascii	"unsigned int\000"
+ 2066      676E6564 
+ 2066      20696E74 
+ 2066      00
+ 2067              	.LASF7:
+ 2068 01fb 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 2068      206C6F6E 
+ 2068      6720756E 
+ 2068      7369676E 
+ 2068      65642069 
+ 2069              	.LASF42:
+ 2070 0212 55534255 		.ascii	"USBUART_bTxIsReady\000"
+ 2070      4152545F 
+ 2070      62547849 
+ 2070      73526561 
+ 2070      647900
+ 2071              	.LASF29:
+ 2072 0225 53717565 		.ascii	"Squelch\000"
+ 2072      6C636800 
+ 2073              	.LASF23:
+ 2074 022d 41676347 		.ascii	"AgcGain\000"
+ 2074      61696E00 
+ 2075              	.LASF10:
+ 2076 0235 696E7433 		.ascii	"int32_t\000"
+ 2076      325F7400 
+ 2077              	.LASF15:
+ 2078 023d 73697A65 		.ascii	"sizetype\000"
+ 2078      74797065 
+ 2078      00
+ 2079              	.LASF30:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccPFU33k.s 			page 46
+
+
+ 2080 0246 46524551 		.ascii	"FREQ_ERROR\000"
+ 2080      5F455252 
+ 2080      4F5200
+ 2081              	.LASF6:
+ 2082 0251 6C6F6E67 		.ascii	"long long int\000"
+ 2082      206C6F6E 
+ 2082      6720696E 
+ 2082      7400
+ 2083              	.LASF39:
+ 2084 025f 50726F63 		.ascii	"ProcessComRx\000"
+ 2084      65737343 
+ 2084      6F6D5278 
+ 2084      00
+ 2085              	.LASF24:
+ 2086 026c 41676349 		.ascii	"AgcIntegrator\000"
+ 2086      6E746567 
+ 2086      7261746F 
+ 2086      7200
+ 2087              	.LASF21:
+ 2088 027a 44697370 		.ascii	"DisplayIndex\000"
+ 2088      6C617949 
+ 2088      6E646578 
+ 2088      00
+ 2089              	.LASF35:
+ 2090 0287 55534255 		.ascii	"USBUART_Write\000"
+ 2090      4152545F 
+ 2090      57726974 
+ 2090      6500
+ 2091              	.LASF26:
+ 2092 0295 4D6F6465 		.ascii	"Mode\000"
+ 2092      00
+ 2093              	.LASF4:
+ 2094 029a 6C6F6E67 		.ascii	"long int\000"
+ 2094      20696E74 
+ 2094      00
+ 2095              	.LASF14:
+ 2096 02a3 63686172 		.ascii	"char\000"
+ 2096      00
+ 2097              	.LASF0:
+ 2098 02a8 7369676E 		.ascii	"signed char\000"
+ 2098      65642063 
+ 2098      68617200 
+ 2099              	.LASF41:
+ 2100 02b4 73707269 		.ascii	"sprintf\000"
+ 2100      6E746600 
+ 2101              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.9.3 20150303 (release) [ARM/embedded-4_9-br

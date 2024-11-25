@@ -1,0 +1,3258 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"FIR_Coefficients.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.global	Filter_data_b_am
+  19              		.global	Filter_data_b_cw
+  20              		.global	Filter_data_b_1500
+  21              		.global	Filter_data_b_2000
+  22              		.global	Filter_data_b_2500
+  23              		.global	Hilbert
+  24              		.section	.rodata
+  25              		.align	2
+  26              		.type	Filter_data_b_am, %object
+  27              		.size	Filter_data_b_am, 512
+  28              	Filter_data_b_am:
+  29 0000 93       		.byte	-109
+  30 0001 FE       		.byte	-2
+  31 0002 FF       		.byte	-1
+  32 0003 00       		.byte	0
+  33 0004 6B       		.byte	107
+  34 0005 FE       		.byte	-2
+  35 0006 FF       		.byte	-1
+  36 0007 00       		.byte	0
+  37 0008 00       		.byte	0
+  38 0009 03       		.byte	3
+  39 000a 00       		.byte	0
+  40 000b 00       		.byte	0
+  41 000c E0       		.byte	-32
+  42 000d 03       		.byte	3
+  43 000e 00       		.byte	0
+  44 000f 00       		.byte	0
+  45 0010 DF       		.byte	-33
+  46 0011 F8       		.byte	-8
+  47 0012 FF       		.byte	-1
+  48 0013 00       		.byte	0
+  49 0014 3B       		.byte	59
+  50 0015 F7       		.byte	-9
+  51 0016 FF       		.byte	-1
+  52 0017 00       		.byte	0
+  53 0018 E6       		.byte	-26
+  54 0019 0E       		.byte	14
+  55 001a 00       		.byte	0
+  56 001b 00       		.byte	0
+  57 001c 82       		.byte	-126
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 2
+
+
+  58 001d 11       		.byte	17
+  59 001e 00       		.byte	0
+  60 001f 00       		.byte	0
+  61 0020 17       		.byte	23
+  62 0021 E4       		.byte	-28
+  63 0022 FF       		.byte	-1
+  64 0023 00       		.byte	0
+  65 0024 23       		.byte	35
+  66 0025 E0       		.byte	-32
+  67 0026 FF       		.byte	-1
+  68 0027 00       		.byte	0
+  69 0028 55       		.byte	85
+  70 0029 30       		.byte	48
+  71 002a 00       		.byte	0
+  72 002b 00       		.byte	0
+  73 002c 33       		.byte	51
+  74 002d 36       		.byte	54
+  75 002e 00       		.byte	0
+  76 002f 00       		.byte	0
+  77 0030 15       		.byte	21
+  78 0031 B1       		.byte	-79
+  79 0032 FF       		.byte	-1
+  80 0033 00       		.byte	0
+  81 0034 72       		.byte	114
+  82 0035 A8       		.byte	-88
+  83 0036 FF       		.byte	-1
+  84 0037 00       		.byte	0
+  85 0038 1F       		.byte	31
+  86 0039 7B       		.byte	123
+  87 003a 00       		.byte	0
+  88 003b 00       		.byte	0
+  89 003c D7       		.byte	-41
+  90 003d 87       		.byte	-121
+  91 003e 00       		.byte	0
+  92 003f 00       		.byte	0
+  93 0040 A7       		.byte	-89
+  94 0041 46       		.byte	70
+  95 0042 FF       		.byte	-1
+  96 0043 00       		.byte	0
+  97 0044 C0       		.byte	-64
+  98 0045 33       		.byte	51
+  99 0046 FF       		.byte	-1
+ 100 0047 00       		.byte	0
+ 101 0048 96       		.byte	-106
+ 102 0049 0F       		.byte	15
+ 103 004a 01       		.byte	1
+ 104 004b 00       		.byte	0
+ 105 004c 3B       		.byte	59
+ 106 004d 2C       		.byte	44
+ 107 004e 01       		.byte	1
+ 108 004f 00       		.byte	0
+ 109 0050 27       		.byte	39
+ 110 0051 79       		.byte	121
+ 111 0052 FE       		.byte	-2
+ 112 0053 00       		.byte	0
+ 113 0054 4E       		.byte	78
+ 114 0055 4C       		.byte	76
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 3
+
+
+ 115 0056 FE       		.byte	-2
+ 116 0057 00       		.byte	0
+ 117 0058 B5       		.byte	-75
+ 118 0059 2E       		.byte	46
+ 119 005a 02       		.byte	2
+ 120 005b 00       		.byte	0
+ 121 005c AD       		.byte	-83
+ 122 005d 78       		.byte	120
+ 123 005e 02       		.byte	2
+ 124 005f 00       		.byte	0
+ 125 0060 53       		.byte	83
+ 126 0061 D9       		.byte	-39
+ 127 0062 FC       		.byte	-4
+ 128 0063 00       		.byte	0
+ 129 0064 70       		.byte	112
+ 130 0065 54       		.byte	84
+ 131 0066 FC       		.byte	-4
+ 132 0067 00       		.byte	0
+ 133 0068 38       		.byte	56
+ 134 0069 BC       		.byte	-68
+ 135 006a 04       		.byte	4
+ 136 006b 00       		.byte	0
+ 137 006c F3       		.byte	-13
+ 138 006d D2       		.byte	-46
+ 139 006e 05       		.byte	5
+ 140 006f 00       		.byte	0
+ 141 0070 2D       		.byte	45
+ 142 0071 10       		.byte	16
+ 143 0072 F8       		.byte	-8
+ 144 0073 00       		.byte	0
+ 145 0074 29       		.byte	41
+ 146 0075 D9       		.byte	-39
+ 147 0076 F4       		.byte	-12
+ 148 0077 00       		.byte	0
+ 149 0078 2C       		.byte	44
+ 150 0079 22       		.byte	34
+ 151 007a 13       		.byte	19
+ 152 007b 00       		.byte	0
+ 153 007c CF       		.byte	-49
+ 154 007d 77       		.byte	119
+ 155 007e 39       		.byte	57
+ 156 007f 00       		.byte	0
+ 157 0080 CF       		.byte	-49
+ 158 0081 77       		.byte	119
+ 159 0082 39       		.byte	57
+ 160 0083 00       		.byte	0
+ 161 0084 2C       		.byte	44
+ 162 0085 22       		.byte	34
+ 163 0086 13       		.byte	19
+ 164 0087 00       		.byte	0
+ 165 0088 29       		.byte	41
+ 166 0089 D9       		.byte	-39
+ 167 008a F4       		.byte	-12
+ 168 008b 00       		.byte	0
+ 169 008c 2D       		.byte	45
+ 170 008d 10       		.byte	16
+ 171 008e F8       		.byte	-8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 4
+
+
+ 172 008f 00       		.byte	0
+ 173 0090 F3       		.byte	-13
+ 174 0091 D2       		.byte	-46
+ 175 0092 05       		.byte	5
+ 176 0093 00       		.byte	0
+ 177 0094 38       		.byte	56
+ 178 0095 BC       		.byte	-68
+ 179 0096 04       		.byte	4
+ 180 0097 00       		.byte	0
+ 181 0098 70       		.byte	112
+ 182 0099 54       		.byte	84
+ 183 009a FC       		.byte	-4
+ 184 009b 00       		.byte	0
+ 185 009c 53       		.byte	83
+ 186 009d D9       		.byte	-39
+ 187 009e FC       		.byte	-4
+ 188 009f 00       		.byte	0
+ 189 00a0 AD       		.byte	-83
+ 190 00a1 78       		.byte	120
+ 191 00a2 02       		.byte	2
+ 192 00a3 00       		.byte	0
+ 193 00a4 B5       		.byte	-75
+ 194 00a5 2E       		.byte	46
+ 195 00a6 02       		.byte	2
+ 196 00a7 00       		.byte	0
+ 197 00a8 4E       		.byte	78
+ 198 00a9 4C       		.byte	76
+ 199 00aa FE       		.byte	-2
+ 200 00ab 00       		.byte	0
+ 201 00ac 27       		.byte	39
+ 202 00ad 79       		.byte	121
+ 203 00ae FE       		.byte	-2
+ 204 00af 00       		.byte	0
+ 205 00b0 3B       		.byte	59
+ 206 00b1 2C       		.byte	44
+ 207 00b2 01       		.byte	1
+ 208 00b3 00       		.byte	0
+ 209 00b4 96       		.byte	-106
+ 210 00b5 0F       		.byte	15
+ 211 00b6 01       		.byte	1
+ 212 00b7 00       		.byte	0
+ 213 00b8 C0       		.byte	-64
+ 214 00b9 33       		.byte	51
+ 215 00ba FF       		.byte	-1
+ 216 00bb 00       		.byte	0
+ 217 00bc A7       		.byte	-89
+ 218 00bd 46       		.byte	70
+ 219 00be FF       		.byte	-1
+ 220 00bf 00       		.byte	0
+ 221 00c0 D7       		.byte	-41
+ 222 00c1 87       		.byte	-121
+ 223 00c2 00       		.byte	0
+ 224 00c3 00       		.byte	0
+ 225 00c4 1F       		.byte	31
+ 226 00c5 7B       		.byte	123
+ 227 00c6 00       		.byte	0
+ 228 00c7 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 5
+
+
+ 229 00c8 72       		.byte	114
+ 230 00c9 A8       		.byte	-88
+ 231 00ca FF       		.byte	-1
+ 232 00cb 00       		.byte	0
+ 233 00cc 15       		.byte	21
+ 234 00cd B1       		.byte	-79
+ 235 00ce FF       		.byte	-1
+ 236 00cf 00       		.byte	0
+ 237 00d0 33       		.byte	51
+ 238 00d1 36       		.byte	54
+ 239 00d2 00       		.byte	0
+ 240 00d3 00       		.byte	0
+ 241 00d4 55       		.byte	85
+ 242 00d5 30       		.byte	48
+ 243 00d6 00       		.byte	0
+ 244 00d7 00       		.byte	0
+ 245 00d8 23       		.byte	35
+ 246 00d9 E0       		.byte	-32
+ 247 00da FF       		.byte	-1
+ 248 00db 00       		.byte	0
+ 249 00dc 17       		.byte	23
+ 250 00dd E4       		.byte	-28
+ 251 00de FF       		.byte	-1
+ 252 00df 00       		.byte	0
+ 253 00e0 82       		.byte	-126
+ 254 00e1 11       		.byte	17
+ 255 00e2 00       		.byte	0
+ 256 00e3 00       		.byte	0
+ 257 00e4 E6       		.byte	-26
+ 258 00e5 0E       		.byte	14
+ 259 00e6 00       		.byte	0
+ 260 00e7 00       		.byte	0
+ 261 00e8 3B       		.byte	59
+ 262 00e9 F7       		.byte	-9
+ 263 00ea FF       		.byte	-1
+ 264 00eb 00       		.byte	0
+ 265 00ec DF       		.byte	-33
+ 266 00ed F8       		.byte	-8
+ 267 00ee FF       		.byte	-1
+ 268 00ef 00       		.byte	0
+ 269 00f0 E0       		.byte	-32
+ 270 00f1 03       		.byte	3
+ 271 00f2 00       		.byte	0
+ 272 00f3 00       		.byte	0
+ 273 00f4 00       		.byte	0
+ 274 00f5 03       		.byte	3
+ 275 00f6 00       		.byte	0
+ 276 00f7 00       		.byte	0
+ 277 00f8 6B       		.byte	107
+ 278 00f9 FE       		.byte	-2
+ 279 00fa FF       		.byte	-1
+ 280 00fb 00       		.byte	0
+ 281 00fc 93       		.byte	-109
+ 282 00fd FE       		.byte	-2
+ 283 00fe FF       		.byte	-1
+ 284 00ff 00       		.byte	0
+ 285 0100 93       		.byte	-109
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 6
+
+
+ 286 0101 FE       		.byte	-2
+ 287 0102 FF       		.byte	-1
+ 288 0103 00       		.byte	0
+ 289 0104 6B       		.byte	107
+ 290 0105 FE       		.byte	-2
+ 291 0106 FF       		.byte	-1
+ 292 0107 00       		.byte	0
+ 293 0108 00       		.byte	0
+ 294 0109 03       		.byte	3
+ 295 010a 00       		.byte	0
+ 296 010b 00       		.byte	0
+ 297 010c E0       		.byte	-32
+ 298 010d 03       		.byte	3
+ 299 010e 00       		.byte	0
+ 300 010f 00       		.byte	0
+ 301 0110 DF       		.byte	-33
+ 302 0111 F8       		.byte	-8
+ 303 0112 FF       		.byte	-1
+ 304 0113 00       		.byte	0
+ 305 0114 3B       		.byte	59
+ 306 0115 F7       		.byte	-9
+ 307 0116 FF       		.byte	-1
+ 308 0117 00       		.byte	0
+ 309 0118 E6       		.byte	-26
+ 310 0119 0E       		.byte	14
+ 311 011a 00       		.byte	0
+ 312 011b 00       		.byte	0
+ 313 011c 82       		.byte	-126
+ 314 011d 11       		.byte	17
+ 315 011e 00       		.byte	0
+ 316 011f 00       		.byte	0
+ 317 0120 17       		.byte	23
+ 318 0121 E4       		.byte	-28
+ 319 0122 FF       		.byte	-1
+ 320 0123 00       		.byte	0
+ 321 0124 23       		.byte	35
+ 322 0125 E0       		.byte	-32
+ 323 0126 FF       		.byte	-1
+ 324 0127 00       		.byte	0
+ 325 0128 55       		.byte	85
+ 326 0129 30       		.byte	48
+ 327 012a 00       		.byte	0
+ 328 012b 00       		.byte	0
+ 329 012c 33       		.byte	51
+ 330 012d 36       		.byte	54
+ 331 012e 00       		.byte	0
+ 332 012f 00       		.byte	0
+ 333 0130 15       		.byte	21
+ 334 0131 B1       		.byte	-79
+ 335 0132 FF       		.byte	-1
+ 336 0133 00       		.byte	0
+ 337 0134 72       		.byte	114
+ 338 0135 A8       		.byte	-88
+ 339 0136 FF       		.byte	-1
+ 340 0137 00       		.byte	0
+ 341 0138 1F       		.byte	31
+ 342 0139 7B       		.byte	123
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 7
+
+
+ 343 013a 00       		.byte	0
+ 344 013b 00       		.byte	0
+ 345 013c D7       		.byte	-41
+ 346 013d 87       		.byte	-121
+ 347 013e 00       		.byte	0
+ 348 013f 00       		.byte	0
+ 349 0140 A7       		.byte	-89
+ 350 0141 46       		.byte	70
+ 351 0142 FF       		.byte	-1
+ 352 0143 00       		.byte	0
+ 353 0144 C0       		.byte	-64
+ 354 0145 33       		.byte	51
+ 355 0146 FF       		.byte	-1
+ 356 0147 00       		.byte	0
+ 357 0148 96       		.byte	-106
+ 358 0149 0F       		.byte	15
+ 359 014a 01       		.byte	1
+ 360 014b 00       		.byte	0
+ 361 014c 3B       		.byte	59
+ 362 014d 2C       		.byte	44
+ 363 014e 01       		.byte	1
+ 364 014f 00       		.byte	0
+ 365 0150 27       		.byte	39
+ 366 0151 79       		.byte	121
+ 367 0152 FE       		.byte	-2
+ 368 0153 00       		.byte	0
+ 369 0154 4E       		.byte	78
+ 370 0155 4C       		.byte	76
+ 371 0156 FE       		.byte	-2
+ 372 0157 00       		.byte	0
+ 373 0158 B5       		.byte	-75
+ 374 0159 2E       		.byte	46
+ 375 015a 02       		.byte	2
+ 376 015b 00       		.byte	0
+ 377 015c AD       		.byte	-83
+ 378 015d 78       		.byte	120
+ 379 015e 02       		.byte	2
+ 380 015f 00       		.byte	0
+ 381 0160 53       		.byte	83
+ 382 0161 D9       		.byte	-39
+ 383 0162 FC       		.byte	-4
+ 384 0163 00       		.byte	0
+ 385 0164 70       		.byte	112
+ 386 0165 54       		.byte	84
+ 387 0166 FC       		.byte	-4
+ 388 0167 00       		.byte	0
+ 389 0168 38       		.byte	56
+ 390 0169 BC       		.byte	-68
+ 391 016a 04       		.byte	4
+ 392 016b 00       		.byte	0
+ 393 016c F3       		.byte	-13
+ 394 016d D2       		.byte	-46
+ 395 016e 05       		.byte	5
+ 396 016f 00       		.byte	0
+ 397 0170 2D       		.byte	45
+ 398 0171 10       		.byte	16
+ 399 0172 F8       		.byte	-8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 8
+
+
+ 400 0173 00       		.byte	0
+ 401 0174 29       		.byte	41
+ 402 0175 D9       		.byte	-39
+ 403 0176 F4       		.byte	-12
+ 404 0177 00       		.byte	0
+ 405 0178 2C       		.byte	44
+ 406 0179 22       		.byte	34
+ 407 017a 13       		.byte	19
+ 408 017b 00       		.byte	0
+ 409 017c CF       		.byte	-49
+ 410 017d 77       		.byte	119
+ 411 017e 39       		.byte	57
+ 412 017f 00       		.byte	0
+ 413 0180 CF       		.byte	-49
+ 414 0181 77       		.byte	119
+ 415 0182 39       		.byte	57
+ 416 0183 00       		.byte	0
+ 417 0184 2C       		.byte	44
+ 418 0185 22       		.byte	34
+ 419 0186 13       		.byte	19
+ 420 0187 00       		.byte	0
+ 421 0188 29       		.byte	41
+ 422 0189 D9       		.byte	-39
+ 423 018a F4       		.byte	-12
+ 424 018b 00       		.byte	0
+ 425 018c 2D       		.byte	45
+ 426 018d 10       		.byte	16
+ 427 018e F8       		.byte	-8
+ 428 018f 00       		.byte	0
+ 429 0190 F3       		.byte	-13
+ 430 0191 D2       		.byte	-46
+ 431 0192 05       		.byte	5
+ 432 0193 00       		.byte	0
+ 433 0194 38       		.byte	56
+ 434 0195 BC       		.byte	-68
+ 435 0196 04       		.byte	4
+ 436 0197 00       		.byte	0
+ 437 0198 70       		.byte	112
+ 438 0199 54       		.byte	84
+ 439 019a FC       		.byte	-4
+ 440 019b 00       		.byte	0
+ 441 019c 53       		.byte	83
+ 442 019d D9       		.byte	-39
+ 443 019e FC       		.byte	-4
+ 444 019f 00       		.byte	0
+ 445 01a0 AD       		.byte	-83
+ 446 01a1 78       		.byte	120
+ 447 01a2 02       		.byte	2
+ 448 01a3 00       		.byte	0
+ 449 01a4 B5       		.byte	-75
+ 450 01a5 2E       		.byte	46
+ 451 01a6 02       		.byte	2
+ 452 01a7 00       		.byte	0
+ 453 01a8 4E       		.byte	78
+ 454 01a9 4C       		.byte	76
+ 455 01aa FE       		.byte	-2
+ 456 01ab 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 9
+
+
+ 457 01ac 27       		.byte	39
+ 458 01ad 79       		.byte	121
+ 459 01ae FE       		.byte	-2
+ 460 01af 00       		.byte	0
+ 461 01b0 3B       		.byte	59
+ 462 01b1 2C       		.byte	44
+ 463 01b2 01       		.byte	1
+ 464 01b3 00       		.byte	0
+ 465 01b4 96       		.byte	-106
+ 466 01b5 0F       		.byte	15
+ 467 01b6 01       		.byte	1
+ 468 01b7 00       		.byte	0
+ 469 01b8 C0       		.byte	-64
+ 470 01b9 33       		.byte	51
+ 471 01ba FF       		.byte	-1
+ 472 01bb 00       		.byte	0
+ 473 01bc A7       		.byte	-89
+ 474 01bd 46       		.byte	70
+ 475 01be FF       		.byte	-1
+ 476 01bf 00       		.byte	0
+ 477 01c0 D7       		.byte	-41
+ 478 01c1 87       		.byte	-121
+ 479 01c2 00       		.byte	0
+ 480 01c3 00       		.byte	0
+ 481 01c4 1F       		.byte	31
+ 482 01c5 7B       		.byte	123
+ 483 01c6 00       		.byte	0
+ 484 01c7 00       		.byte	0
+ 485 01c8 72       		.byte	114
+ 486 01c9 A8       		.byte	-88
+ 487 01ca FF       		.byte	-1
+ 488 01cb 00       		.byte	0
+ 489 01cc 15       		.byte	21
+ 490 01cd B1       		.byte	-79
+ 491 01ce FF       		.byte	-1
+ 492 01cf 00       		.byte	0
+ 493 01d0 33       		.byte	51
+ 494 01d1 36       		.byte	54
+ 495 01d2 00       		.byte	0
+ 496 01d3 00       		.byte	0
+ 497 01d4 55       		.byte	85
+ 498 01d5 30       		.byte	48
+ 499 01d6 00       		.byte	0
+ 500 01d7 00       		.byte	0
+ 501 01d8 23       		.byte	35
+ 502 01d9 E0       		.byte	-32
+ 503 01da FF       		.byte	-1
+ 504 01db 00       		.byte	0
+ 505 01dc 17       		.byte	23
+ 506 01dd E4       		.byte	-28
+ 507 01de FF       		.byte	-1
+ 508 01df 00       		.byte	0
+ 509 01e0 82       		.byte	-126
+ 510 01e1 11       		.byte	17
+ 511 01e2 00       		.byte	0
+ 512 01e3 00       		.byte	0
+ 513 01e4 E6       		.byte	-26
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 10
+
+
+ 514 01e5 0E       		.byte	14
+ 515 01e6 00       		.byte	0
+ 516 01e7 00       		.byte	0
+ 517 01e8 3B       		.byte	59
+ 518 01e9 F7       		.byte	-9
+ 519 01ea FF       		.byte	-1
+ 520 01eb 00       		.byte	0
+ 521 01ec DF       		.byte	-33
+ 522 01ed F8       		.byte	-8
+ 523 01ee FF       		.byte	-1
+ 524 01ef 00       		.byte	0
+ 525 01f0 E0       		.byte	-32
+ 526 01f1 03       		.byte	3
+ 527 01f2 00       		.byte	0
+ 528 01f3 00       		.byte	0
+ 529 01f4 00       		.byte	0
+ 530 01f5 03       		.byte	3
+ 531 01f6 00       		.byte	0
+ 532 01f7 00       		.byte	0
+ 533 01f8 6B       		.byte	107
+ 534 01f9 FE       		.byte	-2
+ 535 01fa FF       		.byte	-1
+ 536 01fb 00       		.byte	0
+ 537 01fc 93       		.byte	-109
+ 538 01fd FE       		.byte	-2
+ 539 01fe FF       		.byte	-1
+ 540 01ff 00       		.byte	0
+ 541              		.type	Filter_data_b_cw, %object
+ 542              		.size	Filter_data_b_cw, 512
+ 543              	Filter_data_b_cw:
+ 544 0200 1B       		.byte	27
+ 545 0201 1F       		.byte	31
+ 546 0202 00       		.byte	0
+ 547 0203 00       		.byte	0
+ 548 0204 2B       		.byte	43
+ 549 0205 1F       		.byte	31
+ 550 0206 00       		.byte	0
+ 551 0207 00       		.byte	0
+ 552 0208 45       		.byte	69
+ 553 0209 19       		.byte	25
+ 554 020a 00       		.byte	0
+ 555 020b 00       		.byte	0
+ 556 020c 47       		.byte	71
+ 557 020d 0A       		.byte	10
+ 558 020e 00       		.byte	0
+ 559 020f 00       		.byte	0
+ 560 0210 58       		.byte	88
+ 561 0211 EF       		.byte	-17
+ 562 0212 FF       		.byte	-1
+ 563 0213 00       		.byte	0
+ 564 0214 BF       		.byte	-65
+ 565 0215 C7       		.byte	-57
+ 566 0216 FF       		.byte	-1
+ 567 0217 00       		.byte	0
+ 568 0218 D7       		.byte	-41
+ 569 0219 96       		.byte	-106
+ 570 021a FF       		.byte	-1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 11
+
+
+ 571 021b 00       		.byte	0
+ 572 021c 60       		.byte	96
+ 573 021d 65       		.byte	101
+ 574 021e FF       		.byte	-1
+ 575 021f 00       		.byte	0
+ 576 0220 3C       		.byte	60
+ 577 0221 41       		.byte	65
+ 578 0222 FF       		.byte	-1
+ 579 0223 00       		.byte	0
+ 580 0224 43       		.byte	67
+ 581 0225 3B       		.byte	59
+ 582 0226 FF       		.byte	-1
+ 583 0227 00       		.byte	0
+ 584 0228 22       		.byte	34
+ 585 0229 63       		.byte	99
+ 586 022a FF       		.byte	-1
+ 587 022b 00       		.byte	0
+ 588 022c 2A       		.byte	42
+ 589 022d C2       		.byte	-62
+ 590 022e FF       		.byte	-1
+ 591 022f 00       		.byte	0
+ 592 0230 55       		.byte	85
+ 593 0231 56       		.byte	86
+ 594 0232 00       		.byte	0
+ 595 0233 00       		.byte	0
+ 596 0234 20       		.byte	32
+ 597 0235 0F       		.byte	15
+ 598 0236 01       		.byte	1
+ 599 0237 00       		.byte	0
+ 600 0238 A1       		.byte	-95
+ 601 0239 CD       		.byte	-51
+ 602 023a 01       		.byte	1
+ 603 023b 00       		.byte	0
+ 604 023c 9C       		.byte	-100
+ 605 023d 68       		.byte	104
+ 606 023e 02       		.byte	2
+ 607 023f 00       		.byte	0
+ 608 0240 42       		.byte	66
+ 609 0241 B4       		.byte	-76
+ 610 0242 02       		.byte	2
+ 611 0243 00       		.byte	0
+ 612 0244 55       		.byte	85
+ 613 0245 8C       		.byte	-116
+ 614 0246 02       		.byte	2
+ 615 0247 00       		.byte	0
+ 616 0248 6F       		.byte	111
+ 617 0249 DE       		.byte	-34
+ 618 024a 01       		.byte	1
+ 619 024b 00       		.byte	0
+ 620 024c C1       		.byte	-63
+ 621 024d B1       		.byte	-79
+ 622 024e 00       		.byte	0
+ 623 024f 00       		.byte	0
+ 624 0250 04       		.byte	4
+ 625 0251 2A       		.byte	42
+ 626 0252 FF       		.byte	-1
+ 627 0253 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 12
+
+
+ 628 0254 1C       		.byte	28
+ 629 0255 84       		.byte	-124
+ 630 0256 FD       		.byte	-3
+ 631 0257 00       		.byte	0
+ 632 0258 66       		.byte	102
+ 633 0259 0C       		.byte	12
+ 634 025a FC       		.byte	-4
+ 635 025b 00       		.byte	0
+ 636 025c 48       		.byte	72
+ 637 025d 10       		.byte	16
+ 638 025e FB       		.byte	-5
+ 639 025f 00       		.byte	0
+ 640 0260 D5       		.byte	-43
+ 641 0261 CD       		.byte	-51
+ 642 0262 FA       		.byte	-6
+ 643 0263 00       		.byte	0
+ 644 0264 2B       		.byte	43
+ 645 0265 65       		.byte	101
+ 646 0266 FB       		.byte	-5
+ 647 0267 00       		.byte	0
+ 648 0268 07       		.byte	7
+ 649 0269 CF       		.byte	-49
+ 650 026a FC       		.byte	-4
+ 651 026b 00       		.byte	0
+ 652 026c 16       		.byte	22
+ 653 026d DB       		.byte	-37
+ 654 026e FE       		.byte	-2
+ 655 026f 00       		.byte	0
+ 656 0270 F6       		.byte	-10
+ 657 0271 36       		.byte	54
+ 658 0272 01       		.byte	1
+ 659 0273 00       		.byte	0
+ 660 0274 CD       		.byte	-51
+ 661 0275 7C       		.byte	124
+ 662 0276 03       		.byte	3
+ 663 0277 00       		.byte	0
+ 664 0278 9C       		.byte	-100
+ 665 0279 46       		.byte	70
+ 666 027a 05       		.byte	5
+ 667 027b 00       		.byte	0
+ 668 027c 58       		.byte	88
+ 669 027d 42       		.byte	66
+ 670 027e 06       		.byte	6
+ 671 027f 00       		.byte	0
+ 672 0280 58       		.byte	88
+ 673 0281 42       		.byte	66
+ 674 0282 06       		.byte	6
+ 675 0283 00       		.byte	0
+ 676 0284 9C       		.byte	-100
+ 677 0285 46       		.byte	70
+ 678 0286 05       		.byte	5
+ 679 0287 00       		.byte	0
+ 680 0288 CD       		.byte	-51
+ 681 0289 7C       		.byte	124
+ 682 028a 03       		.byte	3
+ 683 028b 00       		.byte	0
+ 684 028c F6       		.byte	-10
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 13
+
+
+ 685 028d 36       		.byte	54
+ 686 028e 01       		.byte	1
+ 687 028f 00       		.byte	0
+ 688 0290 16       		.byte	22
+ 689 0291 DB       		.byte	-37
+ 690 0292 FE       		.byte	-2
+ 691 0293 00       		.byte	0
+ 692 0294 07       		.byte	7
+ 693 0295 CF       		.byte	-49
+ 694 0296 FC       		.byte	-4
+ 695 0297 00       		.byte	0
+ 696 0298 2B       		.byte	43
+ 697 0299 65       		.byte	101
+ 698 029a FB       		.byte	-5
+ 699 029b 00       		.byte	0
+ 700 029c D5       		.byte	-43
+ 701 029d CD       		.byte	-51
+ 702 029e FA       		.byte	-6
+ 703 029f 00       		.byte	0
+ 704 02a0 48       		.byte	72
+ 705 02a1 10       		.byte	16
+ 706 02a2 FB       		.byte	-5
+ 707 02a3 00       		.byte	0
+ 708 02a4 66       		.byte	102
+ 709 02a5 0C       		.byte	12
+ 710 02a6 FC       		.byte	-4
+ 711 02a7 00       		.byte	0
+ 712 02a8 1C       		.byte	28
+ 713 02a9 84       		.byte	-124
+ 714 02aa FD       		.byte	-3
+ 715 02ab 00       		.byte	0
+ 716 02ac 04       		.byte	4
+ 717 02ad 2A       		.byte	42
+ 718 02ae FF       		.byte	-1
+ 719 02af 00       		.byte	0
+ 720 02b0 C1       		.byte	-63
+ 721 02b1 B1       		.byte	-79
+ 722 02b2 00       		.byte	0
+ 723 02b3 00       		.byte	0
+ 724 02b4 6F       		.byte	111
+ 725 02b5 DE       		.byte	-34
+ 726 02b6 01       		.byte	1
+ 727 02b7 00       		.byte	0
+ 728 02b8 55       		.byte	85
+ 729 02b9 8C       		.byte	-116
+ 730 02ba 02       		.byte	2
+ 731 02bb 00       		.byte	0
+ 732 02bc 42       		.byte	66
+ 733 02bd B4       		.byte	-76
+ 734 02be 02       		.byte	2
+ 735 02bf 00       		.byte	0
+ 736 02c0 9C       		.byte	-100
+ 737 02c1 68       		.byte	104
+ 738 02c2 02       		.byte	2
+ 739 02c3 00       		.byte	0
+ 740 02c4 A1       		.byte	-95
+ 741 02c5 CD       		.byte	-51
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 14
+
+
+ 742 02c6 01       		.byte	1
+ 743 02c7 00       		.byte	0
+ 744 02c8 20       		.byte	32
+ 745 02c9 0F       		.byte	15
+ 746 02ca 01       		.byte	1
+ 747 02cb 00       		.byte	0
+ 748 02cc 55       		.byte	85
+ 749 02cd 56       		.byte	86
+ 750 02ce 00       		.byte	0
+ 751 02cf 00       		.byte	0
+ 752 02d0 2A       		.byte	42
+ 753 02d1 C2       		.byte	-62
+ 754 02d2 FF       		.byte	-1
+ 755 02d3 00       		.byte	0
+ 756 02d4 22       		.byte	34
+ 757 02d5 63       		.byte	99
+ 758 02d6 FF       		.byte	-1
+ 759 02d7 00       		.byte	0
+ 760 02d8 43       		.byte	67
+ 761 02d9 3B       		.byte	59
+ 762 02da FF       		.byte	-1
+ 763 02db 00       		.byte	0
+ 764 02dc 3C       		.byte	60
+ 765 02dd 41       		.byte	65
+ 766 02de FF       		.byte	-1
+ 767 02df 00       		.byte	0
+ 768 02e0 60       		.byte	96
+ 769 02e1 65       		.byte	101
+ 770 02e2 FF       		.byte	-1
+ 771 02e3 00       		.byte	0
+ 772 02e4 D7       		.byte	-41
+ 773 02e5 96       		.byte	-106
+ 774 02e6 FF       		.byte	-1
+ 775 02e7 00       		.byte	0
+ 776 02e8 BF       		.byte	-65
+ 777 02e9 C7       		.byte	-57
+ 778 02ea FF       		.byte	-1
+ 779 02eb 00       		.byte	0
+ 780 02ec 58       		.byte	88
+ 781 02ed EF       		.byte	-17
+ 782 02ee FF       		.byte	-1
+ 783 02ef 00       		.byte	0
+ 784 02f0 47       		.byte	71
+ 785 02f1 0A       		.byte	10
+ 786 02f2 00       		.byte	0
+ 787 02f3 00       		.byte	0
+ 788 02f4 45       		.byte	69
+ 789 02f5 19       		.byte	25
+ 790 02f6 00       		.byte	0
+ 791 02f7 00       		.byte	0
+ 792 02f8 2B       		.byte	43
+ 793 02f9 1F       		.byte	31
+ 794 02fa 00       		.byte	0
+ 795 02fb 00       		.byte	0
+ 796 02fc 1B       		.byte	27
+ 797 02fd 1F       		.byte	31
+ 798 02fe 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 15
+
+
+ 799 02ff 00       		.byte	0
+ 800 0300 1B       		.byte	27
+ 801 0301 1F       		.byte	31
+ 802 0302 00       		.byte	0
+ 803 0303 00       		.byte	0
+ 804 0304 2B       		.byte	43
+ 805 0305 1F       		.byte	31
+ 806 0306 00       		.byte	0
+ 807 0307 00       		.byte	0
+ 808 0308 45       		.byte	69
+ 809 0309 19       		.byte	25
+ 810 030a 00       		.byte	0
+ 811 030b 00       		.byte	0
+ 812 030c 47       		.byte	71
+ 813 030d 0A       		.byte	10
+ 814 030e 00       		.byte	0
+ 815 030f 00       		.byte	0
+ 816 0310 58       		.byte	88
+ 817 0311 EF       		.byte	-17
+ 818 0312 FF       		.byte	-1
+ 819 0313 00       		.byte	0
+ 820 0314 BF       		.byte	-65
+ 821 0315 C7       		.byte	-57
+ 822 0316 FF       		.byte	-1
+ 823 0317 00       		.byte	0
+ 824 0318 D7       		.byte	-41
+ 825 0319 96       		.byte	-106
+ 826 031a FF       		.byte	-1
+ 827 031b 00       		.byte	0
+ 828 031c 60       		.byte	96
+ 829 031d 65       		.byte	101
+ 830 031e FF       		.byte	-1
+ 831 031f 00       		.byte	0
+ 832 0320 3C       		.byte	60
+ 833 0321 41       		.byte	65
+ 834 0322 FF       		.byte	-1
+ 835 0323 00       		.byte	0
+ 836 0324 43       		.byte	67
+ 837 0325 3B       		.byte	59
+ 838 0326 FF       		.byte	-1
+ 839 0327 00       		.byte	0
+ 840 0328 22       		.byte	34
+ 841 0329 63       		.byte	99
+ 842 032a FF       		.byte	-1
+ 843 032b 00       		.byte	0
+ 844 032c 2A       		.byte	42
+ 845 032d C2       		.byte	-62
+ 846 032e FF       		.byte	-1
+ 847 032f 00       		.byte	0
+ 848 0330 55       		.byte	85
+ 849 0331 56       		.byte	86
+ 850 0332 00       		.byte	0
+ 851 0333 00       		.byte	0
+ 852 0334 20       		.byte	32
+ 853 0335 0F       		.byte	15
+ 854 0336 01       		.byte	1
+ 855 0337 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 16
+
+
+ 856 0338 A1       		.byte	-95
+ 857 0339 CD       		.byte	-51
+ 858 033a 01       		.byte	1
+ 859 033b 00       		.byte	0
+ 860 033c 9C       		.byte	-100
+ 861 033d 68       		.byte	104
+ 862 033e 02       		.byte	2
+ 863 033f 00       		.byte	0
+ 864 0340 42       		.byte	66
+ 865 0341 B4       		.byte	-76
+ 866 0342 02       		.byte	2
+ 867 0343 00       		.byte	0
+ 868 0344 55       		.byte	85
+ 869 0345 8C       		.byte	-116
+ 870 0346 02       		.byte	2
+ 871 0347 00       		.byte	0
+ 872 0348 6F       		.byte	111
+ 873 0349 DE       		.byte	-34
+ 874 034a 01       		.byte	1
+ 875 034b 00       		.byte	0
+ 876 034c C1       		.byte	-63
+ 877 034d B1       		.byte	-79
+ 878 034e 00       		.byte	0
+ 879 034f 00       		.byte	0
+ 880 0350 04       		.byte	4
+ 881 0351 2A       		.byte	42
+ 882 0352 FF       		.byte	-1
+ 883 0353 00       		.byte	0
+ 884 0354 1C       		.byte	28
+ 885 0355 84       		.byte	-124
+ 886 0356 FD       		.byte	-3
+ 887 0357 00       		.byte	0
+ 888 0358 66       		.byte	102
+ 889 0359 0C       		.byte	12
+ 890 035a FC       		.byte	-4
+ 891 035b 00       		.byte	0
+ 892 035c 48       		.byte	72
+ 893 035d 10       		.byte	16
+ 894 035e FB       		.byte	-5
+ 895 035f 00       		.byte	0
+ 896 0360 D5       		.byte	-43
+ 897 0361 CD       		.byte	-51
+ 898 0362 FA       		.byte	-6
+ 899 0363 00       		.byte	0
+ 900 0364 2B       		.byte	43
+ 901 0365 65       		.byte	101
+ 902 0366 FB       		.byte	-5
+ 903 0367 00       		.byte	0
+ 904 0368 07       		.byte	7
+ 905 0369 CF       		.byte	-49
+ 906 036a FC       		.byte	-4
+ 907 036b 00       		.byte	0
+ 908 036c 16       		.byte	22
+ 909 036d DB       		.byte	-37
+ 910 036e FE       		.byte	-2
+ 911 036f 00       		.byte	0
+ 912 0370 F6       		.byte	-10
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 17
+
+
+ 913 0371 36       		.byte	54
+ 914 0372 01       		.byte	1
+ 915 0373 00       		.byte	0
+ 916 0374 CD       		.byte	-51
+ 917 0375 7C       		.byte	124
+ 918 0376 03       		.byte	3
+ 919 0377 00       		.byte	0
+ 920 0378 9C       		.byte	-100
+ 921 0379 46       		.byte	70
+ 922 037a 05       		.byte	5
+ 923 037b 00       		.byte	0
+ 924 037c 58       		.byte	88
+ 925 037d 42       		.byte	66
+ 926 037e 06       		.byte	6
+ 927 037f 00       		.byte	0
+ 928 0380 58       		.byte	88
+ 929 0381 42       		.byte	66
+ 930 0382 06       		.byte	6
+ 931 0383 00       		.byte	0
+ 932 0384 9C       		.byte	-100
+ 933 0385 46       		.byte	70
+ 934 0386 05       		.byte	5
+ 935 0387 00       		.byte	0
+ 936 0388 CD       		.byte	-51
+ 937 0389 7C       		.byte	124
+ 938 038a 03       		.byte	3
+ 939 038b 00       		.byte	0
+ 940 038c F6       		.byte	-10
+ 941 038d 36       		.byte	54
+ 942 038e 01       		.byte	1
+ 943 038f 00       		.byte	0
+ 944 0390 16       		.byte	22
+ 945 0391 DB       		.byte	-37
+ 946 0392 FE       		.byte	-2
+ 947 0393 00       		.byte	0
+ 948 0394 07       		.byte	7
+ 949 0395 CF       		.byte	-49
+ 950 0396 FC       		.byte	-4
+ 951 0397 00       		.byte	0
+ 952 0398 2B       		.byte	43
+ 953 0399 65       		.byte	101
+ 954 039a FB       		.byte	-5
+ 955 039b 00       		.byte	0
+ 956 039c D5       		.byte	-43
+ 957 039d CD       		.byte	-51
+ 958 039e FA       		.byte	-6
+ 959 039f 00       		.byte	0
+ 960 03a0 48       		.byte	72
+ 961 03a1 10       		.byte	16
+ 962 03a2 FB       		.byte	-5
+ 963 03a3 00       		.byte	0
+ 964 03a4 66       		.byte	102
+ 965 03a5 0C       		.byte	12
+ 966 03a6 FC       		.byte	-4
+ 967 03a7 00       		.byte	0
+ 968 03a8 1C       		.byte	28
+ 969 03a9 84       		.byte	-124
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 18
+
+
+ 970 03aa FD       		.byte	-3
+ 971 03ab 00       		.byte	0
+ 972 03ac 04       		.byte	4
+ 973 03ad 2A       		.byte	42
+ 974 03ae FF       		.byte	-1
+ 975 03af 00       		.byte	0
+ 976 03b0 C1       		.byte	-63
+ 977 03b1 B1       		.byte	-79
+ 978 03b2 00       		.byte	0
+ 979 03b3 00       		.byte	0
+ 980 03b4 6F       		.byte	111
+ 981 03b5 DE       		.byte	-34
+ 982 03b6 01       		.byte	1
+ 983 03b7 00       		.byte	0
+ 984 03b8 55       		.byte	85
+ 985 03b9 8C       		.byte	-116
+ 986 03ba 02       		.byte	2
+ 987 03bb 00       		.byte	0
+ 988 03bc 42       		.byte	66
+ 989 03bd B4       		.byte	-76
+ 990 03be 02       		.byte	2
+ 991 03bf 00       		.byte	0
+ 992 03c0 9C       		.byte	-100
+ 993 03c1 68       		.byte	104
+ 994 03c2 02       		.byte	2
+ 995 03c3 00       		.byte	0
+ 996 03c4 A1       		.byte	-95
+ 997 03c5 CD       		.byte	-51
+ 998 03c6 01       		.byte	1
+ 999 03c7 00       		.byte	0
+ 1000 03c8 20       		.byte	32
+ 1001 03c9 0F       		.byte	15
+ 1002 03ca 01       		.byte	1
+ 1003 03cb 00       		.byte	0
+ 1004 03cc 55       		.byte	85
+ 1005 03cd 56       		.byte	86
+ 1006 03ce 00       		.byte	0
+ 1007 03cf 00       		.byte	0
+ 1008 03d0 2A       		.byte	42
+ 1009 03d1 C2       		.byte	-62
+ 1010 03d2 FF       		.byte	-1
+ 1011 03d3 00       		.byte	0
+ 1012 03d4 22       		.byte	34
+ 1013 03d5 63       		.byte	99
+ 1014 03d6 FF       		.byte	-1
+ 1015 03d7 00       		.byte	0
+ 1016 03d8 43       		.byte	67
+ 1017 03d9 3B       		.byte	59
+ 1018 03da FF       		.byte	-1
+ 1019 03db 00       		.byte	0
+ 1020 03dc 3C       		.byte	60
+ 1021 03dd 41       		.byte	65
+ 1022 03de FF       		.byte	-1
+ 1023 03df 00       		.byte	0
+ 1024 03e0 60       		.byte	96
+ 1025 03e1 65       		.byte	101
+ 1026 03e2 FF       		.byte	-1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 19
+
+
+ 1027 03e3 00       		.byte	0
+ 1028 03e4 D7       		.byte	-41
+ 1029 03e5 96       		.byte	-106
+ 1030 03e6 FF       		.byte	-1
+ 1031 03e7 00       		.byte	0
+ 1032 03e8 BF       		.byte	-65
+ 1033 03e9 C7       		.byte	-57
+ 1034 03ea FF       		.byte	-1
+ 1035 03eb 00       		.byte	0
+ 1036 03ec 58       		.byte	88
+ 1037 03ed EF       		.byte	-17
+ 1038 03ee FF       		.byte	-1
+ 1039 03ef 00       		.byte	0
+ 1040 03f0 47       		.byte	71
+ 1041 03f1 0A       		.byte	10
+ 1042 03f2 00       		.byte	0
+ 1043 03f3 00       		.byte	0
+ 1044 03f4 45       		.byte	69
+ 1045 03f5 19       		.byte	25
+ 1046 03f6 00       		.byte	0
+ 1047 03f7 00       		.byte	0
+ 1048 03f8 2B       		.byte	43
+ 1049 03f9 1F       		.byte	31
+ 1050 03fa 00       		.byte	0
+ 1051 03fb 00       		.byte	0
+ 1052 03fc 1B       		.byte	27
+ 1053 03fd 1F       		.byte	31
+ 1054 03fe 00       		.byte	0
+ 1055 03ff 00       		.byte	0
+ 1056              		.type	Filter_data_b_1500, %object
+ 1057              		.size	Filter_data_b_1500, 512
+ 1058              	Filter_data_b_1500:
+ 1059 0400 66       		.byte	102
+ 1060 0401 FF       		.byte	-1
+ 1061 0402 FF       		.byte	-1
+ 1062 0403 00       		.byte	0
+ 1063 0404 01       		.byte	1
+ 1064 0405 FE       		.byte	-2
+ 1065 0406 FF       		.byte	-1
+ 1066 0407 00       		.byte	0
+ 1067 0408 20       		.byte	32
+ 1068 0409 FC       		.byte	-4
+ 1069 040a FF       		.byte	-1
+ 1070 040b 00       		.byte	0
+ 1071 040c BD       		.byte	-67
+ 1072 040d FA       		.byte	-6
+ 1073 040e FF       		.byte	-1
+ 1074 040f 00       		.byte	0
+ 1075 0410 E9       		.byte	-23
+ 1076 0411 FB       		.byte	-5
+ 1077 0412 FF       		.byte	-1
+ 1078 0413 00       		.byte	0
+ 1079 0414 CA       		.byte	-54
+ 1080 0415 01       		.byte	1
+ 1081 0416 00       		.byte	0
+ 1082 0417 00       		.byte	0
+ 1083 0418 D6       		.byte	-42
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 20
+
+
+ 1084 0419 0C       		.byte	12
+ 1085 041a 00       		.byte	0
+ 1086 041b 00       		.byte	0
+ 1087 041c 1E       		.byte	30
+ 1088 041d 1A       		.byte	26
+ 1089 041e 00       		.byte	0
+ 1090 041f 00       		.byte	0
+ 1091 0420 CE       		.byte	-50
+ 1092 0421 22       		.byte	34
+ 1093 0422 00       		.byte	0
+ 1094 0423 00       		.byte	0
+ 1095 0424 EC       		.byte	-20
+ 1096 0425 1D       		.byte	29
+ 1097 0426 00       		.byte	0
+ 1098 0427 00       		.byte	0
+ 1099 0428 8E       		.byte	-114
+ 1100 0429 04       		.byte	4
+ 1101 042a 00       		.byte	0
+ 1102 042b 00       		.byte	0
+ 1103 042c 47       		.byte	71
+ 1104 042d D7       		.byte	-41
+ 1105 042e FF       		.byte	-1
+ 1106 042f 00       		.byte	0
+ 1107 0430 36       		.byte	54
+ 1108 0431 A2       		.byte	-94
+ 1109 0432 FF       		.byte	-1
+ 1110 0433 00       		.byte	0
+ 1111 0434 C2       		.byte	-62
+ 1112 0435 7C       		.byte	124
+ 1113 0436 FF       		.byte	-1
+ 1114 0437 00       		.byte	0
+ 1115 0438 ED       		.byte	-19
+ 1116 0439 82       		.byte	-126
+ 1117 043a FF       		.byte	-1
+ 1118 043b 00       		.byte	0
+ 1119 043c ED       		.byte	-19
+ 1120 043d C8       		.byte	-56
+ 1121 043e FF       		.byte	-1
+ 1122 043f 00       		.byte	0
+ 1123 0440 0F       		.byte	15
+ 1124 0441 4D       		.byte	77
+ 1125 0442 00       		.byte	0
+ 1126 0443 00       		.byte	0
+ 1127 0444 5B       		.byte	91
+ 1128 0445 EE       		.byte	-18
+ 1129 0446 00       		.byte	0
+ 1130 0447 00       		.byte	0
+ 1131 0448 B2       		.byte	-78
+ 1132 0449 6E       		.byte	110
+ 1133 044a 01       		.byte	1
+ 1134 044b 00       		.byte	0
+ 1135 044c C3       		.byte	-61
+ 1136 044d 83       		.byte	-125
+ 1137 044e 01       		.byte	1
+ 1138 044f 00       		.byte	0
+ 1139 0450 5A       		.byte	90
+ 1140 0451 F4       		.byte	-12
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 21
+
+
+ 1141 0452 00       		.byte	0
+ 1142 0453 00       		.byte	0
+ 1143 0454 0B       		.byte	11
+ 1144 0455 B9       		.byte	-71
+ 1145 0456 FF       		.byte	-1
+ 1146 0457 00       		.byte	0
+ 1147 0458 E3       		.byte	-29
+ 1148 0459 12       		.byte	18
+ 1149 045a FE       		.byte	-2
+ 1150 045b 00       		.byte	0
+ 1151 045c B1       		.byte	-79
+ 1152 045d 8B       		.byte	-117
+ 1153 045e FC       		.byte	-4
+ 1154 045f 00       		.byte	0
+ 1155 0460 AA       		.byte	-86
+ 1156 0461 D9       		.byte	-39
+ 1157 0462 FB       		.byte	-5
+ 1158 0463 00       		.byte	0
+ 1159 0464 C0       		.byte	-64
+ 1160 0465 AA       		.byte	-86
+ 1161 0466 FC       		.byte	-4
+ 1162 0467 00       		.byte	0
+ 1163 0468 7A       		.byte	122
+ 1164 0469 66       		.byte	102
+ 1165 046a FF       		.byte	-1
+ 1166 046b 00       		.byte	0
+ 1167 046c C9       		.byte	-55
+ 1168 046d FB       		.byte	-5
+ 1169 046e 03       		.byte	3
+ 1170 046f 00       		.byte	0
+ 1171 0470 F1       		.byte	-15
+ 1172 0471 CE       		.byte	-50
+ 1173 0472 09       		.byte	9
+ 1174 0473 00       		.byte	0
+ 1175 0474 87       		.byte	-121
+ 1176 0475 D2       		.byte	-46
+ 1177 0476 0F       		.byte	15
+ 1178 0477 00       		.byte	0
+ 1179 0478 EF       		.byte	-17
+ 1180 0479 C7       		.byte	-57
+ 1181 047a 14       		.byte	20
+ 1182 047b 00       		.byte	0
+ 1183 047c 2F       		.byte	47
+ 1184 047d 95       		.byte	-107
+ 1185 047e 17       		.byte	23
+ 1186 047f 00       		.byte	0
+ 1187 0480 2F       		.byte	47
+ 1188 0481 95       		.byte	-107
+ 1189 0482 17       		.byte	23
+ 1190 0483 00       		.byte	0
+ 1191 0484 EF       		.byte	-17
+ 1192 0485 C7       		.byte	-57
+ 1193 0486 14       		.byte	20
+ 1194 0487 00       		.byte	0
+ 1195 0488 87       		.byte	-121
+ 1196 0489 D2       		.byte	-46
+ 1197 048a 0F       		.byte	15
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 22
+
+
+ 1198 048b 00       		.byte	0
+ 1199 048c F1       		.byte	-15
+ 1200 048d CE       		.byte	-50
+ 1201 048e 09       		.byte	9
+ 1202 048f 00       		.byte	0
+ 1203 0490 C9       		.byte	-55
+ 1204 0491 FB       		.byte	-5
+ 1205 0492 03       		.byte	3
+ 1206 0493 00       		.byte	0
+ 1207 0494 7A       		.byte	122
+ 1208 0495 66       		.byte	102
+ 1209 0496 FF       		.byte	-1
+ 1210 0497 00       		.byte	0
+ 1211 0498 C0       		.byte	-64
+ 1212 0499 AA       		.byte	-86
+ 1213 049a FC       		.byte	-4
+ 1214 049b 00       		.byte	0
+ 1215 049c AA       		.byte	-86
+ 1216 049d D9       		.byte	-39
+ 1217 049e FB       		.byte	-5
+ 1218 049f 00       		.byte	0
+ 1219 04a0 B1       		.byte	-79
+ 1220 04a1 8B       		.byte	-117
+ 1221 04a2 FC       		.byte	-4
+ 1222 04a3 00       		.byte	0
+ 1223 04a4 E3       		.byte	-29
+ 1224 04a5 12       		.byte	18
+ 1225 04a6 FE       		.byte	-2
+ 1226 04a7 00       		.byte	0
+ 1227 04a8 0B       		.byte	11
+ 1228 04a9 B9       		.byte	-71
+ 1229 04aa FF       		.byte	-1
+ 1230 04ab 00       		.byte	0
+ 1231 04ac 5A       		.byte	90
+ 1232 04ad F4       		.byte	-12
+ 1233 04ae 00       		.byte	0
+ 1234 04af 00       		.byte	0
+ 1235 04b0 C3       		.byte	-61
+ 1236 04b1 83       		.byte	-125
+ 1237 04b2 01       		.byte	1
+ 1238 04b3 00       		.byte	0
+ 1239 04b4 B2       		.byte	-78
+ 1240 04b5 6E       		.byte	110
+ 1241 04b6 01       		.byte	1
+ 1242 04b7 00       		.byte	0
+ 1243 04b8 5B       		.byte	91
+ 1244 04b9 EE       		.byte	-18
+ 1245 04ba 00       		.byte	0
+ 1246 04bb 00       		.byte	0
+ 1247 04bc 0F       		.byte	15
+ 1248 04bd 4D       		.byte	77
+ 1249 04be 00       		.byte	0
+ 1250 04bf 00       		.byte	0
+ 1251 04c0 ED       		.byte	-19
+ 1252 04c1 C8       		.byte	-56
+ 1253 04c2 FF       		.byte	-1
+ 1254 04c3 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 23
+
+
+ 1255 04c4 ED       		.byte	-19
+ 1256 04c5 82       		.byte	-126
+ 1257 04c6 FF       		.byte	-1
+ 1258 04c7 00       		.byte	0
+ 1259 04c8 C2       		.byte	-62
+ 1260 04c9 7C       		.byte	124
+ 1261 04ca FF       		.byte	-1
+ 1262 04cb 00       		.byte	0
+ 1263 04cc 36       		.byte	54
+ 1264 04cd A2       		.byte	-94
+ 1265 04ce FF       		.byte	-1
+ 1266 04cf 00       		.byte	0
+ 1267 04d0 47       		.byte	71
+ 1268 04d1 D7       		.byte	-41
+ 1269 04d2 FF       		.byte	-1
+ 1270 04d3 00       		.byte	0
+ 1271 04d4 8E       		.byte	-114
+ 1272 04d5 04       		.byte	4
+ 1273 04d6 00       		.byte	0
+ 1274 04d7 00       		.byte	0
+ 1275 04d8 EC       		.byte	-20
+ 1276 04d9 1D       		.byte	29
+ 1277 04da 00       		.byte	0
+ 1278 04db 00       		.byte	0
+ 1279 04dc CE       		.byte	-50
+ 1280 04dd 22       		.byte	34
+ 1281 04de 00       		.byte	0
+ 1282 04df 00       		.byte	0
+ 1283 04e0 1E       		.byte	30
+ 1284 04e1 1A       		.byte	26
+ 1285 04e2 00       		.byte	0
+ 1286 04e3 00       		.byte	0
+ 1287 04e4 D6       		.byte	-42
+ 1288 04e5 0C       		.byte	12
+ 1289 04e6 00       		.byte	0
+ 1290 04e7 00       		.byte	0
+ 1291 04e8 CA       		.byte	-54
+ 1292 04e9 01       		.byte	1
+ 1293 04ea 00       		.byte	0
+ 1294 04eb 00       		.byte	0
+ 1295 04ec E9       		.byte	-23
+ 1296 04ed FB       		.byte	-5
+ 1297 04ee FF       		.byte	-1
+ 1298 04ef 00       		.byte	0
+ 1299 04f0 BD       		.byte	-67
+ 1300 04f1 FA       		.byte	-6
+ 1301 04f2 FF       		.byte	-1
+ 1302 04f3 00       		.byte	0
+ 1303 04f4 20       		.byte	32
+ 1304 04f5 FC       		.byte	-4
+ 1305 04f6 FF       		.byte	-1
+ 1306 04f7 00       		.byte	0
+ 1307 04f8 01       		.byte	1
+ 1308 04f9 FE       		.byte	-2
+ 1309 04fa FF       		.byte	-1
+ 1310 04fb 00       		.byte	0
+ 1311 04fc 66       		.byte	102
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 24
+
+
+ 1312 04fd FF       		.byte	-1
+ 1313 04fe FF       		.byte	-1
+ 1314 04ff 00       		.byte	0
+ 1315 0500 66       		.byte	102
+ 1316 0501 FF       		.byte	-1
+ 1317 0502 FF       		.byte	-1
+ 1318 0503 00       		.byte	0
+ 1319 0504 01       		.byte	1
+ 1320 0505 FE       		.byte	-2
+ 1321 0506 FF       		.byte	-1
+ 1322 0507 00       		.byte	0
+ 1323 0508 20       		.byte	32
+ 1324 0509 FC       		.byte	-4
+ 1325 050a FF       		.byte	-1
+ 1326 050b 00       		.byte	0
+ 1327 050c BD       		.byte	-67
+ 1328 050d FA       		.byte	-6
+ 1329 050e FF       		.byte	-1
+ 1330 050f 00       		.byte	0
+ 1331 0510 E9       		.byte	-23
+ 1332 0511 FB       		.byte	-5
+ 1333 0512 FF       		.byte	-1
+ 1334 0513 00       		.byte	0
+ 1335 0514 CA       		.byte	-54
+ 1336 0515 01       		.byte	1
+ 1337 0516 00       		.byte	0
+ 1338 0517 00       		.byte	0
+ 1339 0518 D6       		.byte	-42
+ 1340 0519 0C       		.byte	12
+ 1341 051a 00       		.byte	0
+ 1342 051b 00       		.byte	0
+ 1343 051c 1E       		.byte	30
+ 1344 051d 1A       		.byte	26
+ 1345 051e 00       		.byte	0
+ 1346 051f 00       		.byte	0
+ 1347 0520 CE       		.byte	-50
+ 1348 0521 22       		.byte	34
+ 1349 0522 00       		.byte	0
+ 1350 0523 00       		.byte	0
+ 1351 0524 EC       		.byte	-20
+ 1352 0525 1D       		.byte	29
+ 1353 0526 00       		.byte	0
+ 1354 0527 00       		.byte	0
+ 1355 0528 8E       		.byte	-114
+ 1356 0529 04       		.byte	4
+ 1357 052a 00       		.byte	0
+ 1358 052b 00       		.byte	0
+ 1359 052c 47       		.byte	71
+ 1360 052d D7       		.byte	-41
+ 1361 052e FF       		.byte	-1
+ 1362 052f 00       		.byte	0
+ 1363 0530 36       		.byte	54
+ 1364 0531 A2       		.byte	-94
+ 1365 0532 FF       		.byte	-1
+ 1366 0533 00       		.byte	0
+ 1367 0534 C2       		.byte	-62
+ 1368 0535 7C       		.byte	124
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 25
+
+
+ 1369 0536 FF       		.byte	-1
+ 1370 0537 00       		.byte	0
+ 1371 0538 ED       		.byte	-19
+ 1372 0539 82       		.byte	-126
+ 1373 053a FF       		.byte	-1
+ 1374 053b 00       		.byte	0
+ 1375 053c ED       		.byte	-19
+ 1376 053d C8       		.byte	-56
+ 1377 053e FF       		.byte	-1
+ 1378 053f 00       		.byte	0
+ 1379 0540 0F       		.byte	15
+ 1380 0541 4D       		.byte	77
+ 1381 0542 00       		.byte	0
+ 1382 0543 00       		.byte	0
+ 1383 0544 5B       		.byte	91
+ 1384 0545 EE       		.byte	-18
+ 1385 0546 00       		.byte	0
+ 1386 0547 00       		.byte	0
+ 1387 0548 B2       		.byte	-78
+ 1388 0549 6E       		.byte	110
+ 1389 054a 01       		.byte	1
+ 1390 054b 00       		.byte	0
+ 1391 054c C3       		.byte	-61
+ 1392 054d 83       		.byte	-125
+ 1393 054e 01       		.byte	1
+ 1394 054f 00       		.byte	0
+ 1395 0550 5A       		.byte	90
+ 1396 0551 F4       		.byte	-12
+ 1397 0552 00       		.byte	0
+ 1398 0553 00       		.byte	0
+ 1399 0554 0B       		.byte	11
+ 1400 0555 B9       		.byte	-71
+ 1401 0556 FF       		.byte	-1
+ 1402 0557 00       		.byte	0
+ 1403 0558 E3       		.byte	-29
+ 1404 0559 12       		.byte	18
+ 1405 055a FE       		.byte	-2
+ 1406 055b 00       		.byte	0
+ 1407 055c B1       		.byte	-79
+ 1408 055d 8B       		.byte	-117
+ 1409 055e FC       		.byte	-4
+ 1410 055f 00       		.byte	0
+ 1411 0560 AA       		.byte	-86
+ 1412 0561 D9       		.byte	-39
+ 1413 0562 FB       		.byte	-5
+ 1414 0563 00       		.byte	0
+ 1415 0564 C0       		.byte	-64
+ 1416 0565 AA       		.byte	-86
+ 1417 0566 FC       		.byte	-4
+ 1418 0567 00       		.byte	0
+ 1419 0568 7A       		.byte	122
+ 1420 0569 66       		.byte	102
+ 1421 056a FF       		.byte	-1
+ 1422 056b 00       		.byte	0
+ 1423 056c C9       		.byte	-55
+ 1424 056d FB       		.byte	-5
+ 1425 056e 03       		.byte	3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 26
+
+
+ 1426 056f 00       		.byte	0
+ 1427 0570 F1       		.byte	-15
+ 1428 0571 CE       		.byte	-50
+ 1429 0572 09       		.byte	9
+ 1430 0573 00       		.byte	0
+ 1431 0574 87       		.byte	-121
+ 1432 0575 D2       		.byte	-46
+ 1433 0576 0F       		.byte	15
+ 1434 0577 00       		.byte	0
+ 1435 0578 EF       		.byte	-17
+ 1436 0579 C7       		.byte	-57
+ 1437 057a 14       		.byte	20
+ 1438 057b 00       		.byte	0
+ 1439 057c 2F       		.byte	47
+ 1440 057d 95       		.byte	-107
+ 1441 057e 17       		.byte	23
+ 1442 057f 00       		.byte	0
+ 1443 0580 2F       		.byte	47
+ 1444 0581 95       		.byte	-107
+ 1445 0582 17       		.byte	23
+ 1446 0583 00       		.byte	0
+ 1447 0584 EF       		.byte	-17
+ 1448 0585 C7       		.byte	-57
+ 1449 0586 14       		.byte	20
+ 1450 0587 00       		.byte	0
+ 1451 0588 87       		.byte	-121
+ 1452 0589 D2       		.byte	-46
+ 1453 058a 0F       		.byte	15
+ 1454 058b 00       		.byte	0
+ 1455 058c F1       		.byte	-15
+ 1456 058d CE       		.byte	-50
+ 1457 058e 09       		.byte	9
+ 1458 058f 00       		.byte	0
+ 1459 0590 C9       		.byte	-55
+ 1460 0591 FB       		.byte	-5
+ 1461 0592 03       		.byte	3
+ 1462 0593 00       		.byte	0
+ 1463 0594 7A       		.byte	122
+ 1464 0595 66       		.byte	102
+ 1465 0596 FF       		.byte	-1
+ 1466 0597 00       		.byte	0
+ 1467 0598 C0       		.byte	-64
+ 1468 0599 AA       		.byte	-86
+ 1469 059a FC       		.byte	-4
+ 1470 059b 00       		.byte	0
+ 1471 059c AA       		.byte	-86
+ 1472 059d D9       		.byte	-39
+ 1473 059e FB       		.byte	-5
+ 1474 059f 00       		.byte	0
+ 1475 05a0 B1       		.byte	-79
+ 1476 05a1 8B       		.byte	-117
+ 1477 05a2 FC       		.byte	-4
+ 1478 05a3 00       		.byte	0
+ 1479 05a4 E3       		.byte	-29
+ 1480 05a5 12       		.byte	18
+ 1481 05a6 FE       		.byte	-2
+ 1482 05a7 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 27
+
+
+ 1483 05a8 0B       		.byte	11
+ 1484 05a9 B9       		.byte	-71
+ 1485 05aa FF       		.byte	-1
+ 1486 05ab 00       		.byte	0
+ 1487 05ac 5A       		.byte	90
+ 1488 05ad F4       		.byte	-12
+ 1489 05ae 00       		.byte	0
+ 1490 05af 00       		.byte	0
+ 1491 05b0 C3       		.byte	-61
+ 1492 05b1 83       		.byte	-125
+ 1493 05b2 01       		.byte	1
+ 1494 05b3 00       		.byte	0
+ 1495 05b4 B2       		.byte	-78
+ 1496 05b5 6E       		.byte	110
+ 1497 05b6 01       		.byte	1
+ 1498 05b7 00       		.byte	0
+ 1499 05b8 5B       		.byte	91
+ 1500 05b9 EE       		.byte	-18
+ 1501 05ba 00       		.byte	0
+ 1502 05bb 00       		.byte	0
+ 1503 05bc 0F       		.byte	15
+ 1504 05bd 4D       		.byte	77
+ 1505 05be 00       		.byte	0
+ 1506 05bf 00       		.byte	0
+ 1507 05c0 ED       		.byte	-19
+ 1508 05c1 C8       		.byte	-56
+ 1509 05c2 FF       		.byte	-1
+ 1510 05c3 00       		.byte	0
+ 1511 05c4 ED       		.byte	-19
+ 1512 05c5 82       		.byte	-126
+ 1513 05c6 FF       		.byte	-1
+ 1514 05c7 00       		.byte	0
+ 1515 05c8 C2       		.byte	-62
+ 1516 05c9 7C       		.byte	124
+ 1517 05ca FF       		.byte	-1
+ 1518 05cb 00       		.byte	0
+ 1519 05cc 36       		.byte	54
+ 1520 05cd A2       		.byte	-94
+ 1521 05ce FF       		.byte	-1
+ 1522 05cf 00       		.byte	0
+ 1523 05d0 47       		.byte	71
+ 1524 05d1 D7       		.byte	-41
+ 1525 05d2 FF       		.byte	-1
+ 1526 05d3 00       		.byte	0
+ 1527 05d4 8E       		.byte	-114
+ 1528 05d5 04       		.byte	4
+ 1529 05d6 00       		.byte	0
+ 1530 05d7 00       		.byte	0
+ 1531 05d8 EC       		.byte	-20
+ 1532 05d9 1D       		.byte	29
+ 1533 05da 00       		.byte	0
+ 1534 05db 00       		.byte	0
+ 1535 05dc CE       		.byte	-50
+ 1536 05dd 22       		.byte	34
+ 1537 05de 00       		.byte	0
+ 1538 05df 00       		.byte	0
+ 1539 05e0 1E       		.byte	30
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 28
+
+
+ 1540 05e1 1A       		.byte	26
+ 1541 05e2 00       		.byte	0
+ 1542 05e3 00       		.byte	0
+ 1543 05e4 D6       		.byte	-42
+ 1544 05e5 0C       		.byte	12
+ 1545 05e6 00       		.byte	0
+ 1546 05e7 00       		.byte	0
+ 1547 05e8 CA       		.byte	-54
+ 1548 05e9 01       		.byte	1
+ 1549 05ea 00       		.byte	0
+ 1550 05eb 00       		.byte	0
+ 1551 05ec E9       		.byte	-23
+ 1552 05ed FB       		.byte	-5
+ 1553 05ee FF       		.byte	-1
+ 1554 05ef 00       		.byte	0
+ 1555 05f0 BD       		.byte	-67
+ 1556 05f1 FA       		.byte	-6
+ 1557 05f2 FF       		.byte	-1
+ 1558 05f3 00       		.byte	0
+ 1559 05f4 20       		.byte	32
+ 1560 05f5 FC       		.byte	-4
+ 1561 05f6 FF       		.byte	-1
+ 1562 05f7 00       		.byte	0
+ 1563 05f8 01       		.byte	1
+ 1564 05f9 FE       		.byte	-2
+ 1565 05fa FF       		.byte	-1
+ 1566 05fb 00       		.byte	0
+ 1567 05fc 66       		.byte	102
+ 1568 05fd FF       		.byte	-1
+ 1569 05fe FF       		.byte	-1
+ 1570 05ff 00       		.byte	0
+ 1571              		.type	Filter_data_b_2000, %object
+ 1572              		.size	Filter_data_b_2000, 512
+ 1573              	Filter_data_b_2000:
+ 1574 0600 36       		.byte	54
+ 1575 0601 FF       		.byte	-1
+ 1576 0602 FF       		.byte	-1
+ 1577 0603 00       		.byte	0
+ 1578 0604 A3       		.byte	-93
+ 1579 0605 FD       		.byte	-3
+ 1580 0606 FF       		.byte	-1
+ 1581 0607 00       		.byte	0
+ 1582 0608 7E       		.byte	126
+ 1583 0609 FC       		.byte	-4
+ 1584 060a FF       		.byte	-1
+ 1585 060b 00       		.byte	0
+ 1586 060c F1       		.byte	-15
+ 1587 060d FD       		.byte	-3
+ 1588 060e FF       		.byte	-1
+ 1589 060f 00       		.byte	0
+ 1590 0610 F0       		.byte	-16
+ 1591 0611 03       		.byte	3
+ 1592 0612 00       		.byte	0
+ 1593 0613 00       		.byte	0
+ 1594 0614 D6       		.byte	-42
+ 1595 0615 0C       		.byte	12
+ 1596 0616 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 29
+
+
+ 1597 0617 00       		.byte	0
+ 1598 0618 AB       		.byte	-85
+ 1599 0619 11       		.byte	17
+ 1600 061a 00       		.byte	0
+ 1601 061b 00       		.byte	0
+ 1602 061c 53       		.byte	83
+ 1603 061d 09       		.byte	9
+ 1604 061e 00       		.byte	0
+ 1605 061f 00       		.byte	0
+ 1606 0620 A2       		.byte	-94
+ 1607 0621 F0       		.byte	-16
+ 1608 0622 FF       		.byte	-1
+ 1609 0623 00       		.byte	0
+ 1610 0624 32       		.byte	50
+ 1611 0625 D2       		.byte	-46
+ 1612 0626 FF       		.byte	-1
+ 1613 0627 00       		.byte	0
+ 1614 0628 D8       		.byte	-40
+ 1615 0629 C5       		.byte	-59
+ 1616 062a FF       		.byte	-1
+ 1617 062b 00       		.byte	0
+ 1618 062c 10       		.byte	16
+ 1619 062d E3       		.byte	-29
+ 1620 062e FF       		.byte	-1
+ 1621 062f 00       		.byte	0
+ 1622 0630 51       		.byte	81
+ 1623 0631 2B       		.byte	43
+ 1624 0632 00       		.byte	0
+ 1625 0633 00       		.byte	0
+ 1626 0634 A6       		.byte	-90
+ 1627 0635 7B       		.byte	123
+ 1628 0636 00       		.byte	0
+ 1629 0637 00       		.byte	0
+ 1630 0638 5A       		.byte	90
+ 1631 0639 96       		.byte	-106
+ 1632 063a 00       		.byte	0
+ 1633 063b 00       		.byte	0
+ 1634 063c B7       		.byte	-73
+ 1635 063d 48       		.byte	72
+ 1636 063e 00       		.byte	0
+ 1637 063f 00       		.byte	0
+ 1638 0640 92       		.byte	-110
+ 1639 0641 9A       		.byte	-102
+ 1640 0642 FF       		.byte	-1
+ 1641 0643 00       		.byte	0
+ 1642 0644 86       		.byte	-122
+ 1643 0645 E4       		.byte	-28
+ 1644 0646 FE       		.byte	-2
+ 1645 0647 00       		.byte	0
+ 1646 0648 58       		.byte	88
+ 1647 0649 AF       		.byte	-81
+ 1648 064a FE       		.byte	-2
+ 1649 064b 00       		.byte	0
+ 1650 064c DF       		.byte	-33
+ 1651 064d 5E       		.byte	94
+ 1652 064e FF       		.byte	-1
+ 1653 064f 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 30
+
+
+ 1654 0650 41       		.byte	65
+ 1655 0651 D5       		.byte	-43
+ 1656 0652 00       		.byte	0
+ 1657 0653 00       		.byte	0
+ 1658 0654 73       		.byte	115
+ 1659 0655 52       		.byte	82
+ 1660 0656 02       		.byte	2
+ 1661 0657 00       		.byte	0
+ 1662 0658 37       		.byte	55
+ 1663 0659 BF       		.byte	-65
+ 1664 065a 02       		.byte	2
+ 1665 065b 00       		.byte	0
+ 1666 065c 71       		.byte	113
+ 1667 065d 54       		.byte	84
+ 1668 065e 01       		.byte	1
+ 1669 065f 00       		.byte	0
+ 1670 0660 20       		.byte	32
+ 1671 0661 49       		.byte	73
+ 1672 0662 FE       		.byte	-2
+ 1673 0663 00       		.byte	0
+ 1674 0664 62       		.byte	98
+ 1675 0665 13       		.byte	19
+ 1676 0666 FB       		.byte	-5
+ 1677 0667 00       		.byte	0
+ 1678 0668 5D       		.byte	93
+ 1679 0669 F2       		.byte	-14
+ 1680 066a F9       		.byte	-7
+ 1681 066b 00       		.byte	0
+ 1682 066c 94       		.byte	-108
+ 1683 066d DB       		.byte	-37
+ 1684 066e FC       		.byte	-4
+ 1685 066f 00       		.byte	0
+ 1686 0670 4C       		.byte	76
+ 1687 0671 4E       		.byte	78
+ 1688 0672 04       		.byte	4
+ 1689 0673 00       		.byte	0
+ 1690 0674 F0       		.byte	-16
+ 1691 0675 B7       		.byte	-73
+ 1692 0676 0E       		.byte	14
+ 1693 0677 00       		.byte	0
+ 1694 0678 6D       		.byte	109
+ 1695 0679 D9       		.byte	-39
+ 1696 067a 18       		.byte	24
+ 1697 067b 00       		.byte	0
+ 1698 067c 3B       		.byte	59
+ 1699 067d 17       		.byte	23
+ 1700 067e 1F       		.byte	31
+ 1701 067f 00       		.byte	0
+ 1702 0680 3B       		.byte	59
+ 1703 0681 17       		.byte	23
+ 1704 0682 1F       		.byte	31
+ 1705 0683 00       		.byte	0
+ 1706 0684 6D       		.byte	109
+ 1707 0685 D9       		.byte	-39
+ 1708 0686 18       		.byte	24
+ 1709 0687 00       		.byte	0
+ 1710 0688 F0       		.byte	-16
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 31
+
+
+ 1711 0689 B7       		.byte	-73
+ 1712 068a 0E       		.byte	14
+ 1713 068b 00       		.byte	0
+ 1714 068c 4C       		.byte	76
+ 1715 068d 4E       		.byte	78
+ 1716 068e 04       		.byte	4
+ 1717 068f 00       		.byte	0
+ 1718 0690 94       		.byte	-108
+ 1719 0691 DB       		.byte	-37
+ 1720 0692 FC       		.byte	-4
+ 1721 0693 00       		.byte	0
+ 1722 0694 5D       		.byte	93
+ 1723 0695 F2       		.byte	-14
+ 1724 0696 F9       		.byte	-7
+ 1725 0697 00       		.byte	0
+ 1726 0698 62       		.byte	98
+ 1727 0699 13       		.byte	19
+ 1728 069a FB       		.byte	-5
+ 1729 069b 00       		.byte	0
+ 1730 069c 20       		.byte	32
+ 1731 069d 49       		.byte	73
+ 1732 069e FE       		.byte	-2
+ 1733 069f 00       		.byte	0
+ 1734 06a0 71       		.byte	113
+ 1735 06a1 54       		.byte	84
+ 1736 06a2 01       		.byte	1
+ 1737 06a3 00       		.byte	0
+ 1738 06a4 37       		.byte	55
+ 1739 06a5 BF       		.byte	-65
+ 1740 06a6 02       		.byte	2
+ 1741 06a7 00       		.byte	0
+ 1742 06a8 73       		.byte	115
+ 1743 06a9 52       		.byte	82
+ 1744 06aa 02       		.byte	2
+ 1745 06ab 00       		.byte	0
+ 1746 06ac 41       		.byte	65
+ 1747 06ad D5       		.byte	-43
+ 1748 06ae 00       		.byte	0
+ 1749 06af 00       		.byte	0
+ 1750 06b0 DF       		.byte	-33
+ 1751 06b1 5E       		.byte	94
+ 1752 06b2 FF       		.byte	-1
+ 1753 06b3 00       		.byte	0
+ 1754 06b4 58       		.byte	88
+ 1755 06b5 AF       		.byte	-81
+ 1756 06b6 FE       		.byte	-2
+ 1757 06b7 00       		.byte	0
+ 1758 06b8 86       		.byte	-122
+ 1759 06b9 E4       		.byte	-28
+ 1760 06ba FE       		.byte	-2
+ 1761 06bb 00       		.byte	0
+ 1762 06bc 92       		.byte	-110
+ 1763 06bd 9A       		.byte	-102
+ 1764 06be FF       		.byte	-1
+ 1765 06bf 00       		.byte	0
+ 1766 06c0 B7       		.byte	-73
+ 1767 06c1 48       		.byte	72
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 32
+
+
+ 1768 06c2 00       		.byte	0
+ 1769 06c3 00       		.byte	0
+ 1770 06c4 5A       		.byte	90
+ 1771 06c5 96       		.byte	-106
+ 1772 06c6 00       		.byte	0
+ 1773 06c7 00       		.byte	0
+ 1774 06c8 A6       		.byte	-90
+ 1775 06c9 7B       		.byte	123
+ 1776 06ca 00       		.byte	0
+ 1777 06cb 00       		.byte	0
+ 1778 06cc 51       		.byte	81
+ 1779 06cd 2B       		.byte	43
+ 1780 06ce 00       		.byte	0
+ 1781 06cf 00       		.byte	0
+ 1782 06d0 10       		.byte	16
+ 1783 06d1 E3       		.byte	-29
+ 1784 06d2 FF       		.byte	-1
+ 1785 06d3 00       		.byte	0
+ 1786 06d4 D8       		.byte	-40
+ 1787 06d5 C5       		.byte	-59
+ 1788 06d6 FF       		.byte	-1
+ 1789 06d7 00       		.byte	0
+ 1790 06d8 32       		.byte	50
+ 1791 06d9 D2       		.byte	-46
+ 1792 06da FF       		.byte	-1
+ 1793 06db 00       		.byte	0
+ 1794 06dc A2       		.byte	-94
+ 1795 06dd F0       		.byte	-16
+ 1796 06de FF       		.byte	-1
+ 1797 06df 00       		.byte	0
+ 1798 06e0 53       		.byte	83
+ 1799 06e1 09       		.byte	9
+ 1800 06e2 00       		.byte	0
+ 1801 06e3 00       		.byte	0
+ 1802 06e4 AB       		.byte	-85
+ 1803 06e5 11       		.byte	17
+ 1804 06e6 00       		.byte	0
+ 1805 06e7 00       		.byte	0
+ 1806 06e8 D6       		.byte	-42
+ 1807 06e9 0C       		.byte	12
+ 1808 06ea 00       		.byte	0
+ 1809 06eb 00       		.byte	0
+ 1810 06ec F0       		.byte	-16
+ 1811 06ed 03       		.byte	3
+ 1812 06ee 00       		.byte	0
+ 1813 06ef 00       		.byte	0
+ 1814 06f0 F1       		.byte	-15
+ 1815 06f1 FD       		.byte	-3
+ 1816 06f2 FF       		.byte	-1
+ 1817 06f3 00       		.byte	0
+ 1818 06f4 7E       		.byte	126
+ 1819 06f5 FC       		.byte	-4
+ 1820 06f6 FF       		.byte	-1
+ 1821 06f7 00       		.byte	0
+ 1822 06f8 A3       		.byte	-93
+ 1823 06f9 FD       		.byte	-3
+ 1824 06fa FF       		.byte	-1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 33
+
+
+ 1825 06fb 00       		.byte	0
+ 1826 06fc 36       		.byte	54
+ 1827 06fd FF       		.byte	-1
+ 1828 06fe FF       		.byte	-1
+ 1829 06ff 00       		.byte	0
+ 1830 0700 36       		.byte	54
+ 1831 0701 FF       		.byte	-1
+ 1832 0702 FF       		.byte	-1
+ 1833 0703 00       		.byte	0
+ 1834 0704 A3       		.byte	-93
+ 1835 0705 FD       		.byte	-3
+ 1836 0706 FF       		.byte	-1
+ 1837 0707 00       		.byte	0
+ 1838 0708 7E       		.byte	126
+ 1839 0709 FC       		.byte	-4
+ 1840 070a FF       		.byte	-1
+ 1841 070b 00       		.byte	0
+ 1842 070c F1       		.byte	-15
+ 1843 070d FD       		.byte	-3
+ 1844 070e FF       		.byte	-1
+ 1845 070f 00       		.byte	0
+ 1846 0710 F0       		.byte	-16
+ 1847 0711 03       		.byte	3
+ 1848 0712 00       		.byte	0
+ 1849 0713 00       		.byte	0
+ 1850 0714 D6       		.byte	-42
+ 1851 0715 0C       		.byte	12
+ 1852 0716 00       		.byte	0
+ 1853 0717 00       		.byte	0
+ 1854 0718 AB       		.byte	-85
+ 1855 0719 11       		.byte	17
+ 1856 071a 00       		.byte	0
+ 1857 071b 00       		.byte	0
+ 1858 071c 53       		.byte	83
+ 1859 071d 09       		.byte	9
+ 1860 071e 00       		.byte	0
+ 1861 071f 00       		.byte	0
+ 1862 0720 A2       		.byte	-94
+ 1863 0721 F0       		.byte	-16
+ 1864 0722 FF       		.byte	-1
+ 1865 0723 00       		.byte	0
+ 1866 0724 32       		.byte	50
+ 1867 0725 D2       		.byte	-46
+ 1868 0726 FF       		.byte	-1
+ 1869 0727 00       		.byte	0
+ 1870 0728 D8       		.byte	-40
+ 1871 0729 C5       		.byte	-59
+ 1872 072a FF       		.byte	-1
+ 1873 072b 00       		.byte	0
+ 1874 072c 10       		.byte	16
+ 1875 072d E3       		.byte	-29
+ 1876 072e FF       		.byte	-1
+ 1877 072f 00       		.byte	0
+ 1878 0730 51       		.byte	81
+ 1879 0731 2B       		.byte	43
+ 1880 0732 00       		.byte	0
+ 1881 0733 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 34
+
+
+ 1882 0734 A6       		.byte	-90
+ 1883 0735 7B       		.byte	123
+ 1884 0736 00       		.byte	0
+ 1885 0737 00       		.byte	0
+ 1886 0738 5A       		.byte	90
+ 1887 0739 96       		.byte	-106
+ 1888 073a 00       		.byte	0
+ 1889 073b 00       		.byte	0
+ 1890 073c B7       		.byte	-73
+ 1891 073d 48       		.byte	72
+ 1892 073e 00       		.byte	0
+ 1893 073f 00       		.byte	0
+ 1894 0740 92       		.byte	-110
+ 1895 0741 9A       		.byte	-102
+ 1896 0742 FF       		.byte	-1
+ 1897 0743 00       		.byte	0
+ 1898 0744 86       		.byte	-122
+ 1899 0745 E4       		.byte	-28
+ 1900 0746 FE       		.byte	-2
+ 1901 0747 00       		.byte	0
+ 1902 0748 58       		.byte	88
+ 1903 0749 AF       		.byte	-81
+ 1904 074a FE       		.byte	-2
+ 1905 074b 00       		.byte	0
+ 1906 074c DF       		.byte	-33
+ 1907 074d 5E       		.byte	94
+ 1908 074e FF       		.byte	-1
+ 1909 074f 00       		.byte	0
+ 1910 0750 41       		.byte	65
+ 1911 0751 D5       		.byte	-43
+ 1912 0752 00       		.byte	0
+ 1913 0753 00       		.byte	0
+ 1914 0754 73       		.byte	115
+ 1915 0755 52       		.byte	82
+ 1916 0756 02       		.byte	2
+ 1917 0757 00       		.byte	0
+ 1918 0758 37       		.byte	55
+ 1919 0759 BF       		.byte	-65
+ 1920 075a 02       		.byte	2
+ 1921 075b 00       		.byte	0
+ 1922 075c 71       		.byte	113
+ 1923 075d 54       		.byte	84
+ 1924 075e 01       		.byte	1
+ 1925 075f 00       		.byte	0
+ 1926 0760 20       		.byte	32
+ 1927 0761 49       		.byte	73
+ 1928 0762 FE       		.byte	-2
+ 1929 0763 00       		.byte	0
+ 1930 0764 62       		.byte	98
+ 1931 0765 13       		.byte	19
+ 1932 0766 FB       		.byte	-5
+ 1933 0767 00       		.byte	0
+ 1934 0768 5D       		.byte	93
+ 1935 0769 F2       		.byte	-14
+ 1936 076a F9       		.byte	-7
+ 1937 076b 00       		.byte	0
+ 1938 076c 94       		.byte	-108
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 35
+
+
+ 1939 076d DB       		.byte	-37
+ 1940 076e FC       		.byte	-4
+ 1941 076f 00       		.byte	0
+ 1942 0770 4C       		.byte	76
+ 1943 0771 4E       		.byte	78
+ 1944 0772 04       		.byte	4
+ 1945 0773 00       		.byte	0
+ 1946 0774 F0       		.byte	-16
+ 1947 0775 B7       		.byte	-73
+ 1948 0776 0E       		.byte	14
+ 1949 0777 00       		.byte	0
+ 1950 0778 6D       		.byte	109
+ 1951 0779 D9       		.byte	-39
+ 1952 077a 18       		.byte	24
+ 1953 077b 00       		.byte	0
+ 1954 077c 3B       		.byte	59
+ 1955 077d 17       		.byte	23
+ 1956 077e 1F       		.byte	31
+ 1957 077f 00       		.byte	0
+ 1958 0780 3B       		.byte	59
+ 1959 0781 17       		.byte	23
+ 1960 0782 1F       		.byte	31
+ 1961 0783 00       		.byte	0
+ 1962 0784 6D       		.byte	109
+ 1963 0785 D9       		.byte	-39
+ 1964 0786 18       		.byte	24
+ 1965 0787 00       		.byte	0
+ 1966 0788 F0       		.byte	-16
+ 1967 0789 B7       		.byte	-73
+ 1968 078a 0E       		.byte	14
+ 1969 078b 00       		.byte	0
+ 1970 078c 4C       		.byte	76
+ 1971 078d 4E       		.byte	78
+ 1972 078e 04       		.byte	4
+ 1973 078f 00       		.byte	0
+ 1974 0790 94       		.byte	-108
+ 1975 0791 DB       		.byte	-37
+ 1976 0792 FC       		.byte	-4
+ 1977 0793 00       		.byte	0
+ 1978 0794 5D       		.byte	93
+ 1979 0795 F2       		.byte	-14
+ 1980 0796 F9       		.byte	-7
+ 1981 0797 00       		.byte	0
+ 1982 0798 62       		.byte	98
+ 1983 0799 13       		.byte	19
+ 1984 079a FB       		.byte	-5
+ 1985 079b 00       		.byte	0
+ 1986 079c 20       		.byte	32
+ 1987 079d 49       		.byte	73
+ 1988 079e FE       		.byte	-2
+ 1989 079f 00       		.byte	0
+ 1990 07a0 71       		.byte	113
+ 1991 07a1 54       		.byte	84
+ 1992 07a2 01       		.byte	1
+ 1993 07a3 00       		.byte	0
+ 1994 07a4 37       		.byte	55
+ 1995 07a5 BF       		.byte	-65
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 36
+
+
+ 1996 07a6 02       		.byte	2
+ 1997 07a7 00       		.byte	0
+ 1998 07a8 73       		.byte	115
+ 1999 07a9 52       		.byte	82
+ 2000 07aa 02       		.byte	2
+ 2001 07ab 00       		.byte	0
+ 2002 07ac 41       		.byte	65
+ 2003 07ad D5       		.byte	-43
+ 2004 07ae 00       		.byte	0
+ 2005 07af 00       		.byte	0
+ 2006 07b0 DF       		.byte	-33
+ 2007 07b1 5E       		.byte	94
+ 2008 07b2 FF       		.byte	-1
+ 2009 07b3 00       		.byte	0
+ 2010 07b4 58       		.byte	88
+ 2011 07b5 AF       		.byte	-81
+ 2012 07b6 FE       		.byte	-2
+ 2013 07b7 00       		.byte	0
+ 2014 07b8 86       		.byte	-122
+ 2015 07b9 E4       		.byte	-28
+ 2016 07ba FE       		.byte	-2
+ 2017 07bb 00       		.byte	0
+ 2018 07bc 92       		.byte	-110
+ 2019 07bd 9A       		.byte	-102
+ 2020 07be FF       		.byte	-1
+ 2021 07bf 00       		.byte	0
+ 2022 07c0 B7       		.byte	-73
+ 2023 07c1 48       		.byte	72
+ 2024 07c2 00       		.byte	0
+ 2025 07c3 00       		.byte	0
+ 2026 07c4 5A       		.byte	90
+ 2027 07c5 96       		.byte	-106
+ 2028 07c6 00       		.byte	0
+ 2029 07c7 00       		.byte	0
+ 2030 07c8 A6       		.byte	-90
+ 2031 07c9 7B       		.byte	123
+ 2032 07ca 00       		.byte	0
+ 2033 07cb 00       		.byte	0
+ 2034 07cc 51       		.byte	81
+ 2035 07cd 2B       		.byte	43
+ 2036 07ce 00       		.byte	0
+ 2037 07cf 00       		.byte	0
+ 2038 07d0 10       		.byte	16
+ 2039 07d1 E3       		.byte	-29
+ 2040 07d2 FF       		.byte	-1
+ 2041 07d3 00       		.byte	0
+ 2042 07d4 D8       		.byte	-40
+ 2043 07d5 C5       		.byte	-59
+ 2044 07d6 FF       		.byte	-1
+ 2045 07d7 00       		.byte	0
+ 2046 07d8 32       		.byte	50
+ 2047 07d9 D2       		.byte	-46
+ 2048 07da FF       		.byte	-1
+ 2049 07db 00       		.byte	0
+ 2050 07dc A2       		.byte	-94
+ 2051 07dd F0       		.byte	-16
+ 2052 07de FF       		.byte	-1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 37
+
+
+ 2053 07df 00       		.byte	0
+ 2054 07e0 53       		.byte	83
+ 2055 07e1 09       		.byte	9
+ 2056 07e2 00       		.byte	0
+ 2057 07e3 00       		.byte	0
+ 2058 07e4 AB       		.byte	-85
+ 2059 07e5 11       		.byte	17
+ 2060 07e6 00       		.byte	0
+ 2061 07e7 00       		.byte	0
+ 2062 07e8 D6       		.byte	-42
+ 2063 07e9 0C       		.byte	12
+ 2064 07ea 00       		.byte	0
+ 2065 07eb 00       		.byte	0
+ 2066 07ec F0       		.byte	-16
+ 2067 07ed 03       		.byte	3
+ 2068 07ee 00       		.byte	0
+ 2069 07ef 00       		.byte	0
+ 2070 07f0 F1       		.byte	-15
+ 2071 07f1 FD       		.byte	-3
+ 2072 07f2 FF       		.byte	-1
+ 2073 07f3 00       		.byte	0
+ 2074 07f4 7E       		.byte	126
+ 2075 07f5 FC       		.byte	-4
+ 2076 07f6 FF       		.byte	-1
+ 2077 07f7 00       		.byte	0
+ 2078 07f8 A3       		.byte	-93
+ 2079 07f9 FD       		.byte	-3
+ 2080 07fa FF       		.byte	-1
+ 2081 07fb 00       		.byte	0
+ 2082 07fc 36       		.byte	54
+ 2083 07fd FF       		.byte	-1
+ 2084 07fe FF       		.byte	-1
+ 2085 07ff 00       		.byte	0
+ 2086              		.type	Filter_data_b_2500, %object
+ 2087              		.size	Filter_data_b_2500, 512
+ 2088              	Filter_data_b_2500:
+ 2089 0800 08       		.byte	8
+ 2090 0801 FF       		.byte	-1
+ 2091 0802 FF       		.byte	-1
+ 2092 0803 00       		.byte	0
+ 2093 0804 7F       		.byte	127
+ 2094 0805 FD       		.byte	-3
+ 2095 0806 FF       		.byte	-1
+ 2096 0807 00       		.byte	0
+ 2097 0808 BA       		.byte	-70
+ 2098 0809 FD       		.byte	-3
+ 2099 080a FF       		.byte	-1
+ 2100 080b 00       		.byte	0
+ 2101 080c 1C       		.byte	28
+ 2102 080d 02       		.byte	2
+ 2103 080e 00       		.byte	0
+ 2104 080f 00       		.byte	0
+ 2105 0810 03       		.byte	3
+ 2106 0811 09       		.byte	9
+ 2107 0812 00       		.byte	0
+ 2108 0813 00       		.byte	0
+ 2109 0814 10       		.byte	16
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 38
+
+
+ 2110 0815 0A       		.byte	10
+ 2111 0816 00       		.byte	0
+ 2112 0817 00       		.byte	0
+ 2113 0818 10       		.byte	16
+ 2114 0819 FD       		.byte	-3
+ 2115 081a FF       		.byte	-1
+ 2116 081b 00       		.byte	0
+ 2117 081c 85       		.byte	-123
+ 2118 081d E7       		.byte	-25
+ 2119 081e FF       		.byte	-1
+ 2120 081f 00       		.byte	0
+ 2121 0820 82       		.byte	-126
+ 2122 0821 E0       		.byte	-32
+ 2123 0822 FF       		.byte	-1
+ 2124 0823 00       		.byte	0
+ 2125 0824 7E       		.byte	126
+ 2126 0825 FD       		.byte	-3
+ 2127 0826 FF       		.byte	-1
+ 2128 0827 00       		.byte	0
+ 2129 0828 31       		.byte	49
+ 2130 0829 33       		.byte	51
+ 2131 082a 00       		.byte	0
+ 2132 082b 00       		.byte	0
+ 2133 082c D2       		.byte	-46
+ 2134 082d 4D       		.byte	77
+ 2135 082e 00       		.byte	0
+ 2136 082f 00       		.byte	0
+ 2137 0830 61       		.byte	97
+ 2138 0831 1A       		.byte	26
+ 2139 0832 00       		.byte	0
+ 2140 0833 00       		.byte	0
+ 2141 0834 41       		.byte	65
+ 2142 0835 A8       		.byte	-88
+ 2143 0836 FF       		.byte	-1
+ 2144 0837 00       		.byte	0
+ 2145 0838 B1       		.byte	-79
+ 2146 0839 5C       		.byte	92
+ 2147 083a FF       		.byte	-1
+ 2148 083b 00       		.byte	0
+ 2149 083c 3F       		.byte	63
+ 2150 083d A6       		.byte	-90
+ 2151 083e FF       		.byte	-1
+ 2152 083f 00       		.byte	0
+ 2153 0840 B0       		.byte	-80
+ 2154 0841 7C       		.byte	124
+ 2155 0842 00       		.byte	0
+ 2156 0843 00       		.byte	0
+ 2157 0844 2E       		.byte	46
+ 2158 0845 2F       		.byte	47
+ 2159 0846 01       		.byte	1
+ 2160 0847 00       		.byte	0
+ 2161 0848 51       		.byte	81
+ 2162 0849 E1       		.byte	-31
+ 2163 084a 00       		.byte	0
+ 2164 084b 00       		.byte	0
+ 2165 084c 48       		.byte	72
+ 2166 084d 74       		.byte	116
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 39
+
+
+ 2167 084e FF       		.byte	-1
+ 2168 084f 00       		.byte	0
+ 2169 0850 A7       		.byte	-89
+ 2170 0851 FE       		.byte	-2
+ 2171 0852 FD       		.byte	-3
+ 2172 0853 00       		.byte	0
+ 2173 0854 1A       		.byte	26
+ 2174 0855 1B       		.byte	27
+ 2175 0856 FE       		.byte	-2
+ 2176 0857 00       		.byte	0
+ 2177 0858 2C       		.byte	44
+ 2178 0859 5A       		.byte	90
+ 2179 085a 00       		.byte	0
+ 2180 085b 00       		.byte	0
+ 2181 085c F9       		.byte	-7
+ 2182 085d 33       		.byte	51
+ 2183 085e 03       		.byte	3
+ 2184 085f 00       		.byte	0
+ 2185 0860 92       		.byte	-110
+ 2186 0861 CD       		.byte	-51
+ 2187 0862 03       		.byte	3
+ 2188 0863 00       		.byte	0
+ 2189 0864 D9       		.byte	-39
+ 2190 0865 72       		.byte	114
+ 2191 0866 00       		.byte	0
+ 2192 0867 00       		.byte	0
+ 2193 0868 48       		.byte	72
+ 2194 0869 DE       		.byte	-34
+ 2195 086a FA       		.byte	-6
+ 2196 086b 00       		.byte	0
+ 2197 086c 40       		.byte	64
+ 2198 086d 05       		.byte	5
+ 2199 086e F8       		.byte	-8
+ 2200 086f 00       		.byte	0
+ 2201 0870 45       		.byte	69
+ 2202 0871 DB       		.byte	-37
+ 2203 0872 FC       		.byte	-4
+ 2204 0873 00       		.byte	0
+ 2205 0874 37       		.byte	55
+ 2206 0875 27       		.byte	39
+ 2207 0876 0A       		.byte	10
+ 2208 0877 00       		.byte	0
+ 2209 0878 60       		.byte	96
+ 2210 0879 C9       		.byte	-55
+ 2211 087a 1A       		.byte	26
+ 2212 087b 00       		.byte	0
+ 2213 087c F3       		.byte	-13
+ 2214 087d 4C       		.byte	76
+ 2215 087e 26       		.byte	38
+ 2216 087f 00       		.byte	0
+ 2217 0880 F3       		.byte	-13
+ 2218 0881 4C       		.byte	76
+ 2219 0882 26       		.byte	38
+ 2220 0883 00       		.byte	0
+ 2221 0884 60       		.byte	96
+ 2222 0885 C9       		.byte	-55
+ 2223 0886 1A       		.byte	26
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 40
+
+
+ 2224 0887 00       		.byte	0
+ 2225 0888 37       		.byte	55
+ 2226 0889 27       		.byte	39
+ 2227 088a 0A       		.byte	10
+ 2228 088b 00       		.byte	0
+ 2229 088c 45       		.byte	69
+ 2230 088d DB       		.byte	-37
+ 2231 088e FC       		.byte	-4
+ 2232 088f 00       		.byte	0
+ 2233 0890 40       		.byte	64
+ 2234 0891 05       		.byte	5
+ 2235 0892 F8       		.byte	-8
+ 2236 0893 00       		.byte	0
+ 2237 0894 48       		.byte	72
+ 2238 0895 DE       		.byte	-34
+ 2239 0896 FA       		.byte	-6
+ 2240 0897 00       		.byte	0
+ 2241 0898 D9       		.byte	-39
+ 2242 0899 72       		.byte	114
+ 2243 089a 00       		.byte	0
+ 2244 089b 00       		.byte	0
+ 2245 089c 92       		.byte	-110
+ 2246 089d CD       		.byte	-51
+ 2247 089e 03       		.byte	3
+ 2248 089f 00       		.byte	0
+ 2249 08a0 F9       		.byte	-7
+ 2250 08a1 33       		.byte	51
+ 2251 08a2 03       		.byte	3
+ 2252 08a3 00       		.byte	0
+ 2253 08a4 2C       		.byte	44
+ 2254 08a5 5A       		.byte	90
+ 2255 08a6 00       		.byte	0
+ 2256 08a7 00       		.byte	0
+ 2257 08a8 1A       		.byte	26
+ 2258 08a9 1B       		.byte	27
+ 2259 08aa FE       		.byte	-2
+ 2260 08ab 00       		.byte	0
+ 2261 08ac A7       		.byte	-89
+ 2262 08ad FE       		.byte	-2
+ 2263 08ae FD       		.byte	-3
+ 2264 08af 00       		.byte	0
+ 2265 08b0 48       		.byte	72
+ 2266 08b1 74       		.byte	116
+ 2267 08b2 FF       		.byte	-1
+ 2268 08b3 00       		.byte	0
+ 2269 08b4 51       		.byte	81
+ 2270 08b5 E1       		.byte	-31
+ 2271 08b6 00       		.byte	0
+ 2272 08b7 00       		.byte	0
+ 2273 08b8 2E       		.byte	46
+ 2274 08b9 2F       		.byte	47
+ 2275 08ba 01       		.byte	1
+ 2276 08bb 00       		.byte	0
+ 2277 08bc B0       		.byte	-80
+ 2278 08bd 7C       		.byte	124
+ 2279 08be 00       		.byte	0
+ 2280 08bf 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 41
+
+
+ 2281 08c0 3F       		.byte	63
+ 2282 08c1 A6       		.byte	-90
+ 2283 08c2 FF       		.byte	-1
+ 2284 08c3 00       		.byte	0
+ 2285 08c4 B1       		.byte	-79
+ 2286 08c5 5C       		.byte	92
+ 2287 08c6 FF       		.byte	-1
+ 2288 08c7 00       		.byte	0
+ 2289 08c8 41       		.byte	65
+ 2290 08c9 A8       		.byte	-88
+ 2291 08ca FF       		.byte	-1
+ 2292 08cb 00       		.byte	0
+ 2293 08cc 61       		.byte	97
+ 2294 08cd 1A       		.byte	26
+ 2295 08ce 00       		.byte	0
+ 2296 08cf 00       		.byte	0
+ 2297 08d0 D2       		.byte	-46
+ 2298 08d1 4D       		.byte	77
+ 2299 08d2 00       		.byte	0
+ 2300 08d3 00       		.byte	0
+ 2301 08d4 31       		.byte	49
+ 2302 08d5 33       		.byte	51
+ 2303 08d6 00       		.byte	0
+ 2304 08d7 00       		.byte	0
+ 2305 08d8 7E       		.byte	126
+ 2306 08d9 FD       		.byte	-3
+ 2307 08da FF       		.byte	-1
+ 2308 08db 00       		.byte	0
+ 2309 08dc 82       		.byte	-126
+ 2310 08dd E0       		.byte	-32
+ 2311 08de FF       		.byte	-1
+ 2312 08df 00       		.byte	0
+ 2313 08e0 85       		.byte	-123
+ 2314 08e1 E7       		.byte	-25
+ 2315 08e2 FF       		.byte	-1
+ 2316 08e3 00       		.byte	0
+ 2317 08e4 10       		.byte	16
+ 2318 08e5 FD       		.byte	-3
+ 2319 08e6 FF       		.byte	-1
+ 2320 08e7 00       		.byte	0
+ 2321 08e8 10       		.byte	16
+ 2322 08e9 0A       		.byte	10
+ 2323 08ea 00       		.byte	0
+ 2324 08eb 00       		.byte	0
+ 2325 08ec 03       		.byte	3
+ 2326 08ed 09       		.byte	9
+ 2327 08ee 00       		.byte	0
+ 2328 08ef 00       		.byte	0
+ 2329 08f0 1C       		.byte	28
+ 2330 08f1 02       		.byte	2
+ 2331 08f2 00       		.byte	0
+ 2332 08f3 00       		.byte	0
+ 2333 08f4 BA       		.byte	-70
+ 2334 08f5 FD       		.byte	-3
+ 2335 08f6 FF       		.byte	-1
+ 2336 08f7 00       		.byte	0
+ 2337 08f8 7F       		.byte	127
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 42
+
+
+ 2338 08f9 FD       		.byte	-3
+ 2339 08fa FF       		.byte	-1
+ 2340 08fb 00       		.byte	0
+ 2341 08fc 08       		.byte	8
+ 2342 08fd FF       		.byte	-1
+ 2343 08fe FF       		.byte	-1
+ 2344 08ff 00       		.byte	0
+ 2345 0900 08       		.byte	8
+ 2346 0901 FF       		.byte	-1
+ 2347 0902 FF       		.byte	-1
+ 2348 0903 00       		.byte	0
+ 2349 0904 7F       		.byte	127
+ 2350 0905 FD       		.byte	-3
+ 2351 0906 FF       		.byte	-1
+ 2352 0907 00       		.byte	0
+ 2353 0908 BA       		.byte	-70
+ 2354 0909 FD       		.byte	-3
+ 2355 090a FF       		.byte	-1
+ 2356 090b 00       		.byte	0
+ 2357 090c 1C       		.byte	28
+ 2358 090d 02       		.byte	2
+ 2359 090e 00       		.byte	0
+ 2360 090f 00       		.byte	0
+ 2361 0910 03       		.byte	3
+ 2362 0911 09       		.byte	9
+ 2363 0912 00       		.byte	0
+ 2364 0913 00       		.byte	0
+ 2365 0914 10       		.byte	16
+ 2366 0915 0A       		.byte	10
+ 2367 0916 00       		.byte	0
+ 2368 0917 00       		.byte	0
+ 2369 0918 10       		.byte	16
+ 2370 0919 FD       		.byte	-3
+ 2371 091a FF       		.byte	-1
+ 2372 091b 00       		.byte	0
+ 2373 091c 85       		.byte	-123
+ 2374 091d E7       		.byte	-25
+ 2375 091e FF       		.byte	-1
+ 2376 091f 00       		.byte	0
+ 2377 0920 82       		.byte	-126
+ 2378 0921 E0       		.byte	-32
+ 2379 0922 FF       		.byte	-1
+ 2380 0923 00       		.byte	0
+ 2381 0924 7E       		.byte	126
+ 2382 0925 FD       		.byte	-3
+ 2383 0926 FF       		.byte	-1
+ 2384 0927 00       		.byte	0
+ 2385 0928 31       		.byte	49
+ 2386 0929 33       		.byte	51
+ 2387 092a 00       		.byte	0
+ 2388 092b 00       		.byte	0
+ 2389 092c D2       		.byte	-46
+ 2390 092d 4D       		.byte	77
+ 2391 092e 00       		.byte	0
+ 2392 092f 00       		.byte	0
+ 2393 0930 61       		.byte	97
+ 2394 0931 1A       		.byte	26
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 43
+
+
+ 2395 0932 00       		.byte	0
+ 2396 0933 00       		.byte	0
+ 2397 0934 41       		.byte	65
+ 2398 0935 A8       		.byte	-88
+ 2399 0936 FF       		.byte	-1
+ 2400 0937 00       		.byte	0
+ 2401 0938 B1       		.byte	-79
+ 2402 0939 5C       		.byte	92
+ 2403 093a FF       		.byte	-1
+ 2404 093b 00       		.byte	0
+ 2405 093c 3F       		.byte	63
+ 2406 093d A6       		.byte	-90
+ 2407 093e FF       		.byte	-1
+ 2408 093f 00       		.byte	0
+ 2409 0940 B0       		.byte	-80
+ 2410 0941 7C       		.byte	124
+ 2411 0942 00       		.byte	0
+ 2412 0943 00       		.byte	0
+ 2413 0944 2E       		.byte	46
+ 2414 0945 2F       		.byte	47
+ 2415 0946 01       		.byte	1
+ 2416 0947 00       		.byte	0
+ 2417 0948 51       		.byte	81
+ 2418 0949 E1       		.byte	-31
+ 2419 094a 00       		.byte	0
+ 2420 094b 00       		.byte	0
+ 2421 094c 48       		.byte	72
+ 2422 094d 74       		.byte	116
+ 2423 094e FF       		.byte	-1
+ 2424 094f 00       		.byte	0
+ 2425 0950 A7       		.byte	-89
+ 2426 0951 FE       		.byte	-2
+ 2427 0952 FD       		.byte	-3
+ 2428 0953 00       		.byte	0
+ 2429 0954 1A       		.byte	26
+ 2430 0955 1B       		.byte	27
+ 2431 0956 FE       		.byte	-2
+ 2432 0957 00       		.byte	0
+ 2433 0958 2C       		.byte	44
+ 2434 0959 5A       		.byte	90
+ 2435 095a 00       		.byte	0
+ 2436 095b 00       		.byte	0
+ 2437 095c F9       		.byte	-7
+ 2438 095d 33       		.byte	51
+ 2439 095e 03       		.byte	3
+ 2440 095f 00       		.byte	0
+ 2441 0960 92       		.byte	-110
+ 2442 0961 CD       		.byte	-51
+ 2443 0962 03       		.byte	3
+ 2444 0963 00       		.byte	0
+ 2445 0964 D9       		.byte	-39
+ 2446 0965 72       		.byte	114
+ 2447 0966 00       		.byte	0
+ 2448 0967 00       		.byte	0
+ 2449 0968 48       		.byte	72
+ 2450 0969 DE       		.byte	-34
+ 2451 096a FA       		.byte	-6
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 44
+
+
+ 2452 096b 00       		.byte	0
+ 2453 096c 40       		.byte	64
+ 2454 096d 05       		.byte	5
+ 2455 096e F8       		.byte	-8
+ 2456 096f 00       		.byte	0
+ 2457 0970 45       		.byte	69
+ 2458 0971 DB       		.byte	-37
+ 2459 0972 FC       		.byte	-4
+ 2460 0973 00       		.byte	0
+ 2461 0974 37       		.byte	55
+ 2462 0975 27       		.byte	39
+ 2463 0976 0A       		.byte	10
+ 2464 0977 00       		.byte	0
+ 2465 0978 60       		.byte	96
+ 2466 0979 C9       		.byte	-55
+ 2467 097a 1A       		.byte	26
+ 2468 097b 00       		.byte	0
+ 2469 097c F3       		.byte	-13
+ 2470 097d 4C       		.byte	76
+ 2471 097e 26       		.byte	38
+ 2472 097f 00       		.byte	0
+ 2473 0980 F3       		.byte	-13
+ 2474 0981 4C       		.byte	76
+ 2475 0982 26       		.byte	38
+ 2476 0983 00       		.byte	0
+ 2477 0984 60       		.byte	96
+ 2478 0985 C9       		.byte	-55
+ 2479 0986 1A       		.byte	26
+ 2480 0987 00       		.byte	0
+ 2481 0988 37       		.byte	55
+ 2482 0989 27       		.byte	39
+ 2483 098a 0A       		.byte	10
+ 2484 098b 00       		.byte	0
+ 2485 098c 45       		.byte	69
+ 2486 098d DB       		.byte	-37
+ 2487 098e FC       		.byte	-4
+ 2488 098f 00       		.byte	0
+ 2489 0990 40       		.byte	64
+ 2490 0991 05       		.byte	5
+ 2491 0992 F8       		.byte	-8
+ 2492 0993 00       		.byte	0
+ 2493 0994 48       		.byte	72
+ 2494 0995 DE       		.byte	-34
+ 2495 0996 FA       		.byte	-6
+ 2496 0997 00       		.byte	0
+ 2497 0998 D9       		.byte	-39
+ 2498 0999 72       		.byte	114
+ 2499 099a 00       		.byte	0
+ 2500 099b 00       		.byte	0
+ 2501 099c 92       		.byte	-110
+ 2502 099d CD       		.byte	-51
+ 2503 099e 03       		.byte	3
+ 2504 099f 00       		.byte	0
+ 2505 09a0 F9       		.byte	-7
+ 2506 09a1 33       		.byte	51
+ 2507 09a2 03       		.byte	3
+ 2508 09a3 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 45
+
+
+ 2509 09a4 2C       		.byte	44
+ 2510 09a5 5A       		.byte	90
+ 2511 09a6 00       		.byte	0
+ 2512 09a7 00       		.byte	0
+ 2513 09a8 1A       		.byte	26
+ 2514 09a9 1B       		.byte	27
+ 2515 09aa FE       		.byte	-2
+ 2516 09ab 00       		.byte	0
+ 2517 09ac A7       		.byte	-89
+ 2518 09ad FE       		.byte	-2
+ 2519 09ae FD       		.byte	-3
+ 2520 09af 00       		.byte	0
+ 2521 09b0 48       		.byte	72
+ 2522 09b1 74       		.byte	116
+ 2523 09b2 FF       		.byte	-1
+ 2524 09b3 00       		.byte	0
+ 2525 09b4 51       		.byte	81
+ 2526 09b5 E1       		.byte	-31
+ 2527 09b6 00       		.byte	0
+ 2528 09b7 00       		.byte	0
+ 2529 09b8 2E       		.byte	46
+ 2530 09b9 2F       		.byte	47
+ 2531 09ba 01       		.byte	1
+ 2532 09bb 00       		.byte	0
+ 2533 09bc B0       		.byte	-80
+ 2534 09bd 7C       		.byte	124
+ 2535 09be 00       		.byte	0
+ 2536 09bf 00       		.byte	0
+ 2537 09c0 3F       		.byte	63
+ 2538 09c1 A6       		.byte	-90
+ 2539 09c2 FF       		.byte	-1
+ 2540 09c3 00       		.byte	0
+ 2541 09c4 B1       		.byte	-79
+ 2542 09c5 5C       		.byte	92
+ 2543 09c6 FF       		.byte	-1
+ 2544 09c7 00       		.byte	0
+ 2545 09c8 41       		.byte	65
+ 2546 09c9 A8       		.byte	-88
+ 2547 09ca FF       		.byte	-1
+ 2548 09cb 00       		.byte	0
+ 2549 09cc 61       		.byte	97
+ 2550 09cd 1A       		.byte	26
+ 2551 09ce 00       		.byte	0
+ 2552 09cf 00       		.byte	0
+ 2553 09d0 D2       		.byte	-46
+ 2554 09d1 4D       		.byte	77
+ 2555 09d2 00       		.byte	0
+ 2556 09d3 00       		.byte	0
+ 2557 09d4 31       		.byte	49
+ 2558 09d5 33       		.byte	51
+ 2559 09d6 00       		.byte	0
+ 2560 09d7 00       		.byte	0
+ 2561 09d8 7E       		.byte	126
+ 2562 09d9 FD       		.byte	-3
+ 2563 09da FF       		.byte	-1
+ 2564 09db 00       		.byte	0
+ 2565 09dc 82       		.byte	-126
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 46
+
+
+ 2566 09dd E0       		.byte	-32
+ 2567 09de FF       		.byte	-1
+ 2568 09df 00       		.byte	0
+ 2569 09e0 85       		.byte	-123
+ 2570 09e1 E7       		.byte	-25
+ 2571 09e2 FF       		.byte	-1
+ 2572 09e3 00       		.byte	0
+ 2573 09e4 10       		.byte	16
+ 2574 09e5 FD       		.byte	-3
+ 2575 09e6 FF       		.byte	-1
+ 2576 09e7 00       		.byte	0
+ 2577 09e8 10       		.byte	16
+ 2578 09e9 0A       		.byte	10
+ 2579 09ea 00       		.byte	0
+ 2580 09eb 00       		.byte	0
+ 2581 09ec 03       		.byte	3
+ 2582 09ed 09       		.byte	9
+ 2583 09ee 00       		.byte	0
+ 2584 09ef 00       		.byte	0
+ 2585 09f0 1C       		.byte	28
+ 2586 09f1 02       		.byte	2
+ 2587 09f2 00       		.byte	0
+ 2588 09f3 00       		.byte	0
+ 2589 09f4 BA       		.byte	-70
+ 2590 09f5 FD       		.byte	-3
+ 2591 09f6 FF       		.byte	-1
+ 2592 09f7 00       		.byte	0
+ 2593 09f8 7F       		.byte	127
+ 2594 09f9 FD       		.byte	-3
+ 2595 09fa FF       		.byte	-1
+ 2596 09fb 00       		.byte	0
+ 2597 09fc 08       		.byte	8
+ 2598 09fd FF       		.byte	-1
+ 2599 09fe FF       		.byte	-1
+ 2600 09ff 00       		.byte	0
+ 2601              		.type	Hilbert, %object
+ 2602              		.size	Hilbert, 256
+ 2603              	Hilbert:
+ 2604 0a00 85320000 		.word	12933
+ 2605 0a04 00000000 		.word	0
+ 2606 0a08 5D3C0000 		.word	15453
+ 2607 0a0c 00000000 		.word	0
+ 2608 0a10 0A550000 		.word	21770
+ 2609 0a14 00000000 		.word	0
+ 2610 0a18 367F0000 		.word	32566
+ 2611 0a1c 00000000 		.word	0
+ 2612 0a20 E1BD0000 		.word	48609
+ 2613 0a24 00000000 		.word	0
+ 2614 0a28 94140100 		.word	70804
+ 2615 0a2c 00000000 		.word	0
+ 2616 0a30 CB870100 		.word	100299
+ 2617 0a34 00000000 		.word	0
+ 2618 0a38 A71D0200 		.word	138663
+ 2619 0a3c 00000000 		.word	0
+ 2620 0a40 32DF0200 		.word	188210
+ 2621 0a44 00000000 		.word	0
+ 2622 0a48 DADA0300 		.word	252634
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 47
+
+
+ 2623 0a4c 00000000 		.word	0
+ 2624 0a50 9F290500 		.word	338335
+ 2625 0a54 00000000 		.word	0
+ 2626 0a58 22FB0600 		.word	457506
+ 2627 0a5c 00000000 		.word	0
+ 2628 0a60 6AB60900 		.word	636522
+ 2629 0a64 00000000 		.word	0
+ 2630 0a68 2C690E00 		.word	944428
+ 2631 0a6c 00000000 		.word	0
+ 2632 0a70 26F41800 		.word	1635366
+ 2633 0a74 00000000 		.word	0
+ 2634 0a78 3F4B4C00 		.word	4999999
+ 2635 0a7c 00000000 		.word	0
+ 2636 0a80 C1B4B3FF 		.word	-4999999
+ 2637 0a84 00000000 		.word	0
+ 2638 0a88 DA0BE7FF 		.word	-1635366
+ 2639 0a8c 00000000 		.word	0
+ 2640 0a90 D496F1FF 		.word	-944428
+ 2641 0a94 00000000 		.word	0
+ 2642 0a98 9649F6FF 		.word	-636522
+ 2643 0a9c 00000000 		.word	0
+ 2644 0aa0 DE04F9FF 		.word	-457506
+ 2645 0aa4 00000000 		.word	0
+ 2646 0aa8 61D6FAFF 		.word	-338335
+ 2647 0aac 00000000 		.word	0
+ 2648 0ab0 2625FCFF 		.word	-252634
+ 2649 0ab4 00000000 		.word	0
+ 2650 0ab8 CE20FDFF 		.word	-188210
+ 2651 0abc 00000000 		.word	0
+ 2652 0ac0 59E2FDFF 		.word	-138663
+ 2653 0ac4 00000000 		.word	0
+ 2654 0ac8 3578FEFF 		.word	-100299
+ 2655 0acc 00000000 		.word	0
+ 2656 0ad0 6CEBFEFF 		.word	-70804
+ 2657 0ad4 00000000 		.word	0
+ 2658 0ad8 1F42FFFF 		.word	-48609
+ 2659 0adc 00000000 		.word	0
+ 2660 0ae0 CA80FFFF 		.word	-32566
+ 2661 0ae4 00000000 		.word	0
+ 2662 0ae8 F6AAFFFF 		.word	-21770
+ 2663 0aec 00000000 		.word	0
+ 2664 0af0 A3C3FFFF 		.word	-15453
+ 2665 0af4 00000000 		.word	0
+ 2666 0af8 7BCDFFFF 		.word	-12933
+ 2667 0afc 00000000 		.word	0
+ 2668              		.text
+ 2669              	.Letext0:
+ 2670              		.file 1 "Generated_Source\\PSoC5/cytypes.h"
+ 2671              		.file 2 "FIR_Coefficients.c"
+ 2672              		.section	.debug_info,"",%progbits
+ 2673              	.Ldebug_info0:
+ 2674 0000 3B010000 		.4byte	0x13b
+ 2675 0004 0400     		.2byte	0x4
+ 2676 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 2677 000a 04       		.byte	0x4
+ 2678 000b 01       		.uleb128 0x1
+ 2679 000c 78000000 		.4byte	.LASF21
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 48
+
+
+ 2680 0010 01       		.byte	0x1
+ 2681 0011 65000000 		.4byte	.LASF22
+ 2682 0015 4D010000 		.4byte	.LASF23
+ 2683 0019 00000000 		.4byte	.Ldebug_line0
+ 2684 001d 02       		.uleb128 0x2
+ 2685 001e 04       		.byte	0x4
+ 2686 001f 05       		.byte	0x5
+ 2687 0020 696E7400 		.ascii	"int\000"
+ 2688 0024 03       		.uleb128 0x3
+ 2689 0025 04       		.byte	0x4
+ 2690 0026 07       		.byte	0x7
+ 2691 0027 21000000 		.4byte	.LASF0
+ 2692 002b 03       		.uleb128 0x3
+ 2693 002c 01       		.byte	0x1
+ 2694 002d 06       		.byte	0x6
+ 2695 002e C2010000 		.4byte	.LASF1
+ 2696 0032 03       		.uleb128 0x3
+ 2697 0033 01       		.byte	0x1
+ 2698 0034 08       		.byte	0x8
+ 2699 0035 19010000 		.4byte	.LASF2
+ 2700 0039 03       		.uleb128 0x3
+ 2701 003a 02       		.byte	0x2
+ 2702 003b 05       		.byte	0x5
+ 2703 003c D4010000 		.4byte	.LASF3
+ 2704 0040 03       		.uleb128 0x3
+ 2705 0041 02       		.byte	0x2
+ 2706 0042 07       		.byte	0x7
+ 2707 0043 AF010000 		.4byte	.LASF4
+ 2708 0047 03       		.uleb128 0x3
+ 2709 0048 04       		.byte	0x4
+ 2710 0049 05       		.byte	0x5
+ 2711 004a 3D010000 		.4byte	.LASF5
+ 2712 004e 03       		.uleb128 0x3
+ 2713 004f 04       		.byte	0x4
+ 2714 0050 07       		.byte	0x7
+ 2715 0051 3C000000 		.4byte	.LASF6
+ 2716 0055 03       		.uleb128 0x3
+ 2717 0056 08       		.byte	0x8
+ 2718 0057 05       		.byte	0x5
+ 2719 0058 00000000 		.4byte	.LASF7
+ 2720 005c 03       		.uleb128 0x3
+ 2721 005d 08       		.byte	0x8
+ 2722 005e 07       		.byte	0x7
+ 2723 005f 4E000000 		.4byte	.LASF8
+ 2724 0063 03       		.uleb128 0x3
+ 2725 0064 04       		.byte	0x4
+ 2726 0065 07       		.byte	0x7
+ 2727 0066 EF010000 		.4byte	.LASF9
+ 2728 006a 03       		.uleb128 0x3
+ 2729 006b 01       		.byte	0x1
+ 2730 006c 08       		.byte	0x8
+ 2731 006d 27010000 		.4byte	.LASF10
+ 2732 0071 04       		.uleb128 0x4
+ 2733 0072 36000000 		.4byte	.LASF11
+ 2734 0076 01       		.byte	0x1
+ 2735 0077 3801     		.2byte	0x138
+ 2736 0079 32000000 		.4byte	0x32
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 49
+
+
+ 2737 007d 04       		.uleb128 0x4
+ 2738 007e 0B020000 		.4byte	.LASF12
+ 2739 0082 01       		.byte	0x1
+ 2740 0083 3D01     		.2byte	0x13d
+ 2741 0085 47000000 		.4byte	0x47
+ 2742 0089 03       		.uleb128 0x3
+ 2743 008a 04       		.byte	0x4
+ 2744 008b 04       		.byte	0x4
+ 2745 008c CE010000 		.4byte	.LASF13
+ 2746 0090 03       		.uleb128 0x3
+ 2747 0091 08       		.byte	0x8
+ 2748 0092 04       		.byte	0x4
+ 2749 0093 46010000 		.4byte	.LASF14
+ 2750 0097 05       		.uleb128 0x5
+ 2751 0098 7D000000 		.4byte	0x7d
+ 2752 009c A7000000 		.4byte	0xa7
+ 2753 00a0 06       		.uleb128 0x6
+ 2754 00a1 63000000 		.4byte	0x63
+ 2755 00a5 3F       		.byte	0x3f
+ 2756 00a6 00       		.byte	0
+ 2757 00a7 07       		.uleb128 0x7
+ 2758 00a8 2E000000 		.4byte	.LASF15
+ 2759 00ac 02       		.byte	0x2
+ 2760 00ad 1B       		.byte	0x1b
+ 2761 00ae B8000000 		.4byte	0xb8
+ 2762 00b2 05       		.uleb128 0x5
+ 2763 00b3 03       		.byte	0x3
+ 2764 00b4 00000000 		.4byte	Hilbert
+ 2765 00b8 08       		.uleb128 0x8
+ 2766 00b9 97000000 		.4byte	0x97
+ 2767 00bd 05       		.uleb128 0x5
+ 2768 00be 71000000 		.4byte	0x71
+ 2769 00c2 CE000000 		.4byte	0xce
+ 2770 00c6 09       		.uleb128 0x9
+ 2771 00c7 63000000 		.4byte	0x63
+ 2772 00cb FF01     		.2byte	0x1ff
+ 2773 00cd 00       		.byte	0
+ 2774 00ce 07       		.uleb128 0x7
+ 2775 00cf F8010000 		.4byte	.LASF16
+ 2776 00d3 02       		.byte	0x2
+ 2777 00d4 33       		.byte	0x33
+ 2778 00d5 DF000000 		.4byte	0xdf
+ 2779 00d9 05       		.uleb128 0x5
+ 2780 00da 03       		.byte	0x3
+ 2781 00db 00000000 		.4byte	Filter_data_b_2500
+ 2782 00df 08       		.uleb128 0x8
+ 2783 00e0 BD000000 		.4byte	0xbd
+ 2784 00e4 07       		.uleb128 0x7
+ 2785 00e5 0E000000 		.4byte	.LASF17
+ 2786 00e9 02       		.byte	0x2
+ 2787 00ea 79       		.byte	0x79
+ 2788 00eb F5000000 		.4byte	0xf5
+ 2789 00ef 05       		.uleb128 0x5
+ 2790 00f0 03       		.byte	0x3
+ 2791 00f1 00000000 		.4byte	Filter_data_b_2000
+ 2792 00f5 08       		.uleb128 0x8
+ 2793 00f6 BD000000 		.4byte	0xbd
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 50
+
+
+ 2794 00fa 07       		.uleb128 0x7
+ 2795 00fb 06010000 		.4byte	.LASF18
+ 2796 00ff 02       		.byte	0x2
+ 2797 0100 BF       		.byte	0xbf
+ 2798 0101 0B010000 		.4byte	0x10b
+ 2799 0105 05       		.uleb128 0x5
+ 2800 0106 03       		.byte	0x3
+ 2801 0107 00000000 		.4byte	Filter_data_b_1500
+ 2802 010b 08       		.uleb128 0x8
+ 2803 010c BD000000 		.4byte	0xbd
+ 2804 0110 0A       		.uleb128 0xa
+ 2805 0111 DE010000 		.4byte	.LASF19
+ 2806 0115 02       		.byte	0x2
+ 2807 0116 0601     		.2byte	0x106
+ 2808 0118 22010000 		.4byte	0x122
+ 2809 011c 05       		.uleb128 0x5
+ 2810 011d 03       		.byte	0x3
+ 2811 011e 00000000 		.4byte	Filter_data_b_cw
+ 2812 0122 08       		.uleb128 0x8
+ 2813 0123 BD000000 		.4byte	0xbd
+ 2814 0127 0A       		.uleb128 0xa
+ 2815 0128 2C010000 		.4byte	.LASF20
+ 2816 012c 02       		.byte	0x2
+ 2817 012d 4D01     		.2byte	0x14d
+ 2818 012f 39010000 		.4byte	0x139
+ 2819 0133 05       		.uleb128 0x5
+ 2820 0134 03       		.byte	0x3
+ 2821 0135 00000000 		.4byte	Filter_data_b_am
+ 2822 0139 08       		.uleb128 0x8
+ 2823 013a BD000000 		.4byte	0xbd
+ 2824 013e 00       		.byte	0
+ 2825              		.section	.debug_abbrev,"",%progbits
+ 2826              	.Ldebug_abbrev0:
+ 2827 0000 01       		.uleb128 0x1
+ 2828 0001 11       		.uleb128 0x11
+ 2829 0002 01       		.byte	0x1
+ 2830 0003 25       		.uleb128 0x25
+ 2831 0004 0E       		.uleb128 0xe
+ 2832 0005 13       		.uleb128 0x13
+ 2833 0006 0B       		.uleb128 0xb
+ 2834 0007 03       		.uleb128 0x3
+ 2835 0008 0E       		.uleb128 0xe
+ 2836 0009 1B       		.uleb128 0x1b
+ 2837 000a 0E       		.uleb128 0xe
+ 2838 000b 10       		.uleb128 0x10
+ 2839 000c 17       		.uleb128 0x17
+ 2840 000d 00       		.byte	0
+ 2841 000e 00       		.byte	0
+ 2842 000f 02       		.uleb128 0x2
+ 2843 0010 24       		.uleb128 0x24
+ 2844 0011 00       		.byte	0
+ 2845 0012 0B       		.uleb128 0xb
+ 2846 0013 0B       		.uleb128 0xb
+ 2847 0014 3E       		.uleb128 0x3e
+ 2848 0015 0B       		.uleb128 0xb
+ 2849 0016 03       		.uleb128 0x3
+ 2850 0017 08       		.uleb128 0x8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 51
+
+
+ 2851 0018 00       		.byte	0
+ 2852 0019 00       		.byte	0
+ 2853 001a 03       		.uleb128 0x3
+ 2854 001b 24       		.uleb128 0x24
+ 2855 001c 00       		.byte	0
+ 2856 001d 0B       		.uleb128 0xb
+ 2857 001e 0B       		.uleb128 0xb
+ 2858 001f 3E       		.uleb128 0x3e
+ 2859 0020 0B       		.uleb128 0xb
+ 2860 0021 03       		.uleb128 0x3
+ 2861 0022 0E       		.uleb128 0xe
+ 2862 0023 00       		.byte	0
+ 2863 0024 00       		.byte	0
+ 2864 0025 04       		.uleb128 0x4
+ 2865 0026 16       		.uleb128 0x16
+ 2866 0027 00       		.byte	0
+ 2867 0028 03       		.uleb128 0x3
+ 2868 0029 0E       		.uleb128 0xe
+ 2869 002a 3A       		.uleb128 0x3a
+ 2870 002b 0B       		.uleb128 0xb
+ 2871 002c 3B       		.uleb128 0x3b
+ 2872 002d 05       		.uleb128 0x5
+ 2873 002e 49       		.uleb128 0x49
+ 2874 002f 13       		.uleb128 0x13
+ 2875 0030 00       		.byte	0
+ 2876 0031 00       		.byte	0
+ 2877 0032 05       		.uleb128 0x5
+ 2878 0033 01       		.uleb128 0x1
+ 2879 0034 01       		.byte	0x1
+ 2880 0035 49       		.uleb128 0x49
+ 2881 0036 13       		.uleb128 0x13
+ 2882 0037 01       		.uleb128 0x1
+ 2883 0038 13       		.uleb128 0x13
+ 2884 0039 00       		.byte	0
+ 2885 003a 00       		.byte	0
+ 2886 003b 06       		.uleb128 0x6
+ 2887 003c 21       		.uleb128 0x21
+ 2888 003d 00       		.byte	0
+ 2889 003e 49       		.uleb128 0x49
+ 2890 003f 13       		.uleb128 0x13
+ 2891 0040 2F       		.uleb128 0x2f
+ 2892 0041 0B       		.uleb128 0xb
+ 2893 0042 00       		.byte	0
+ 2894 0043 00       		.byte	0
+ 2895 0044 07       		.uleb128 0x7
+ 2896 0045 34       		.uleb128 0x34
+ 2897 0046 00       		.byte	0
+ 2898 0047 03       		.uleb128 0x3
+ 2899 0048 0E       		.uleb128 0xe
+ 2900 0049 3A       		.uleb128 0x3a
+ 2901 004a 0B       		.uleb128 0xb
+ 2902 004b 3B       		.uleb128 0x3b
+ 2903 004c 0B       		.uleb128 0xb
+ 2904 004d 49       		.uleb128 0x49
+ 2905 004e 13       		.uleb128 0x13
+ 2906 004f 3F       		.uleb128 0x3f
+ 2907 0050 19       		.uleb128 0x19
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 52
+
+
+ 2908 0051 02       		.uleb128 0x2
+ 2909 0052 18       		.uleb128 0x18
+ 2910 0053 00       		.byte	0
+ 2911 0054 00       		.byte	0
+ 2912 0055 08       		.uleb128 0x8
+ 2913 0056 26       		.uleb128 0x26
+ 2914 0057 00       		.byte	0
+ 2915 0058 49       		.uleb128 0x49
+ 2916 0059 13       		.uleb128 0x13
+ 2917 005a 00       		.byte	0
+ 2918 005b 00       		.byte	0
+ 2919 005c 09       		.uleb128 0x9
+ 2920 005d 21       		.uleb128 0x21
+ 2921 005e 00       		.byte	0
+ 2922 005f 49       		.uleb128 0x49
+ 2923 0060 13       		.uleb128 0x13
+ 2924 0061 2F       		.uleb128 0x2f
+ 2925 0062 05       		.uleb128 0x5
+ 2926 0063 00       		.byte	0
+ 2927 0064 00       		.byte	0
+ 2928 0065 0A       		.uleb128 0xa
+ 2929 0066 34       		.uleb128 0x34
+ 2930 0067 00       		.byte	0
+ 2931 0068 03       		.uleb128 0x3
+ 2932 0069 0E       		.uleb128 0xe
+ 2933 006a 3A       		.uleb128 0x3a
+ 2934 006b 0B       		.uleb128 0xb
+ 2935 006c 3B       		.uleb128 0x3b
+ 2936 006d 05       		.uleb128 0x5
+ 2937 006e 49       		.uleb128 0x49
+ 2938 006f 13       		.uleb128 0x13
+ 2939 0070 3F       		.uleb128 0x3f
+ 2940 0071 19       		.uleb128 0x19
+ 2941 0072 02       		.uleb128 0x2
+ 2942 0073 18       		.uleb128 0x18
+ 2943 0074 00       		.byte	0
+ 2944 0075 00       		.byte	0
+ 2945 0076 00       		.byte	0
+ 2946              		.section	.debug_aranges,"",%progbits
+ 2947 0000 14000000 		.4byte	0x14
+ 2948 0004 0200     		.2byte	0x2
+ 2949 0006 00000000 		.4byte	.Ldebug_info0
+ 2950 000a 04       		.byte	0x4
+ 2951 000b 00       		.byte	0
+ 2952 000c 0000     		.2byte	0
+ 2953 000e 0000     		.2byte	0
+ 2954 0010 00000000 		.4byte	0
+ 2955 0014 00000000 		.4byte	0
+ 2956              		.section	.debug_line,"",%progbits
+ 2957              	.Ldebug_line0:
+ 2958 0000 53000000 		.section	.debug_str,"MS",%progbits,1
+ 2958      02004D00 
+ 2958      00000201 
+ 2958      FB0E0D00 
+ 2958      01010101 
+ 2959              	.LASF7:
+ 2960 0000 6C6F6E67 		.ascii	"long long int\000"
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 53
+
+
+ 2960      206C6F6E 
+ 2960      6720696E 
+ 2960      7400
+ 2961              	.LASF17:
+ 2962 000e 46696C74 		.ascii	"Filter_data_b_2000\000"
+ 2962      65725F64 
+ 2962      6174615F 
+ 2962      625F3230 
+ 2962      303000
+ 2963              	.LASF0:
+ 2964 0021 756E7369 		.ascii	"unsigned int\000"
+ 2964      676E6564 
+ 2964      20696E74 
+ 2964      00
+ 2965              	.LASF15:
+ 2966 002e 48696C62 		.ascii	"Hilbert\000"
+ 2966      65727400 
+ 2967              	.LASF11:
+ 2968 0036 75696E74 		.ascii	"uint8\000"
+ 2968      3800
+ 2969              	.LASF6:
+ 2970 003c 6C6F6E67 		.ascii	"long unsigned int\000"
+ 2970      20756E73 
+ 2970      69676E65 
+ 2970      6420696E 
+ 2970      7400
+ 2971              	.LASF8:
+ 2972 004e 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 2972      206C6F6E 
+ 2972      6720756E 
+ 2972      7369676E 
+ 2972      65642069 
+ 2973              	.LASF22:
+ 2974 0065 4649525F 		.ascii	"FIR_Coefficients.c\000"
+ 2974      436F6566 
+ 2974      66696369 
+ 2974      656E7473 
+ 2974      2E6300
+ 2975              	.LASF21:
+ 2976 0078 474E5520 		.ascii	"GNU C 4.9.3 20150303 (release) [ARM/embedded-4_9-br"
+ 2976      4320342E 
+ 2976      392E3320 
+ 2976      32303135 
+ 2976      30333033 
+ 2977 00ab 616E6368 		.ascii	"anch revision 221220] -mcpu=cortex-m3 -mthumb -g -O"
+ 2977      20726576 
+ 2977      6973696F 
+ 2977      6E203232 
+ 2977      31323230 
+ 2978 00de 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 2978      66756E63 
+ 2978      74696F6E 
+ 2978      2D736563 
+ 2978      74696F6E 
+ 2979              	.LASF18:
+ 2980 0106 46696C74 		.ascii	"Filter_data_b_1500\000"
+ 2980      65725F64 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 54
+
+
+ 2980      6174615F 
+ 2980      625F3135 
+ 2980      303000
+ 2981              	.LASF2:
+ 2982 0119 756E7369 		.ascii	"unsigned char\000"
+ 2982      676E6564 
+ 2982      20636861 
+ 2982      7200
+ 2983              	.LASF10:
+ 2984 0127 63686172 		.ascii	"char\000"
+ 2984      00
+ 2985              	.LASF20:
+ 2986 012c 46696C74 		.ascii	"Filter_data_b_am\000"
+ 2986      65725F64 
+ 2986      6174615F 
+ 2986      625F616D 
+ 2986      00
+ 2987              	.LASF5:
+ 2988 013d 6C6F6E67 		.ascii	"long int\000"
+ 2988      20696E74 
+ 2988      00
+ 2989              	.LASF14:
+ 2990 0146 646F7562 		.ascii	"double\000"
+ 2990      6C6500
+ 2991              	.LASF23:
+ 2992 014d 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 2992      536F435F 
+ 2992      43726561 
+ 2992      746F725C 
+ 2992      43593843 
+ 2993 017d 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 2993      65636569 
+ 2993      7665725C 
+ 2993      43593843 
+ 2993      4B49542D 
+ 2994              	.LASF4:
+ 2995 01af 73686F72 		.ascii	"short unsigned int\000"
+ 2995      7420756E 
+ 2995      7369676E 
+ 2995      65642069 
+ 2995      6E7400
+ 2996              	.LASF1:
+ 2997 01c2 7369676E 		.ascii	"signed char\000"
+ 2997      65642063 
+ 2997      68617200 
+ 2998              	.LASF13:
+ 2999 01ce 666C6F61 		.ascii	"float\000"
+ 2999      7400
+ 3000              	.LASF3:
+ 3001 01d4 73686F72 		.ascii	"short int\000"
+ 3001      7420696E 
+ 3001      7400
+ 3002              	.LASF19:
+ 3003 01de 46696C74 		.ascii	"Filter_data_b_cw\000"
+ 3003      65725F64 
+ 3003      6174615F 
+ 3003      625F6377 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\cc96kkzV.s 			page 55
+
+
+ 3003      00
+ 3004              	.LASF9:
+ 3005 01ef 73697A65 		.ascii	"sizetype\000"
+ 3005      74797065 
+ 3005      00
+ 3006              	.LASF16:
+ 3007 01f8 46696C74 		.ascii	"Filter_data_b_2500\000"
+ 3007      65725F64 
+ 3007      6174615F 
+ 3007      625F3235 
+ 3007      303000
+ 3008              	.LASF12:
+ 3009 020b 696E7433 		.ascii	"int32\000"
+ 3009      3200
+ 3010              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.9.3 20150303 (release) [ARM/embedded-4_9-br

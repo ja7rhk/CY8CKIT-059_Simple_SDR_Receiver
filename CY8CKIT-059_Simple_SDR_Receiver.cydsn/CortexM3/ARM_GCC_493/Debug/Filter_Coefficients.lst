@@ -1,0 +1,911 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.file	"Filter_Coefficients.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.global	Filter_ChannelBFirCoefficients
+  19              		.global	Filter_ChannelAFirCoefficients
+  20              		.section	.rodata
+  21              		.align	2
+  22              		.type	Filter_ChannelBFirCoefficients, %object
+  23              		.size	Filter_ChannelBFirCoefficients, 256
+  24              	Filter_ChannelBFirCoefficients:
+  25 0000 93       		.byte	-109
+  26 0001 FE       		.byte	-2
+  27 0002 FF       		.byte	-1
+  28 0003 00       		.byte	0
+  29 0004 6B       		.byte	107
+  30 0005 FE       		.byte	-2
+  31 0006 FF       		.byte	-1
+  32 0007 00       		.byte	0
+  33 0008 00       		.byte	0
+  34 0009 03       		.byte	3
+  35 000a 00       		.byte	0
+  36 000b 00       		.byte	0
+  37 000c E0       		.byte	-32
+  38 000d 03       		.byte	3
+  39 000e 00       		.byte	0
+  40 000f 00       		.byte	0
+  41 0010 DF       		.byte	-33
+  42 0011 F8       		.byte	-8
+  43 0012 FF       		.byte	-1
+  44 0013 00       		.byte	0
+  45 0014 3B       		.byte	59
+  46 0015 F7       		.byte	-9
+  47 0016 FF       		.byte	-1
+  48 0017 00       		.byte	0
+  49 0018 E6       		.byte	-26
+  50 0019 0E       		.byte	14
+  51 001a 00       		.byte	0
+  52 001b 00       		.byte	0
+  53 001c 82       		.byte	-126
+  54 001d 11       		.byte	17
+  55 001e 00       		.byte	0
+  56 001f 00       		.byte	0
+  57 0020 17       		.byte	23
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 2
+
+
+  58 0021 E4       		.byte	-28
+  59 0022 FF       		.byte	-1
+  60 0023 00       		.byte	0
+  61 0024 23       		.byte	35
+  62 0025 E0       		.byte	-32
+  63 0026 FF       		.byte	-1
+  64 0027 00       		.byte	0
+  65 0028 55       		.byte	85
+  66 0029 30       		.byte	48
+  67 002a 00       		.byte	0
+  68 002b 00       		.byte	0
+  69 002c 33       		.byte	51
+  70 002d 36       		.byte	54
+  71 002e 00       		.byte	0
+  72 002f 00       		.byte	0
+  73 0030 15       		.byte	21
+  74 0031 B1       		.byte	-79
+  75 0032 FF       		.byte	-1
+  76 0033 00       		.byte	0
+  77 0034 72       		.byte	114
+  78 0035 A8       		.byte	-88
+  79 0036 FF       		.byte	-1
+  80 0037 00       		.byte	0
+  81 0038 1F       		.byte	31
+  82 0039 7B       		.byte	123
+  83 003a 00       		.byte	0
+  84 003b 00       		.byte	0
+  85 003c D7       		.byte	-41
+  86 003d 87       		.byte	-121
+  87 003e 00       		.byte	0
+  88 003f 00       		.byte	0
+  89 0040 A7       		.byte	-89
+  90 0041 46       		.byte	70
+  91 0042 FF       		.byte	-1
+  92 0043 00       		.byte	0
+  93 0044 C0       		.byte	-64
+  94 0045 33       		.byte	51
+  95 0046 FF       		.byte	-1
+  96 0047 00       		.byte	0
+  97 0048 96       		.byte	-106
+  98 0049 0F       		.byte	15
+  99 004a 01       		.byte	1
+ 100 004b 00       		.byte	0
+ 101 004c 3B       		.byte	59
+ 102 004d 2C       		.byte	44
+ 103 004e 01       		.byte	1
+ 104 004f 00       		.byte	0
+ 105 0050 27       		.byte	39
+ 106 0051 79       		.byte	121
+ 107 0052 FE       		.byte	-2
+ 108 0053 00       		.byte	0
+ 109 0054 4E       		.byte	78
+ 110 0055 4C       		.byte	76
+ 111 0056 FE       		.byte	-2
+ 112 0057 00       		.byte	0
+ 113 0058 B5       		.byte	-75
+ 114 0059 2E       		.byte	46
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 3
+
+
+ 115 005a 02       		.byte	2
+ 116 005b 00       		.byte	0
+ 117 005c AD       		.byte	-83
+ 118 005d 78       		.byte	120
+ 119 005e 02       		.byte	2
+ 120 005f 00       		.byte	0
+ 121 0060 53       		.byte	83
+ 122 0061 D9       		.byte	-39
+ 123 0062 FC       		.byte	-4
+ 124 0063 00       		.byte	0
+ 125 0064 70       		.byte	112
+ 126 0065 54       		.byte	84
+ 127 0066 FC       		.byte	-4
+ 128 0067 00       		.byte	0
+ 129 0068 38       		.byte	56
+ 130 0069 BC       		.byte	-68
+ 131 006a 04       		.byte	4
+ 132 006b 00       		.byte	0
+ 133 006c F3       		.byte	-13
+ 134 006d D2       		.byte	-46
+ 135 006e 05       		.byte	5
+ 136 006f 00       		.byte	0
+ 137 0070 2D       		.byte	45
+ 138 0071 10       		.byte	16
+ 139 0072 F8       		.byte	-8
+ 140 0073 00       		.byte	0
+ 141 0074 29       		.byte	41
+ 142 0075 D9       		.byte	-39
+ 143 0076 F4       		.byte	-12
+ 144 0077 00       		.byte	0
+ 145 0078 2C       		.byte	44
+ 146 0079 22       		.byte	34
+ 147 007a 13       		.byte	19
+ 148 007b 00       		.byte	0
+ 149 007c CF       		.byte	-49
+ 150 007d 77       		.byte	119
+ 151 007e 39       		.byte	57
+ 152 007f 00       		.byte	0
+ 153 0080 CF       		.byte	-49
+ 154 0081 77       		.byte	119
+ 155 0082 39       		.byte	57
+ 156 0083 00       		.byte	0
+ 157 0084 2C       		.byte	44
+ 158 0085 22       		.byte	34
+ 159 0086 13       		.byte	19
+ 160 0087 00       		.byte	0
+ 161 0088 29       		.byte	41
+ 162 0089 D9       		.byte	-39
+ 163 008a F4       		.byte	-12
+ 164 008b 00       		.byte	0
+ 165 008c 2D       		.byte	45
+ 166 008d 10       		.byte	16
+ 167 008e F8       		.byte	-8
+ 168 008f 00       		.byte	0
+ 169 0090 F3       		.byte	-13
+ 170 0091 D2       		.byte	-46
+ 171 0092 05       		.byte	5
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 4
+
+
+ 172 0093 00       		.byte	0
+ 173 0094 38       		.byte	56
+ 174 0095 BC       		.byte	-68
+ 175 0096 04       		.byte	4
+ 176 0097 00       		.byte	0
+ 177 0098 70       		.byte	112
+ 178 0099 54       		.byte	84
+ 179 009a FC       		.byte	-4
+ 180 009b 00       		.byte	0
+ 181 009c 53       		.byte	83
+ 182 009d D9       		.byte	-39
+ 183 009e FC       		.byte	-4
+ 184 009f 00       		.byte	0
+ 185 00a0 AD       		.byte	-83
+ 186 00a1 78       		.byte	120
+ 187 00a2 02       		.byte	2
+ 188 00a3 00       		.byte	0
+ 189 00a4 B5       		.byte	-75
+ 190 00a5 2E       		.byte	46
+ 191 00a6 02       		.byte	2
+ 192 00a7 00       		.byte	0
+ 193 00a8 4E       		.byte	78
+ 194 00a9 4C       		.byte	76
+ 195 00aa FE       		.byte	-2
+ 196 00ab 00       		.byte	0
+ 197 00ac 27       		.byte	39
+ 198 00ad 79       		.byte	121
+ 199 00ae FE       		.byte	-2
+ 200 00af 00       		.byte	0
+ 201 00b0 3B       		.byte	59
+ 202 00b1 2C       		.byte	44
+ 203 00b2 01       		.byte	1
+ 204 00b3 00       		.byte	0
+ 205 00b4 96       		.byte	-106
+ 206 00b5 0F       		.byte	15
+ 207 00b6 01       		.byte	1
+ 208 00b7 00       		.byte	0
+ 209 00b8 C0       		.byte	-64
+ 210 00b9 33       		.byte	51
+ 211 00ba FF       		.byte	-1
+ 212 00bb 00       		.byte	0
+ 213 00bc A7       		.byte	-89
+ 214 00bd 46       		.byte	70
+ 215 00be FF       		.byte	-1
+ 216 00bf 00       		.byte	0
+ 217 00c0 D7       		.byte	-41
+ 218 00c1 87       		.byte	-121
+ 219 00c2 00       		.byte	0
+ 220 00c3 00       		.byte	0
+ 221 00c4 1F       		.byte	31
+ 222 00c5 7B       		.byte	123
+ 223 00c6 00       		.byte	0
+ 224 00c7 00       		.byte	0
+ 225 00c8 72       		.byte	114
+ 226 00c9 A8       		.byte	-88
+ 227 00ca FF       		.byte	-1
+ 228 00cb 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 5
+
+
+ 229 00cc 15       		.byte	21
+ 230 00cd B1       		.byte	-79
+ 231 00ce FF       		.byte	-1
+ 232 00cf 00       		.byte	0
+ 233 00d0 33       		.byte	51
+ 234 00d1 36       		.byte	54
+ 235 00d2 00       		.byte	0
+ 236 00d3 00       		.byte	0
+ 237 00d4 55       		.byte	85
+ 238 00d5 30       		.byte	48
+ 239 00d6 00       		.byte	0
+ 240 00d7 00       		.byte	0
+ 241 00d8 23       		.byte	35
+ 242 00d9 E0       		.byte	-32
+ 243 00da FF       		.byte	-1
+ 244 00db 00       		.byte	0
+ 245 00dc 17       		.byte	23
+ 246 00dd E4       		.byte	-28
+ 247 00de FF       		.byte	-1
+ 248 00df 00       		.byte	0
+ 249 00e0 82       		.byte	-126
+ 250 00e1 11       		.byte	17
+ 251 00e2 00       		.byte	0
+ 252 00e3 00       		.byte	0
+ 253 00e4 E6       		.byte	-26
+ 254 00e5 0E       		.byte	14
+ 255 00e6 00       		.byte	0
+ 256 00e7 00       		.byte	0
+ 257 00e8 3B       		.byte	59
+ 258 00e9 F7       		.byte	-9
+ 259 00ea FF       		.byte	-1
+ 260 00eb 00       		.byte	0
+ 261 00ec DF       		.byte	-33
+ 262 00ed F8       		.byte	-8
+ 263 00ee FF       		.byte	-1
+ 264 00ef 00       		.byte	0
+ 265 00f0 E0       		.byte	-32
+ 266 00f1 03       		.byte	3
+ 267 00f2 00       		.byte	0
+ 268 00f3 00       		.byte	0
+ 269 00f4 00       		.byte	0
+ 270 00f5 03       		.byte	3
+ 271 00f6 00       		.byte	0
+ 272 00f7 00       		.byte	0
+ 273 00f8 6B       		.byte	107
+ 274 00f9 FE       		.byte	-2
+ 275 00fa FF       		.byte	-1
+ 276 00fb 00       		.byte	0
+ 277 00fc 93       		.byte	-109
+ 278 00fd FE       		.byte	-2
+ 279 00fe FF       		.byte	-1
+ 280 00ff 00       		.byte	0
+ 281              		.type	Filter_ChannelAFirCoefficients, %object
+ 282              		.size	Filter_ChannelAFirCoefficients, 256
+ 283              	Filter_ChannelAFirCoefficients:
+ 284 0100 93       		.byte	-109
+ 285 0101 FE       		.byte	-2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 6
+
+
+ 286 0102 FF       		.byte	-1
+ 287 0103 00       		.byte	0
+ 288 0104 6B       		.byte	107
+ 289 0105 FE       		.byte	-2
+ 290 0106 FF       		.byte	-1
+ 291 0107 00       		.byte	0
+ 292 0108 00       		.byte	0
+ 293 0109 03       		.byte	3
+ 294 010a 00       		.byte	0
+ 295 010b 00       		.byte	0
+ 296 010c E0       		.byte	-32
+ 297 010d 03       		.byte	3
+ 298 010e 00       		.byte	0
+ 299 010f 00       		.byte	0
+ 300 0110 DF       		.byte	-33
+ 301 0111 F8       		.byte	-8
+ 302 0112 FF       		.byte	-1
+ 303 0113 00       		.byte	0
+ 304 0114 3B       		.byte	59
+ 305 0115 F7       		.byte	-9
+ 306 0116 FF       		.byte	-1
+ 307 0117 00       		.byte	0
+ 308 0118 E6       		.byte	-26
+ 309 0119 0E       		.byte	14
+ 310 011a 00       		.byte	0
+ 311 011b 00       		.byte	0
+ 312 011c 82       		.byte	-126
+ 313 011d 11       		.byte	17
+ 314 011e 00       		.byte	0
+ 315 011f 00       		.byte	0
+ 316 0120 17       		.byte	23
+ 317 0121 E4       		.byte	-28
+ 318 0122 FF       		.byte	-1
+ 319 0123 00       		.byte	0
+ 320 0124 23       		.byte	35
+ 321 0125 E0       		.byte	-32
+ 322 0126 FF       		.byte	-1
+ 323 0127 00       		.byte	0
+ 324 0128 55       		.byte	85
+ 325 0129 30       		.byte	48
+ 326 012a 00       		.byte	0
+ 327 012b 00       		.byte	0
+ 328 012c 33       		.byte	51
+ 329 012d 36       		.byte	54
+ 330 012e 00       		.byte	0
+ 331 012f 00       		.byte	0
+ 332 0130 15       		.byte	21
+ 333 0131 B1       		.byte	-79
+ 334 0132 FF       		.byte	-1
+ 335 0133 00       		.byte	0
+ 336 0134 72       		.byte	114
+ 337 0135 A8       		.byte	-88
+ 338 0136 FF       		.byte	-1
+ 339 0137 00       		.byte	0
+ 340 0138 1F       		.byte	31
+ 341 0139 7B       		.byte	123
+ 342 013a 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 7
+
+
+ 343 013b 00       		.byte	0
+ 344 013c D7       		.byte	-41
+ 345 013d 87       		.byte	-121
+ 346 013e 00       		.byte	0
+ 347 013f 00       		.byte	0
+ 348 0140 A7       		.byte	-89
+ 349 0141 46       		.byte	70
+ 350 0142 FF       		.byte	-1
+ 351 0143 00       		.byte	0
+ 352 0144 C0       		.byte	-64
+ 353 0145 33       		.byte	51
+ 354 0146 FF       		.byte	-1
+ 355 0147 00       		.byte	0
+ 356 0148 96       		.byte	-106
+ 357 0149 0F       		.byte	15
+ 358 014a 01       		.byte	1
+ 359 014b 00       		.byte	0
+ 360 014c 3B       		.byte	59
+ 361 014d 2C       		.byte	44
+ 362 014e 01       		.byte	1
+ 363 014f 00       		.byte	0
+ 364 0150 27       		.byte	39
+ 365 0151 79       		.byte	121
+ 366 0152 FE       		.byte	-2
+ 367 0153 00       		.byte	0
+ 368 0154 4E       		.byte	78
+ 369 0155 4C       		.byte	76
+ 370 0156 FE       		.byte	-2
+ 371 0157 00       		.byte	0
+ 372 0158 B5       		.byte	-75
+ 373 0159 2E       		.byte	46
+ 374 015a 02       		.byte	2
+ 375 015b 00       		.byte	0
+ 376 015c AD       		.byte	-83
+ 377 015d 78       		.byte	120
+ 378 015e 02       		.byte	2
+ 379 015f 00       		.byte	0
+ 380 0160 53       		.byte	83
+ 381 0161 D9       		.byte	-39
+ 382 0162 FC       		.byte	-4
+ 383 0163 00       		.byte	0
+ 384 0164 70       		.byte	112
+ 385 0165 54       		.byte	84
+ 386 0166 FC       		.byte	-4
+ 387 0167 00       		.byte	0
+ 388 0168 38       		.byte	56
+ 389 0169 BC       		.byte	-68
+ 390 016a 04       		.byte	4
+ 391 016b 00       		.byte	0
+ 392 016c F3       		.byte	-13
+ 393 016d D2       		.byte	-46
+ 394 016e 05       		.byte	5
+ 395 016f 00       		.byte	0
+ 396 0170 2D       		.byte	45
+ 397 0171 10       		.byte	16
+ 398 0172 F8       		.byte	-8
+ 399 0173 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 8
+
+
+ 400 0174 29       		.byte	41
+ 401 0175 D9       		.byte	-39
+ 402 0176 F4       		.byte	-12
+ 403 0177 00       		.byte	0
+ 404 0178 2C       		.byte	44
+ 405 0179 22       		.byte	34
+ 406 017a 13       		.byte	19
+ 407 017b 00       		.byte	0
+ 408 017c CF       		.byte	-49
+ 409 017d 77       		.byte	119
+ 410 017e 39       		.byte	57
+ 411 017f 00       		.byte	0
+ 412 0180 CF       		.byte	-49
+ 413 0181 77       		.byte	119
+ 414 0182 39       		.byte	57
+ 415 0183 00       		.byte	0
+ 416 0184 2C       		.byte	44
+ 417 0185 22       		.byte	34
+ 418 0186 13       		.byte	19
+ 419 0187 00       		.byte	0
+ 420 0188 29       		.byte	41
+ 421 0189 D9       		.byte	-39
+ 422 018a F4       		.byte	-12
+ 423 018b 00       		.byte	0
+ 424 018c 2D       		.byte	45
+ 425 018d 10       		.byte	16
+ 426 018e F8       		.byte	-8
+ 427 018f 00       		.byte	0
+ 428 0190 F3       		.byte	-13
+ 429 0191 D2       		.byte	-46
+ 430 0192 05       		.byte	5
+ 431 0193 00       		.byte	0
+ 432 0194 38       		.byte	56
+ 433 0195 BC       		.byte	-68
+ 434 0196 04       		.byte	4
+ 435 0197 00       		.byte	0
+ 436 0198 70       		.byte	112
+ 437 0199 54       		.byte	84
+ 438 019a FC       		.byte	-4
+ 439 019b 00       		.byte	0
+ 440 019c 53       		.byte	83
+ 441 019d D9       		.byte	-39
+ 442 019e FC       		.byte	-4
+ 443 019f 00       		.byte	0
+ 444 01a0 AD       		.byte	-83
+ 445 01a1 78       		.byte	120
+ 446 01a2 02       		.byte	2
+ 447 01a3 00       		.byte	0
+ 448 01a4 B5       		.byte	-75
+ 449 01a5 2E       		.byte	46
+ 450 01a6 02       		.byte	2
+ 451 01a7 00       		.byte	0
+ 452 01a8 4E       		.byte	78
+ 453 01a9 4C       		.byte	76
+ 454 01aa FE       		.byte	-2
+ 455 01ab 00       		.byte	0
+ 456 01ac 27       		.byte	39
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 9
+
+
+ 457 01ad 79       		.byte	121
+ 458 01ae FE       		.byte	-2
+ 459 01af 00       		.byte	0
+ 460 01b0 3B       		.byte	59
+ 461 01b1 2C       		.byte	44
+ 462 01b2 01       		.byte	1
+ 463 01b3 00       		.byte	0
+ 464 01b4 96       		.byte	-106
+ 465 01b5 0F       		.byte	15
+ 466 01b6 01       		.byte	1
+ 467 01b7 00       		.byte	0
+ 468 01b8 C0       		.byte	-64
+ 469 01b9 33       		.byte	51
+ 470 01ba FF       		.byte	-1
+ 471 01bb 00       		.byte	0
+ 472 01bc A7       		.byte	-89
+ 473 01bd 46       		.byte	70
+ 474 01be FF       		.byte	-1
+ 475 01bf 00       		.byte	0
+ 476 01c0 D7       		.byte	-41
+ 477 01c1 87       		.byte	-121
+ 478 01c2 00       		.byte	0
+ 479 01c3 00       		.byte	0
+ 480 01c4 1F       		.byte	31
+ 481 01c5 7B       		.byte	123
+ 482 01c6 00       		.byte	0
+ 483 01c7 00       		.byte	0
+ 484 01c8 72       		.byte	114
+ 485 01c9 A8       		.byte	-88
+ 486 01ca FF       		.byte	-1
+ 487 01cb 00       		.byte	0
+ 488 01cc 15       		.byte	21
+ 489 01cd B1       		.byte	-79
+ 490 01ce FF       		.byte	-1
+ 491 01cf 00       		.byte	0
+ 492 01d0 33       		.byte	51
+ 493 01d1 36       		.byte	54
+ 494 01d2 00       		.byte	0
+ 495 01d3 00       		.byte	0
+ 496 01d4 55       		.byte	85
+ 497 01d5 30       		.byte	48
+ 498 01d6 00       		.byte	0
+ 499 01d7 00       		.byte	0
+ 500 01d8 23       		.byte	35
+ 501 01d9 E0       		.byte	-32
+ 502 01da FF       		.byte	-1
+ 503 01db 00       		.byte	0
+ 504 01dc 17       		.byte	23
+ 505 01dd E4       		.byte	-28
+ 506 01de FF       		.byte	-1
+ 507 01df 00       		.byte	0
+ 508 01e0 82       		.byte	-126
+ 509 01e1 11       		.byte	17
+ 510 01e2 00       		.byte	0
+ 511 01e3 00       		.byte	0
+ 512 01e4 E6       		.byte	-26
+ 513 01e5 0E       		.byte	14
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 10
+
+
+ 514 01e6 00       		.byte	0
+ 515 01e7 00       		.byte	0
+ 516 01e8 3B       		.byte	59
+ 517 01e9 F7       		.byte	-9
+ 518 01ea FF       		.byte	-1
+ 519 01eb 00       		.byte	0
+ 520 01ec DF       		.byte	-33
+ 521 01ed F8       		.byte	-8
+ 522 01ee FF       		.byte	-1
+ 523 01ef 00       		.byte	0
+ 524 01f0 E0       		.byte	-32
+ 525 01f1 03       		.byte	3
+ 526 01f2 00       		.byte	0
+ 527 01f3 00       		.byte	0
+ 528 01f4 00       		.byte	0
+ 529 01f5 03       		.byte	3
+ 530 01f6 00       		.byte	0
+ 531 01f7 00       		.byte	0
+ 532 01f8 6B       		.byte	107
+ 533 01f9 FE       		.byte	-2
+ 534 01fa FF       		.byte	-1
+ 535 01fb 00       		.byte	0
+ 536 01fc 93       		.byte	-109
+ 537 01fd FE       		.byte	-2
+ 538 01fe FF       		.byte	-1
+ 539 01ff 00       		.byte	0
+ 540              		.text
+ 541              	.Letext0:
+ 542              		.file 1 "Generated_Source\\PSoC5\\Filter_Coefficients.c"
+ 543              		.file 2 "Generated_Source\\PSoC5\\cytypes.h"
+ 544              		.section	.debug_info,"",%progbits
+ 545              	.Ldebug_info0:
+ 546 0000 C4000000 		.4byte	0xc4
+ 547 0004 0400     		.2byte	0x4
+ 548 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 549 000a 04       		.byte	0x4
+ 550 000b 01       		.uleb128 0x1
+ 551 000c 69000000 		.4byte	.LASF15
+ 552 0010 01       		.byte	0x1
+ 553 0011 D3010000 		.4byte	.LASF16
+ 554 0015 1A010000 		.4byte	.LASF17
+ 555 0019 00000000 		.4byte	.Ldebug_line0
+ 556 001d 02       		.uleb128 0x2
+ 557 001e 04       		.byte	0x4
+ 558 001f 05       		.byte	0x5
+ 559 0020 696E7400 		.ascii	"int\000"
+ 560 0024 03       		.uleb128 0x3
+ 561 0025 04       		.byte	0x4
+ 562 0026 07       		.byte	0x7
+ 563 0027 0E000000 		.4byte	.LASF0
+ 564 002b 03       		.uleb128 0x3
+ 565 002c 01       		.byte	0x1
+ 566 002d 06       		.byte	0x6
+ 567 002e 8F010000 		.4byte	.LASF1
+ 568 0032 03       		.uleb128 0x3
+ 569 0033 01       		.byte	0x1
+ 570 0034 08       		.byte	0x8
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 11
+
+
+ 571 0035 F7000000 		.4byte	.LASF2
+ 572 0039 03       		.uleb128 0x3
+ 573 003a 02       		.byte	0x2
+ 574 003b 05       		.byte	0x5
+ 575 003c A1010000 		.4byte	.LASF3
+ 576 0040 03       		.uleb128 0x3
+ 577 0041 02       		.byte	0x2
+ 578 0042 07       		.byte	0x7
+ 579 0043 7C010000 		.4byte	.LASF4
+ 580 0047 03       		.uleb128 0x3
+ 581 0048 04       		.byte	0x4
+ 582 0049 05       		.byte	0x5
+ 583 004a 0A010000 		.4byte	.LASF5
+ 584 004e 03       		.uleb128 0x3
+ 585 004f 04       		.byte	0x4
+ 586 0050 07       		.byte	0x7
+ 587 0051 21000000 		.4byte	.LASF6
+ 588 0055 03       		.uleb128 0x3
+ 589 0056 08       		.byte	0x8
+ 590 0057 05       		.byte	0x5
+ 591 0058 00000000 		.4byte	.LASF7
+ 592 005c 03       		.uleb128 0x3
+ 593 005d 08       		.byte	0x8
+ 594 005e 07       		.byte	0x7
+ 595 005f 52000000 		.4byte	.LASF8
+ 596 0063 03       		.uleb128 0x3
+ 597 0064 04       		.byte	0x4
+ 598 0065 07       		.byte	0x7
+ 599 0066 CA010000 		.4byte	.LASF9
+ 600 006a 03       		.uleb128 0x3
+ 601 006b 01       		.byte	0x1
+ 602 006c 08       		.byte	0x8
+ 603 006d 05010000 		.4byte	.LASF10
+ 604 0071 04       		.uleb128 0x4
+ 605 0072 1B000000 		.4byte	.LASF18
+ 606 0076 02       		.byte	0x2
+ 607 0077 3801     		.2byte	0x138
+ 608 0079 32000000 		.4byte	0x32
+ 609 007d 03       		.uleb128 0x3
+ 610 007e 04       		.byte	0x4
+ 611 007f 04       		.byte	0x4
+ 612 0080 9B010000 		.4byte	.LASF11
+ 613 0084 03       		.uleb128 0x3
+ 614 0085 08       		.byte	0x8
+ 615 0086 04       		.byte	0x4
+ 616 0087 13010000 		.4byte	.LASF12
+ 617 008b 05       		.uleb128 0x5
+ 618 008c 71000000 		.4byte	0x71
+ 619 0090 9B000000 		.4byte	0x9b
+ 620 0094 06       		.uleb128 0x6
+ 621 0095 63000000 		.4byte	0x63
+ 622 0099 FF       		.byte	0xff
+ 623 009a 00       		.byte	0
+ 624 009b 07       		.uleb128 0x7
+ 625 009c AB010000 		.4byte	.LASF13
+ 626 00a0 01       		.byte	0x1
+ 627 00a1 11       		.byte	0x11
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 12
+
+
+ 628 00a2 AC000000 		.4byte	0xac
+ 629 00a6 05       		.uleb128 0x5
+ 630 00a7 03       		.byte	0x3
+ 631 00a8 00000000 		.4byte	Filter_ChannelAFirCoefficients
+ 632 00ac 08       		.uleb128 0x8
+ 633 00ad 8B000000 		.4byte	0x8b
+ 634 00b1 07       		.uleb128 0x7
+ 635 00b2 33000000 		.4byte	.LASF14
+ 636 00b6 01       		.byte	0x1
+ 637 00b7 A1       		.byte	0xa1
+ 638 00b8 C2000000 		.4byte	0xc2
+ 639 00bc 05       		.uleb128 0x5
+ 640 00bd 03       		.byte	0x3
+ 641 00be 00000000 		.4byte	Filter_ChannelBFirCoefficients
+ 642 00c2 08       		.uleb128 0x8
+ 643 00c3 8B000000 		.4byte	0x8b
+ 644 00c7 00       		.byte	0
+ 645              		.section	.debug_abbrev,"",%progbits
+ 646              	.Ldebug_abbrev0:
+ 647 0000 01       		.uleb128 0x1
+ 648 0001 11       		.uleb128 0x11
+ 649 0002 01       		.byte	0x1
+ 650 0003 25       		.uleb128 0x25
+ 651 0004 0E       		.uleb128 0xe
+ 652 0005 13       		.uleb128 0x13
+ 653 0006 0B       		.uleb128 0xb
+ 654 0007 03       		.uleb128 0x3
+ 655 0008 0E       		.uleb128 0xe
+ 656 0009 1B       		.uleb128 0x1b
+ 657 000a 0E       		.uleb128 0xe
+ 658 000b 10       		.uleb128 0x10
+ 659 000c 17       		.uleb128 0x17
+ 660 000d 00       		.byte	0
+ 661 000e 00       		.byte	0
+ 662 000f 02       		.uleb128 0x2
+ 663 0010 24       		.uleb128 0x24
+ 664 0011 00       		.byte	0
+ 665 0012 0B       		.uleb128 0xb
+ 666 0013 0B       		.uleb128 0xb
+ 667 0014 3E       		.uleb128 0x3e
+ 668 0015 0B       		.uleb128 0xb
+ 669 0016 03       		.uleb128 0x3
+ 670 0017 08       		.uleb128 0x8
+ 671 0018 00       		.byte	0
+ 672 0019 00       		.byte	0
+ 673 001a 03       		.uleb128 0x3
+ 674 001b 24       		.uleb128 0x24
+ 675 001c 00       		.byte	0
+ 676 001d 0B       		.uleb128 0xb
+ 677 001e 0B       		.uleb128 0xb
+ 678 001f 3E       		.uleb128 0x3e
+ 679 0020 0B       		.uleb128 0xb
+ 680 0021 03       		.uleb128 0x3
+ 681 0022 0E       		.uleb128 0xe
+ 682 0023 00       		.byte	0
+ 683 0024 00       		.byte	0
+ 684 0025 04       		.uleb128 0x4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 13
+
+
+ 685 0026 16       		.uleb128 0x16
+ 686 0027 00       		.byte	0
+ 687 0028 03       		.uleb128 0x3
+ 688 0029 0E       		.uleb128 0xe
+ 689 002a 3A       		.uleb128 0x3a
+ 690 002b 0B       		.uleb128 0xb
+ 691 002c 3B       		.uleb128 0x3b
+ 692 002d 05       		.uleb128 0x5
+ 693 002e 49       		.uleb128 0x49
+ 694 002f 13       		.uleb128 0x13
+ 695 0030 00       		.byte	0
+ 696 0031 00       		.byte	0
+ 697 0032 05       		.uleb128 0x5
+ 698 0033 01       		.uleb128 0x1
+ 699 0034 01       		.byte	0x1
+ 700 0035 49       		.uleb128 0x49
+ 701 0036 13       		.uleb128 0x13
+ 702 0037 01       		.uleb128 0x1
+ 703 0038 13       		.uleb128 0x13
+ 704 0039 00       		.byte	0
+ 705 003a 00       		.byte	0
+ 706 003b 06       		.uleb128 0x6
+ 707 003c 21       		.uleb128 0x21
+ 708 003d 00       		.byte	0
+ 709 003e 49       		.uleb128 0x49
+ 710 003f 13       		.uleb128 0x13
+ 711 0040 2F       		.uleb128 0x2f
+ 712 0041 0B       		.uleb128 0xb
+ 713 0042 00       		.byte	0
+ 714 0043 00       		.byte	0
+ 715 0044 07       		.uleb128 0x7
+ 716 0045 34       		.uleb128 0x34
+ 717 0046 00       		.byte	0
+ 718 0047 03       		.uleb128 0x3
+ 719 0048 0E       		.uleb128 0xe
+ 720 0049 3A       		.uleb128 0x3a
+ 721 004a 0B       		.uleb128 0xb
+ 722 004b 3B       		.uleb128 0x3b
+ 723 004c 0B       		.uleb128 0xb
+ 724 004d 49       		.uleb128 0x49
+ 725 004e 13       		.uleb128 0x13
+ 726 004f 3F       		.uleb128 0x3f
+ 727 0050 19       		.uleb128 0x19
+ 728 0051 02       		.uleb128 0x2
+ 729 0052 18       		.uleb128 0x18
+ 730 0053 00       		.byte	0
+ 731 0054 00       		.byte	0
+ 732 0055 08       		.uleb128 0x8
+ 733 0056 26       		.uleb128 0x26
+ 734 0057 00       		.byte	0
+ 735 0058 49       		.uleb128 0x49
+ 736 0059 13       		.uleb128 0x13
+ 737 005a 00       		.byte	0
+ 738 005b 00       		.byte	0
+ 739 005c 00       		.byte	0
+ 740              		.section	.debug_aranges,"",%progbits
+ 741 0000 14000000 		.4byte	0x14
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 14
+
+
+ 742 0004 0200     		.2byte	0x2
+ 743 0006 00000000 		.4byte	.Ldebug_info0
+ 744 000a 04       		.byte	0x4
+ 745 000b 00       		.byte	0
+ 746 000c 0000     		.2byte	0
+ 747 000e 0000     		.2byte	0
+ 748 0010 00000000 		.4byte	0
+ 749 0014 00000000 		.4byte	0
+ 750              		.section	.debug_line,"",%progbits
+ 751              	.Ldebug_line0:
+ 752 0000 56000000 		.section	.debug_str,"MS",%progbits,1
+ 752      02005000 
+ 752      00000201 
+ 752      FB0E0D00 
+ 752      01010101 
+ 753              	.LASF7:
+ 754 0000 6C6F6E67 		.ascii	"long long int\000"
+ 754      206C6F6E 
+ 754      6720696E 
+ 754      7400
+ 755              	.LASF0:
+ 756 000e 756E7369 		.ascii	"unsigned int\000"
+ 756      676E6564 
+ 756      20696E74 
+ 756      00
+ 757              	.LASF18:
+ 758 001b 75696E74 		.ascii	"uint8\000"
+ 758      3800
+ 759              	.LASF6:
+ 760 0021 6C6F6E67 		.ascii	"long unsigned int\000"
+ 760      20756E73 
+ 760      69676E65 
+ 760      6420696E 
+ 760      7400
+ 761              	.LASF14:
+ 762 0033 46696C74 		.ascii	"Filter_ChannelBFirCoefficients\000"
+ 762      65725F43 
+ 762      68616E6E 
+ 762      656C4246 
+ 762      6972436F 
+ 763              	.LASF8:
+ 764 0052 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 764      206C6F6E 
+ 764      6720756E 
+ 764      7369676E 
+ 764      65642069 
+ 765              	.LASF15:
+ 766 0069 474E5520 		.ascii	"GNU C 4.9.3 20150303 (release) [ARM/embedded-4_9-br"
+ 766      4320342E 
+ 766      392E3320 
+ 766      32303135 
+ 766      30333033 
+ 767 009c 616E6368 		.ascii	"anch revision 221220] -mcpu=cortex-m3 -mthumb -g -O"
+ 767      20726576 
+ 767      6973696F 
+ 767      6E203232 
+ 767      31323230 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 15
+
+
+ 768 00cf 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 768      66756E63 
+ 768      74696F6E 
+ 768      2D736563 
+ 768      74696F6E 
+ 769              	.LASF2:
+ 770 00f7 756E7369 		.ascii	"unsigned char\000"
+ 770      676E6564 
+ 770      20636861 
+ 770      7200
+ 771              	.LASF10:
+ 772 0105 63686172 		.ascii	"char\000"
+ 772      00
+ 773              	.LASF5:
+ 774 010a 6C6F6E67 		.ascii	"long int\000"
+ 774      20696E74 
+ 774      00
+ 775              	.LASF12:
+ 776 0113 646F7562 		.ascii	"double\000"
+ 776      6C6500
+ 777              	.LASF17:
+ 778 011a 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 778      536F435F 
+ 778      43726561 
+ 778      746F725C 
+ 778      43593843 
+ 779 014a 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 779      65636569 
+ 779      7665725C 
+ 779      43593843 
+ 779      4B49542D 
+ 780              	.LASF4:
+ 781 017c 73686F72 		.ascii	"short unsigned int\000"
+ 781      7420756E 
+ 781      7369676E 
+ 781      65642069 
+ 781      6E7400
+ 782              	.LASF1:
+ 783 018f 7369676E 		.ascii	"signed char\000"
+ 783      65642063 
+ 783      68617200 
+ 784              	.LASF11:
+ 785 019b 666C6F61 		.ascii	"float\000"
+ 785      7400
+ 786              	.LASF3:
+ 787 01a1 73686F72 		.ascii	"short int\000"
+ 787      7420696E 
+ 787      7400
+ 788              	.LASF13:
+ 789 01ab 46696C74 		.ascii	"Filter_ChannelAFirCoefficients\000"
+ 789      65725F43 
+ 789      68616E6E 
+ 789      656C4146 
+ 789      6972436F 
+ 790              	.LASF9:
+ 791 01ca 73697A65 		.ascii	"sizetype\000"
+ 791      74797065 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccQ2a6gg.s 			page 16
+
+
+ 791      00
+ 792              	.LASF16:
+ 793 01d3 47656E65 		.ascii	"Generated_Source\\PSoC5\\Filter_Coefficients.c\000"
+ 793      72617465 
+ 793      645F536F 
+ 793      75726365 
+ 793      5C50536F 
+ 794              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 4.9.3 20150303 (release) [ARM/embedded-4_9-br

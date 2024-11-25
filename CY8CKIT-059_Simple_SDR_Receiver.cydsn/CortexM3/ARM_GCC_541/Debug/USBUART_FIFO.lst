@@ -1,0 +1,1827 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"USBUART_FIFO.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.putch_sub,"ax",%progbits
+  20              		.align	2
+  21              		.thumb
+  22              		.thumb_func
+  23              		.type	putch_sub, %function
+  24              	putch_sub:
+  25              	.LFB63:
+  26              		.file 1 "USBUART_FIFO.c"
+   1:USBUART_FIFO.c **** /* ========================================
+   2:USBUART_FIFO.c ****  *
+   3:USBUART_FIFO.c ****  * Copyright YOUR COMPANY, THE YEAR
+   4:USBUART_FIFO.c ****  * All Rights Reserved
+   5:USBUART_FIFO.c ****  * UNPUBLISHED, LICENSED SOFTWARE.
+   6:USBUART_FIFO.c ****  *
+   7:USBUART_FIFO.c ****  * CONFIDENTIAL AND PROPRIETARY INFORMATION
+   8:USBUART_FIFO.c ****  * WHICH IS THE PROPERTY OF your company.
+   9:USBUART_FIFO.c ****  *
+  10:USBUART_FIFO.c ****  * ========================================
+  11:USBUART_FIFO.c **** */
+  12:USBUART_FIFO.c **** 
+  13:USBUART_FIFO.c **** #include "USBUART_FIFO.h"
+  14:USBUART_FIFO.c **** 
+  15:USBUART_FIFO.c **** // USBUART packet size
+  16:USBUART_FIFO.c **** #define     UART_TX_QUEUE_SIZE      (64)
+  17:USBUART_FIFO.c **** #define     UART_RX_QUEUE_SIZE      (64)
+  18:USBUART_FIFO.c **** 
+  19:USBUART_FIFO.c **** // USBUART Tx queue buffer
+  20:USBUART_FIFO.c **** uint8       uartTxQueue[UART_TX_QUEUE_SIZE];    // Tx queue
+  21:USBUART_FIFO.c **** uint8       uartTxCount = 0;                    // Data count in the Tx queue
+  22:USBUART_FIFO.c **** CYBIT       uartZlpRequired = 0;                // Zero Length Packet(ZLP) request flag
+  23:USBUART_FIFO.c **** uint8       uartTxReject = 0;                   // Number of Tx is rejected
+  24:USBUART_FIFO.c **** 
+  25:USBUART_FIFO.c **** // USBUART Rx queue buffer
+  26:USBUART_FIFO.c **** uint8       uartRxQueue[UART_RX_QUEUE_SIZE];    // Rx queue
+  27:USBUART_FIFO.c **** uint8       uartRxCount = 0;                    // Data count in the Rx queue
+  28:USBUART_FIFO.c **** uint8       uartRxIndex = 0;                    // Index number of the Rx queue
+  29:USBUART_FIFO.c **** CYBIT       uartRxCRDetect = 0;                 // CR detection flag
+  30:USBUART_FIFO.c **** 
+  31:USBUART_FIFO.c **** //
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 2
+
+
+  32:USBUART_FIFO.c **** // Send 1 byte
+  33:USBUART_FIFO.c **** //
+  34:USBUART_FIFO.c **** static void putch_sub(const int16 ch) 
+  35:USBUART_FIFO.c **** {
+  27              		.loc 1 35 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              	.LVL0:
+  32 0000 10B5     		push	{r4, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 4, -8
+  35              		.cfi_offset 14, -4
+  36 0002 0446     		mov	r4, r0
+  37              	.LVL1:
+  38              	.L3:
+  36:USBUART_FIFO.c ****     uint8 state;
+  37:USBUART_FIFO.c ****     
+  38:USBUART_FIFO.c ****     for (;;) 
+  39:USBUART_FIFO.c ****     {
+  40:USBUART_FIFO.c ****         // Wait for Tx queue is empty.
+  41:USBUART_FIFO.c ****         state = CyEnterCriticalSection();
+  39              		.loc 1 41 0
+  40 0004 FFF7FEFF 		bl	CyEnterCriticalSection
+  41              	.LVL2:
+  42:USBUART_FIFO.c ****         if (uartTxCount < UART_TX_QUEUE_SIZE) break;
+  42              		.loc 1 42 0
+  43 0008 074B     		ldr	r3, .L5
+  44 000a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  45 000c 3F2B     		cmp	r3, #63
+  46 000e 02D9     		bls	.L2
+  43:USBUART_FIFO.c ****         CyExitCriticalSection(state);
+  47              		.loc 1 43 0
+  48 0010 FFF7FEFF 		bl	CyExitCriticalSection
+  49              	.LVL3:
+  44:USBUART_FIFO.c ****     }
+  50              		.loc 1 44 0
+  51 0014 F6E7     		b	.L3
+  52              	.LVL4:
+  53              	.L2:
+  45:USBUART_FIFO.c ****     // Put 1 character to the Tx queue.
+  46:USBUART_FIFO.c ****     uartTxQueue[uartTxCount++] = ch;
+  54              		.loc 1 46 0
+  55 0016 591C     		adds	r1, r3, #1
+  56 0018 034A     		ldr	r2, .L5
+  57 001a 1170     		strb	r1, [r2]
+  58 001c 034A     		ldr	r2, .L5+4
+  59 001e D454     		strb	r4, [r2, r3]
+  47:USBUART_FIFO.c ****     CyExitCriticalSection(state);
+  60              		.loc 1 47 0
+  61 0020 FFF7FEFF 		bl	CyExitCriticalSection
+  62              	.LVL5:
+  63 0024 10BD     		pop	{r4, pc}
+  64              	.L6:
+  65 0026 00BF     		.align	2
+  66              	.L5:
+  67 0028 00000000 		.word	.LANCHOR0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 3
+
+
+  68 002c 00000000 		.word	uartTxQueue
+  69              		.cfi_endproc
+  70              	.LFE63:
+  71              		.size	putch_sub, .-putch_sub
+  72              		.section	.text.uartTxIsr,"ax",%progbits
+  73              		.align	2
+  74              		.global	uartTxIsr
+  75              		.thumb
+  76              		.thumb_func
+  77              		.type	uartTxIsr, %function
+  78              	uartTxIsr:
+  79              	.LFB64:
+  48:USBUART_FIFO.c **** }
+  49:USBUART_FIFO.c **** 
+  50:USBUART_FIFO.c **** //
+  51:USBUART_FIFO.c **** // Tx ISR
+  52:USBUART_FIFO.c **** //
+  53:USBUART_FIFO.c **** void uartTxIsr(void)
+  54:USBUART_FIFO.c **** {
+  80              		.loc 1 54 0
+  81              		.cfi_startproc
+  82              		@ args = 0, pretend = 0, frame = 0
+  83              		@ frame_needed = 0, uses_anonymous_args = 0
+  84 0000 38B5     		push	{r3, r4, r5, lr}
+  85              		.cfi_def_cfa_offset 16
+  86              		.cfi_offset 3, -16
+  87              		.cfi_offset 4, -12
+  88              		.cfi_offset 5, -8
+  89              		.cfi_offset 14, -4
+  55:USBUART_FIFO.c ****     uint8 state = CyEnterCriticalSection();
+  90              		.loc 1 55 0
+  91 0002 FFF7FEFF 		bl	CyEnterCriticalSection
+  92              	.LVL6:
+  93 0006 0446     		mov	r4, r0
+  94              	.LVL7:
+  56:USBUART_FIFO.c ****     
+  57:USBUART_FIFO.c ****     if ((uartTxCount > 0) || uartZlpRequired)
+  95              		.loc 1 57 0
+  96 0008 134B     		ldr	r3, .L12
+  97 000a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  98 000c 13B9     		cbnz	r3, .L8
+  99              		.loc 1 57 0 is_stmt 0 discriminator 1
+ 100 000e 124B     		ldr	r3, .L12
+ 101 0010 5B78     		ldrb	r3, [r3, #1]	@ zero_extendqisi2
+ 102 0012 E3B1     		cbz	r3, .L9
+ 103              	.L8:
+  58:USBUART_FIFO.c ****     {
+  59:USBUART_FIFO.c ****         // If there is data in the Tx buffer or ZLP is required, then send the packet.
+  60:USBUART_FIFO.c ****         if (USBUART_CDCIsReady())
+ 104              		.loc 1 60 0 is_stmt 1
+ 105 0014 FFF7FEFF 		bl	USBUART_CDCIsReady
+ 106              	.LVL8:
+ 107 0018 70B1     		cbz	r0, .L10
+  61:USBUART_FIFO.c ****         {
+  62:USBUART_FIFO.c ****             // Send the packet
+  63:USBUART_FIFO.c ****             USBUART_PutData(uartTxQueue, uartTxCount);
+ 108              		.loc 1 63 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 4
+
+
+ 109 001a 0F4D     		ldr	r5, .L12
+ 110 001c 2978     		ldrb	r1, [r5]	@ zero_extendqisi2
+ 111 001e 0F48     		ldr	r0, .L12+4
+ 112 0020 FFF7FEFF 		bl	USBUART_PutData
+ 113              	.LVL9:
+  64:USBUART_FIFO.c ****             // Tx buffer clear
+  65:USBUART_FIFO.c ****             uartZlpRequired = (uartTxCount == UART_TX_QUEUE_SIZE);
+ 114              		.loc 1 65 0
+ 115 0024 2B78     		ldrb	r3, [r5]	@ zero_extendqisi2
+ 116 0026 402B     		cmp	r3, #64
+ 117 0028 14BF     		ite	ne
+ 118 002a 0023     		movne	r3, #0
+ 119 002c 0123     		moveq	r3, #1
+ 120 002e 6B70     		strb	r3, [r5, #1]
+  66:USBUART_FIFO.c ****             uartTxCount = 0;
+ 121              		.loc 1 66 0
+ 122 0030 0023     		movs	r3, #0
+ 123 0032 2B70     		strb	r3, [r5]
+  67:USBUART_FIFO.c ****             uartTxReject = 0;
+ 124              		.loc 1 67 0
+ 125 0034 AB70     		strb	r3, [r5, #2]
+ 126 0036 0AE0     		b	.L9
+ 127              	.L10:
+  68:USBUART_FIFO.c ****         }
+  69:USBUART_FIFO.c ****         else if (++uartTxReject > 4)
+ 128              		.loc 1 69 0
+ 129 0038 074A     		ldr	r2, .L12
+ 130 003a 9378     		ldrb	r3, [r2, #2]	@ zero_extendqisi2
+ 131 003c 0133     		adds	r3, r3, #1
+ 132 003e DBB2     		uxtb	r3, r3
+ 133 0040 9370     		strb	r3, [r2, #2]
+ 134 0042 042B     		cmp	r3, #4
+ 135 0044 03D9     		bls	.L9
+  70:USBUART_FIFO.c ****         {
+  71:USBUART_FIFO.c ****             // Dispose the data.
+  72:USBUART_FIFO.c ****             uartTxCount = 0;
+ 136              		.loc 1 72 0
+ 137 0046 1346     		mov	r3, r2
+ 138 0048 0022     		movs	r2, #0
+ 139 004a 1A70     		strb	r2, [r3]
+  73:USBUART_FIFO.c ****             uartTxReject = 0;
+ 140              		.loc 1 73 0
+ 141 004c 9A70     		strb	r2, [r3, #2]
+ 142              	.L9:
+  74:USBUART_FIFO.c ****         }
+  75:USBUART_FIFO.c ****         else
+  76:USBUART_FIFO.c ****         {
+  77:USBUART_FIFO.c ****             // Nothing to do in this interruption.
+  78:USBUART_FIFO.c ****         }
+  79:USBUART_FIFO.c ****     }
+  80:USBUART_FIFO.c ****     CyExitCriticalSection(state);
+ 143              		.loc 1 80 0
+ 144 004e 2046     		mov	r0, r4
+ 145 0050 FFF7FEFF 		bl	CyExitCriticalSection
+ 146              	.LVL10:
+ 147 0054 38BD     		pop	{r3, r4, r5, pc}
+ 148              	.LVL11:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 5
+
+
+ 149              	.L13:
+ 150 0056 00BF     		.align	2
+ 151              	.L12:
+ 152 0058 00000000 		.word	.LANCHOR0
+ 153 005c 00000000 		.word	uartTxQueue
+ 154              		.cfi_endproc
+ 155              	.LFE64:
+ 156              		.size	uartTxIsr, .-uartTxIsr
+ 157              		.section	.text.putch,"ax",%progbits
+ 158              		.align	2
+ 159              		.global	putch
+ 160              		.thumb
+ 161              		.thumb_func
+ 162              		.type	putch, %function
+ 163              	putch:
+ 164              	.LFB65:
+  81:USBUART_FIFO.c **** }
+  82:USBUART_FIFO.c **** 
+  83:USBUART_FIFO.c **** //
+  84:USBUART_FIFO.c **** // Send one caracter to USBUART
+  85:USBUART_FIFO.c **** //
+  86:USBUART_FIFO.c **** void putch(const uint8 ch)
+  87:USBUART_FIFO.c **** {
+ 165              		.loc 1 87 0
+ 166              		.cfi_startproc
+ 167              		@ args = 0, pretend = 0, frame = 0
+ 168              		@ frame_needed = 0, uses_anonymous_args = 0
+ 169              	.LVL12:
+ 170 0000 10B5     		push	{r4, lr}
+ 171              		.cfi_def_cfa_offset 8
+ 172              		.cfi_offset 4, -8
+ 173              		.cfi_offset 14, -4
+ 174 0002 0446     		mov	r4, r0
+  88:USBUART_FIFO.c ****     if (ch == '\n')
+ 175              		.loc 1 88 0
+ 176 0004 0A28     		cmp	r0, #10
+ 177 0006 02D1     		bne	.L15
+  89:USBUART_FIFO.c ****     {
+  90:USBUART_FIFO.c ****         // Convert 'LF' to 'CR+LF'
+  91:USBUART_FIFO.c ****         putch_sub('\r');
+ 178              		.loc 1 91 0
+ 179 0008 0D20     		movs	r0, #13
+ 180              	.LVL13:
+ 181 000a FFF7FEFF 		bl	putch_sub
+ 182              	.LVL14:
+ 183              	.L15:
+  92:USBUART_FIFO.c ****     }
+  93:USBUART_FIFO.c ****     putch_sub(ch);
+ 184              		.loc 1 93 0
+ 185 000e 2046     		mov	r0, r4
+ 186 0010 FFF7FEFF 		bl	putch_sub
+ 187              	.LVL15:
+ 188 0014 10BD     		pop	{r4, pc}
+ 189              		.cfi_endproc
+ 190              	.LFE65:
+ 191              		.size	putch, .-putch
+ 192 0016 00BF     		.section	.text.putstr,"ax",%progbits
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 6
+
+
+ 193              		.align	2
+ 194              		.global	putstr
+ 195              		.thumb
+ 196              		.thumb_func
+ 197              		.type	putstr, %function
+ 198              	putstr:
+ 199              	.LFB66:
+  94:USBUART_FIFO.c **** }
+  95:USBUART_FIFO.c **** 
+  96:USBUART_FIFO.c **** //
+  97:USBUART_FIFO.c **** // Send the string to USBUART
+  98:USBUART_FIFO.c **** //
+  99:USBUART_FIFO.c **** void putstr(const char *s)
+ 100:USBUART_FIFO.c **** {
+ 200              		.loc 1 100 0
+ 201              		.cfi_startproc
+ 202              		@ args = 0, pretend = 0, frame = 0
+ 203              		@ frame_needed = 0, uses_anonymous_args = 0
+ 204              	.LVL16:
+ 205 0000 10B5     		push	{r4, lr}
+ 206              		.cfi_def_cfa_offset 8
+ 207              		.cfi_offset 4, -8
+ 208              		.cfi_offset 14, -4
+ 209 0002 0446     		mov	r4, r0
+ 101:USBUART_FIFO.c ****     // Display one line.
+ 102:USBUART_FIFO.c ****     while (*s)
+ 210              		.loc 1 102 0
+ 211 0004 02E0     		b	.L18
+ 212              	.LVL17:
+ 213              	.L19:
+ 103:USBUART_FIFO.c ****         putch(*s++);
+ 214              		.loc 1 103 0
+ 215 0006 0134     		adds	r4, r4, #1
+ 216              	.LVL18:
+ 217 0008 FFF7FEFF 		bl	putch
+ 218              	.LVL19:
+ 219              	.L18:
+ 102:USBUART_FIFO.c ****         putch(*s++);
+ 220              		.loc 1 102 0
+ 221 000c 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 222 000e 0028     		cmp	r0, #0
+ 223 0010 F9D1     		bne	.L19
+ 104:USBUART_FIFO.c **** }
+ 224              		.loc 1 104 0
+ 225 0012 10BD     		pop	{r4, pc}
+ 226              		.cfi_endproc
+ 227              	.LFE66:
+ 228              		.size	putstr, .-putstr
+ 229              		.section	.text.uartRxIsr,"ax",%progbits
+ 230              		.align	2
+ 231              		.global	uartRxIsr
+ 232              		.thumb
+ 233              		.thumb_func
+ 234              		.type	uartRxIsr, %function
+ 235              	uartRxIsr:
+ 236              	.LFB67:
+ 105:USBUART_FIFO.c **** 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 7
+
+
+ 106:USBUART_FIFO.c **** //
+ 107:USBUART_FIFO.c **** // Rx ISR
+ 108:USBUART_FIFO.c **** //
+ 109:USBUART_FIFO.c **** void uartRxIsr(void)
+ 110:USBUART_FIFO.c **** {
+ 237              		.loc 1 110 0
+ 238              		.cfi_startproc
+ 239              		@ args = 0, pretend = 0, frame = 0
+ 240              		@ frame_needed = 0, uses_anonymous_args = 0
+ 241 0000 10B5     		push	{r4, lr}
+ 242              		.cfi_def_cfa_offset 8
+ 243              		.cfi_offset 4, -8
+ 244              		.cfi_offset 14, -4
+ 111:USBUART_FIFO.c ****     uint8 state = CyEnterCriticalSection();
+ 245              		.loc 1 111 0
+ 246 0002 FFF7FEFF 		bl	CyEnterCriticalSection
+ 247              	.LVL20:
+ 248 0006 0446     		mov	r4, r0
+ 249              	.LVL21:
+ 112:USBUART_FIFO.c **** 
+ 113:USBUART_FIFO.c ****     // Rx buffer is empty
+ 114:USBUART_FIFO.c ****     if (uartRxIndex >= uartRxCount)
+ 250              		.loc 1 114 0
+ 251 0008 094B     		ldr	r3, .L24
+ 252 000a DA78     		ldrb	r2, [r3, #3]	@ zero_extendqisi2
+ 253 000c 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 254 000e 9A42     		cmp	r2, r3
+ 255 0010 09D3     		bcc	.L22
+ 115:USBUART_FIFO.c ****     {
+ 116:USBUART_FIFO.c ****         // Is there any data received?
+ 117:USBUART_FIFO.c ****         if (USBUART_DataIsReady())
+ 256              		.loc 1 117 0
+ 257 0012 FFF7FEFF 		bl	USBUART_DataIsReady
+ 258              	.LVL22:
+ 259 0016 30B1     		cbz	r0, .L22
+ 118:USBUART_FIFO.c ****         {
+ 119:USBUART_FIFO.c ****             // Get the Rx data to Rx buffer
+ 120:USBUART_FIFO.c ****             uartRxCount = USBUART_GetAll(uartRxQueue);
+ 260              		.loc 1 120 0
+ 261 0018 0648     		ldr	r0, .L24+4
+ 262 001a FFF7FEFF 		bl	USBUART_GetAll
+ 263              	.LVL23:
+ 264 001e 044B     		ldr	r3, .L24
+ 265 0020 1871     		strb	r0, [r3, #4]
+ 121:USBUART_FIFO.c ****             uartRxIndex = 0;
+ 266              		.loc 1 121 0
+ 267 0022 0022     		movs	r2, #0
+ 268 0024 DA70     		strb	r2, [r3, #3]
+ 269              	.L22:
+ 122:USBUART_FIFO.c ****         }
+ 123:USBUART_FIFO.c ****     }
+ 124:USBUART_FIFO.c ****     CyExitCriticalSection(state);
+ 270              		.loc 1 124 0
+ 271 0026 2046     		mov	r0, r4
+ 272 0028 FFF7FEFF 		bl	CyExitCriticalSection
+ 273              	.LVL24:
+ 274 002c 10BD     		pop	{r4, pc}
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 8
+
+
+ 275              	.LVL25:
+ 276              	.L25:
+ 277 002e 00BF     		.align	2
+ 278              	.L24:
+ 279 0030 00000000 		.word	.LANCHOR0
+ 280 0034 00000000 		.word	uartRxQueue
+ 281              		.cfi_endproc
+ 282              	.LFE67:
+ 283              		.size	uartRxIsr, .-uartRxIsr
+ 284              		.section	.text.getch_sub,"ax",%progbits
+ 285              		.align	2
+ 286              		.global	getch_sub
+ 287              		.thumb
+ 288              		.thumb_func
+ 289              		.type	getch_sub, %function
+ 290              	getch_sub:
+ 291              	.LFB68:
+ 125:USBUART_FIFO.c **** }
+ 126:USBUART_FIFO.c **** 
+ 127:USBUART_FIFO.c **** //
+ 128:USBUART_FIFO.c **** // Get one byte
+ 129:USBUART_FIFO.c **** //
+ 130:USBUART_FIFO.c **** uint8 getch_sub(void)
+ 131:USBUART_FIFO.c **** {
+ 292              		.loc 1 131 0
+ 293              		.cfi_startproc
+ 294              		@ args = 0, pretend = 0, frame = 0
+ 295              		@ frame_needed = 0, uses_anonymous_args = 0
+ 296 0000 10B5     		push	{r4, lr}
+ 297              		.cfi_def_cfa_offset 8
+ 298              		.cfi_offset 4, -8
+ 299              		.cfi_offset 14, -4
+ 300              	.LVL26:
+ 132:USBUART_FIFO.c ****     uint8 ch = -1;
+ 133:USBUART_FIFO.c ****     
+ 134:USBUART_FIFO.c ****     uint8 state = CyEnterCriticalSection();
+ 301              		.loc 1 134 0
+ 302 0002 FFF7FEFF 		bl	CyEnterCriticalSection
+ 303              	.LVL27:
+ 135:USBUART_FIFO.c ****     
+ 136:USBUART_FIFO.c ****     // Is there any data in the Rx buffer?
+ 137:USBUART_FIFO.c ****     if (uartRxIndex < uartRxCount)
+ 304              		.loc 1 137 0
+ 305 0006 084B     		ldr	r3, .L30
+ 306 0008 DA78     		ldrb	r2, [r3, #3]	@ zero_extendqisi2
+ 307 000a 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 308 000c 9A42     		cmp	r2, r3
+ 309 000e 05D2     		bcs	.L28
+ 138:USBUART_FIFO.c ****     {
+ 139:USBUART_FIFO.c ****         // If so, then get one character.
+ 140:USBUART_FIFO.c ****         ch = uartRxQueue[uartRxIndex++];
+ 310              		.loc 1 140 0
+ 311 0010 511C     		adds	r1, r2, #1
+ 312 0012 054B     		ldr	r3, .L30
+ 313 0014 D970     		strb	r1, [r3, #3]
+ 314 0016 054B     		ldr	r3, .L30+4
+ 315 0018 9C5C     		ldrb	r4, [r3, r2]	@ zero_extendqisi2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 9
+
+
+ 316              	.LVL28:
+ 317 001a 00E0     		b	.L27
+ 318              	.LVL29:
+ 319              	.L28:
+ 132:USBUART_FIFO.c ****     
+ 320              		.loc 1 132 0
+ 321 001c FF24     		movs	r4, #255
+ 322              	.LVL30:
+ 323              	.L27:
+ 141:USBUART_FIFO.c ****     }
+ 142:USBUART_FIFO.c ****     CyExitCriticalSection(state);
+ 324              		.loc 1 142 0
+ 325 001e FFF7FEFF 		bl	CyExitCriticalSection
+ 326              	.LVL31:
+ 143:USBUART_FIFO.c ****     return ch;
+ 144:USBUART_FIFO.c **** }
+ 327              		.loc 1 144 0
+ 328 0022 2046     		mov	r0, r4
+ 329 0024 10BD     		pop	{r4, pc}
+ 330              	.LVL32:
+ 331              	.L31:
+ 332 0026 00BF     		.align	2
+ 333              	.L30:
+ 334 0028 00000000 		.word	.LANCHOR0
+ 335 002c 00000000 		.word	uartRxQueue
+ 336              		.cfi_endproc
+ 337              	.LFE68:
+ 338              		.size	getch_sub, .-getch_sub
+ 339              		.section	.text.getch,"ax",%progbits
+ 340              		.align	2
+ 341              		.global	getch
+ 342              		.thumb
+ 343              		.thumb_func
+ 344              		.type	getch, %function
+ 345              	getch:
+ 346              	.LFB69:
+ 145:USBUART_FIFO.c **** 
+ 146:USBUART_FIFO.c **** //
+ 147:USBUART_FIFO.c **** // Receive one character from USBUART
+ 148:USBUART_FIFO.c **** //
+ 149:USBUART_FIFO.c **** uint8 getch(void)
+ 150:USBUART_FIFO.c **** {
+ 347              		.loc 1 150 0
+ 348              		.cfi_startproc
+ 349              		@ args = 0, pretend = 0, frame = 0
+ 350              		@ frame_needed = 0, uses_anonymous_args = 0
+ 351 0000 08B5     		push	{r3, lr}
+ 352              		.cfi_def_cfa_offset 8
+ 353              		.cfi_offset 3, -8
+ 354              		.cfi_offset 14, -4
+ 151:USBUART_FIFO.c ****     uint8 ch = getch_sub();
+ 355              		.loc 1 151 0
+ 356 0002 FFF7FEFF 		bl	getch_sub
+ 357              	.LVL33:
+ 152:USBUART_FIFO.c ****     
+ 153:USBUART_FIFO.c ****     if (uartRxCRDetect && ch == '\n')
+ 358              		.loc 1 153 0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 10
+
+
+ 359 0006 094B     		ldr	r3, .L36
+ 360 0008 5B79     		ldrb	r3, [r3, #5]	@ zero_extendqisi2
+ 361 000a 3BB1     		cbz	r3, .L33
+ 362              		.loc 1 153 0 is_stmt 0 discriminator 1
+ 363 000c 0A28     		cmp	r0, #10
+ 364 000e 05D1     		bne	.L33
+ 154:USBUART_FIFO.c ****     {
+ 155:USBUART_FIFO.c ****         uartRxCRDetect = 0;
+ 365              		.loc 1 155 0 is_stmt 1
+ 366 0010 0022     		movs	r2, #0
+ 367 0012 064B     		ldr	r3, .L36
+ 368 0014 5A71     		strb	r2, [r3, #5]
+ 156:USBUART_FIFO.c ****         ch = getch_sub();
+ 369              		.loc 1 156 0
+ 370 0016 FFF7FEFF 		bl	getch_sub
+ 371              	.LVL34:
+ 372 001a 08BD     		pop	{r3, pc}
+ 373              	.L33:
+ 157:USBUART_FIFO.c ****     }
+ 158:USBUART_FIFO.c ****     else if (ch == '\r')
+ 374              		.loc 1 158 0
+ 375 001c 0D28     		cmp	r0, #13
+ 376 001e 03D1     		bne	.L34
+ 377              	.LVL35:
+ 159:USBUART_FIFO.c ****     {
+ 160:USBUART_FIFO.c ****         ch = '\n';
+ 161:USBUART_FIFO.c ****         uartRxCRDetect = 1;
+ 378              		.loc 1 161 0
+ 379 0020 0122     		movs	r2, #1
+ 380 0022 024B     		ldr	r3, .L36
+ 381 0024 5A71     		strb	r2, [r3, #5]
+ 160:USBUART_FIFO.c ****         uartRxCRDetect = 1;
+ 382              		.loc 1 160 0
+ 383 0026 0A20     		movs	r0, #10
+ 384              	.LVL36:
+ 385              	.L34:
+ 162:USBUART_FIFO.c ****     }
+ 163:USBUART_FIFO.c ****     return ch;
+ 164:USBUART_FIFO.c **** }
+ 386              		.loc 1 164 0
+ 387 0028 08BD     		pop	{r3, pc}
+ 388              	.L37:
+ 389 002a 00BF     		.align	2
+ 390              	.L36:
+ 391 002c 00000000 		.word	.LANCHOR0
+ 392              		.cfi_endproc
+ 393              	.LFE69:
+ 394              		.size	getch, .-getch
+ 395              		.global	uartRxCRDetect
+ 396              		.global	uartRxIndex
+ 397              		.global	uartRxCount
+ 398              		.comm	uartRxQueue,64,4
+ 399              		.global	uartTxReject
+ 400              		.global	uartZlpRequired
+ 401              		.global	uartTxCount
+ 402              		.comm	uartTxQueue,64,4
+ 403              		.bss
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 11
+
+
+ 404              		.set	.LANCHOR0,. + 0
+ 405              		.type	uartTxCount, %object
+ 406              		.size	uartTxCount, 1
+ 407              	uartTxCount:
+ 408 0000 00       		.space	1
+ 409              		.type	uartZlpRequired, %object
+ 410              		.size	uartZlpRequired, 1
+ 411              	uartZlpRequired:
+ 412 0001 00       		.space	1
+ 413              		.type	uartTxReject, %object
+ 414              		.size	uartTxReject, 1
+ 415              	uartTxReject:
+ 416 0002 00       		.space	1
+ 417              		.type	uartRxIndex, %object
+ 418              		.size	uartRxIndex, 1
+ 419              	uartRxIndex:
+ 420 0003 00       		.space	1
+ 421              		.type	uartRxCount, %object
+ 422              		.size	uartRxCount, 1
+ 423              	uartRxCount:
+ 424 0004 00       		.space	1
+ 425              		.type	uartRxCRDetect, %object
+ 426              		.size	uartRxCRDetect, 1
+ 427              	uartRxCRDetect:
+ 428 0005 00       		.space	1
+ 429              		.text
+ 430              	.Letext0:
+ 431              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4.
+ 432              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.2\\psoc creator\\import\\gnu\\arm\\5.4.
+ 433              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 434              		.file 5 "Generated_Source\\PSoC5/core_cm3.h"
+ 435              		.file 6 "Generated_Source\\PSoC5/CyLib.h"
+ 436              		.file 7 "Generated_Source\\PSoC5/USBUART_cdc.h"
+ 437              		.section	.debug_info,"",%progbits
+ 438              	.Ldebug_info0:
+ 439 0000 B9030000 		.4byte	0x3b9
+ 440 0004 0400     		.2byte	0x4
+ 441 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 442 000a 04       		.byte	0x4
+ 443 000b 01       		.uleb128 0x1
+ 444 000c C1010000 		.4byte	.LASF40
+ 445 0010 0C       		.byte	0xc
+ 446 0011 C5000000 		.4byte	.LASF41
+ 447 0015 F1000000 		.4byte	.LASF42
+ 448 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 449 001d 00000000 		.4byte	0
+ 450 0021 00000000 		.4byte	.Ldebug_line0
+ 451 0025 02       		.uleb128 0x2
+ 452 0026 01       		.byte	0x1
+ 453 0027 06       		.byte	0x6
+ 454 0028 DB020000 		.4byte	.LASF0
+ 455 002c 02       		.uleb128 0x2
+ 456 002d 01       		.byte	0x1
+ 457 002e 08       		.byte	0x8
+ 458 002f 7C000000 		.4byte	.LASF1
+ 459 0033 02       		.uleb128 0x2
+ 460 0034 02       		.byte	0x2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 12
+
+
+ 461 0035 05       		.byte	0x5
+ 462 0036 7F020000 		.4byte	.LASF2
+ 463 003a 02       		.uleb128 0x2
+ 464 003b 02       		.byte	0x2
+ 465 003c 07       		.byte	0x7
+ 466 003d B2000000 		.4byte	.LASF3
+ 467 0041 03       		.uleb128 0x3
+ 468 0042 06000000 		.4byte	.LASF9
+ 469 0046 02       		.byte	0x2
+ 470 0047 3F       		.byte	0x3f
+ 471 0048 4C000000 		.4byte	0x4c
+ 472 004c 02       		.uleb128 0x2
+ 473 004d 04       		.byte	0x4
+ 474 004e 05       		.byte	0x5
+ 475 004f C6020000 		.4byte	.LASF4
+ 476 0053 02       		.uleb128 0x2
+ 477 0054 04       		.byte	0x4
+ 478 0055 07       		.byte	0x7
+ 479 0056 A0000000 		.4byte	.LASF5
+ 480 005a 02       		.uleb128 0x2
+ 481 005b 08       		.byte	0x8
+ 482 005c 05       		.byte	0x5
+ 483 005d 60020000 		.4byte	.LASF6
+ 484 0061 02       		.uleb128 0x2
+ 485 0062 08       		.byte	0x8
+ 486 0063 07       		.byte	0x7
+ 487 0064 89010000 		.4byte	.LASF7
+ 488 0068 04       		.uleb128 0x4
+ 489 0069 04       		.byte	0x4
+ 490 006a 05       		.byte	0x5
+ 491 006b 696E7400 		.ascii	"int\000"
+ 492 006f 02       		.uleb128 0x2
+ 493 0070 04       		.byte	0x4
+ 494 0071 07       		.byte	0x7
+ 495 0072 7C010000 		.4byte	.LASF8
+ 496 0076 03       		.uleb128 0x3
+ 497 0077 4F020000 		.4byte	.LASF10
+ 498 007b 03       		.byte	0x3
+ 499 007c 2C       		.byte	0x2c
+ 500 007d 41000000 		.4byte	0x41
+ 501 0081 05       		.uleb128 0x5
+ 502 0082 90020000 		.4byte	.LASF11
+ 503 0086 04       		.byte	0x4
+ 504 0087 3801     		.2byte	0x138
+ 505 0089 2C000000 		.4byte	0x2c
+ 506 008d 05       		.uleb128 0x5
+ 507 008e 9A000000 		.4byte	.LASF12
+ 508 0092 04       		.byte	0x4
+ 509 0093 3C01     		.2byte	0x13c
+ 510 0095 33000000 		.4byte	0x33
+ 511 0099 02       		.uleb128 0x2
+ 512 009a 04       		.byte	0x4
+ 513 009b 04       		.byte	0x4
+ 514 009c 76000000 		.4byte	.LASF13
+ 515 00a0 02       		.uleb128 0x2
+ 516 00a1 08       		.byte	0x8
+ 517 00a2 04       		.byte	0x4
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 13
+
+
+ 518 00a3 EA000000 		.4byte	.LASF14
+ 519 00a7 02       		.uleb128 0x2
+ 520 00a8 01       		.byte	0x1
+ 521 00a9 08       		.byte	0x8
+ 522 00aa 7A020000 		.4byte	.LASF15
+ 523 00ae 02       		.uleb128 0x2
+ 524 00af 08       		.byte	0x8
+ 525 00b0 04       		.byte	0x4
+ 526 00b1 CF020000 		.4byte	.LASF16
+ 527 00b5 02       		.uleb128 0x2
+ 528 00b6 04       		.byte	0x4
+ 529 00b7 07       		.byte	0x7
+ 530 00b8 57020000 		.4byte	.LASF17
+ 531 00bc 06       		.uleb128 0x6
+ 532 00bd 04       		.byte	0x4
+ 533 00be C2000000 		.4byte	0xc2
+ 534 00c2 07       		.uleb128 0x7
+ 535 00c3 A7000000 		.4byte	0xa7
+ 536 00c7 08       		.uleb128 0x8
+ 537 00c8 81000000 		.4byte	0x81
+ 538 00cc D7000000 		.4byte	0xd7
+ 539 00d0 09       		.uleb128 0x9
+ 540 00d1 B5000000 		.4byte	0xb5
+ 541 00d5 3F       		.byte	0x3f
+ 542 00d6 00       		.byte	0
+ 543 00d7 0A       		.uleb128 0xa
+ 544 00d8 D4000000 		.4byte	.LASF43
+ 545 00dc 01       		.byte	0x1
+ 546 00dd 22       		.byte	0x22
+ 547 00de 00000000 		.4byte	.LFB63
+ 548 00e2 30000000 		.4byte	.LFE63-.LFB63
+ 549 00e6 01       		.uleb128 0x1
+ 550 00e7 9C       		.byte	0x9c
+ 551 00e8 25010000 		.4byte	0x125
+ 552 00ec 0B       		.uleb128 0xb
+ 553 00ed 636800   		.ascii	"ch\000"
+ 554 00f0 01       		.byte	0x1
+ 555 00f1 22       		.byte	0x22
+ 556 00f2 25010000 		.4byte	0x125
+ 557 00f6 00000000 		.4byte	.LLST0
+ 558 00fa 0C       		.uleb128 0xc
+ 559 00fb 00000000 		.4byte	.LASF18
+ 560 00ff 01       		.byte	0x1
+ 561 0100 24       		.byte	0x24
+ 562 0101 81000000 		.4byte	0x81
+ 563 0105 21000000 		.4byte	.LLST1
+ 564 0109 0D       		.uleb128 0xd
+ 565 010a 08000000 		.4byte	.LVL2
+ 566 010e 7A030000 		.4byte	0x37a
+ 567 0112 0D       		.uleb128 0xd
+ 568 0113 14000000 		.4byte	.LVL3
+ 569 0117 85030000 		.4byte	0x385
+ 570 011b 0D       		.uleb128 0xd
+ 571 011c 24000000 		.4byte	.LVL5
+ 572 0120 85030000 		.4byte	0x385
+ 573 0124 00       		.byte	0
+ 574 0125 07       		.uleb128 0x7
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 14
+
+
+ 575 0126 8D000000 		.4byte	0x8d
+ 576 012a 0E       		.uleb128 0xe
+ 577 012b 90000000 		.4byte	.LASF19
+ 578 012f 01       		.byte	0x1
+ 579 0130 35       		.byte	0x35
+ 580 0131 00000000 		.4byte	.LFB64
+ 581 0135 60000000 		.4byte	.LFE64-.LFB64
+ 582 0139 01       		.uleb128 0x1
+ 583 013a 9C       		.byte	0x9c
+ 584 013b 88010000 		.4byte	0x188
+ 585 013f 0C       		.uleb128 0xc
+ 586 0140 00000000 		.4byte	.LASF18
+ 587 0144 01       		.byte	0x1
+ 588 0145 37       		.byte	0x37
+ 589 0146 81000000 		.4byte	0x81
+ 590 014a 3F000000 		.4byte	.LLST2
+ 591 014e 0D       		.uleb128 0xd
+ 592 014f 06000000 		.4byte	.LVL6
+ 593 0153 7A030000 		.4byte	0x37a
+ 594 0157 0D       		.uleb128 0xd
+ 595 0158 18000000 		.4byte	.LVL8
+ 596 015c 90030000 		.4byte	0x390
+ 597 0160 0F       		.uleb128 0xf
+ 598 0161 24000000 		.4byte	.LVL9
+ 599 0165 9B030000 		.4byte	0x39b
+ 600 0169 77010000 		.4byte	0x177
+ 601 016d 10       		.uleb128 0x10
+ 602 016e 01       		.uleb128 0x1
+ 603 016f 50       		.byte	0x50
+ 604 0170 05       		.uleb128 0x5
+ 605 0171 03       		.byte	0x3
+ 606 0172 00000000 		.4byte	uartTxQueue
+ 607 0176 00       		.byte	0
+ 608 0177 11       		.uleb128 0x11
+ 609 0178 54000000 		.4byte	.LVL10
+ 610 017c 85030000 		.4byte	0x385
+ 611 0180 10       		.uleb128 0x10
+ 612 0181 01       		.uleb128 0x1
+ 613 0182 50       		.byte	0x50
+ 614 0183 02       		.uleb128 0x2
+ 615 0184 74       		.byte	0x74
+ 616 0185 00       		.sleb128 0
+ 617 0186 00       		.byte	0
+ 618 0187 00       		.byte	0
+ 619 0188 0E       		.uleb128 0xe
+ 620 0189 8A000000 		.4byte	.LASF20
+ 621 018d 01       		.byte	0x1
+ 622 018e 56       		.byte	0x56
+ 623 018f 00000000 		.4byte	.LFB65
+ 624 0193 16000000 		.4byte	.LFE65-.LFB65
+ 625 0197 01       		.uleb128 0x1
+ 626 0198 9C       		.byte	0x9c
+ 627 0199 CF010000 		.4byte	0x1cf
+ 628 019d 0B       		.uleb128 0xb
+ 629 019e 636800   		.ascii	"ch\000"
+ 630 01a1 01       		.byte	0x1
+ 631 01a2 56       		.byte	0x56
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 15
+
+
+ 632 01a3 CF010000 		.4byte	0x1cf
+ 633 01a7 52000000 		.4byte	.LLST3
+ 634 01ab 0F       		.uleb128 0xf
+ 635 01ac 0E000000 		.4byte	.LVL14
+ 636 01b0 D7000000 		.4byte	0xd7
+ 637 01b4 BE010000 		.4byte	0x1be
+ 638 01b8 10       		.uleb128 0x10
+ 639 01b9 01       		.uleb128 0x1
+ 640 01ba 50       		.byte	0x50
+ 641 01bb 01       		.uleb128 0x1
+ 642 01bc 3D       		.byte	0x3d
+ 643 01bd 00       		.byte	0
+ 644 01be 11       		.uleb128 0x11
+ 645 01bf 14000000 		.4byte	.LVL15
+ 646 01c3 D7000000 		.4byte	0xd7
+ 647 01c7 10       		.uleb128 0x10
+ 648 01c8 01       		.uleb128 0x1
+ 649 01c9 50       		.byte	0x50
+ 650 01ca 02       		.uleb128 0x2
+ 651 01cb 74       		.byte	0x74
+ 652 01cc 00       		.sleb128 0
+ 653 01cd 00       		.byte	0
+ 654 01ce 00       		.byte	0
+ 655 01cf 07       		.uleb128 0x7
+ 656 01d0 81000000 		.4byte	0x81
+ 657 01d4 0E       		.uleb128 0xe
+ 658 01d5 89020000 		.4byte	.LASF21
+ 659 01d9 01       		.byte	0x1
+ 660 01da 63       		.byte	0x63
+ 661 01db 00000000 		.4byte	.LFB66
+ 662 01df 14000000 		.4byte	.LFE66-.LFB66
+ 663 01e3 01       		.uleb128 0x1
+ 664 01e4 9C       		.byte	0x9c
+ 665 01e5 00020000 		.4byte	0x200
+ 666 01e9 0B       		.uleb128 0xb
+ 667 01ea 7300     		.ascii	"s\000"
+ 668 01ec 01       		.byte	0x1
+ 669 01ed 63       		.byte	0x63
+ 670 01ee BC000000 		.4byte	0xbc
+ 671 01f2 73000000 		.4byte	.LLST4
+ 672 01f6 0D       		.uleb128 0xd
+ 673 01f7 0C000000 		.4byte	.LVL19
+ 674 01fb 88010000 		.4byte	0x188
+ 675 01ff 00       		.byte	0
+ 676 0200 0E       		.uleb128 0xe
+ 677 0201 BC020000 		.4byte	.LASF22
+ 678 0205 01       		.byte	0x1
+ 679 0206 6D       		.byte	0x6d
+ 680 0207 00000000 		.4byte	.LFB67
+ 681 020b 38000000 		.4byte	.LFE67-.LFB67
+ 682 020f 01       		.uleb128 0x1
+ 683 0210 9C       		.byte	0x9c
+ 684 0211 5E020000 		.4byte	0x25e
+ 685 0215 0C       		.uleb128 0xc
+ 686 0216 00000000 		.4byte	.LASF18
+ 687 021a 01       		.byte	0x1
+ 688 021b 6F       		.byte	0x6f
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 16
+
+
+ 689 021c 81000000 		.4byte	0x81
+ 690 0220 91000000 		.4byte	.LLST5
+ 691 0224 0D       		.uleb128 0xd
+ 692 0225 06000000 		.4byte	.LVL20
+ 693 0229 7A030000 		.4byte	0x37a
+ 694 022d 0D       		.uleb128 0xd
+ 695 022e 16000000 		.4byte	.LVL22
+ 696 0232 A6030000 		.4byte	0x3a6
+ 697 0236 0F       		.uleb128 0xf
+ 698 0237 1E000000 		.4byte	.LVL23
+ 699 023b B1030000 		.4byte	0x3b1
+ 700 023f 4D020000 		.4byte	0x24d
+ 701 0243 10       		.uleb128 0x10
+ 702 0244 01       		.uleb128 0x1
+ 703 0245 50       		.byte	0x50
+ 704 0246 05       		.uleb128 0x5
+ 705 0247 03       		.byte	0x3
+ 706 0248 00000000 		.4byte	uartRxQueue
+ 707 024c 00       		.byte	0
+ 708 024d 11       		.uleb128 0x11
+ 709 024e 2C000000 		.4byte	.LVL24
+ 710 0252 85030000 		.4byte	0x385
+ 711 0256 10       		.uleb128 0x10
+ 712 0257 01       		.uleb128 0x1
+ 713 0258 50       		.byte	0x50
+ 714 0259 02       		.uleb128 0x2
+ 715 025a 74       		.byte	0x74
+ 716 025b 00       		.sleb128 0
+ 717 025c 00       		.byte	0
+ 718 025d 00       		.byte	0
+ 719 025e 12       		.uleb128 0x12
+ 720 025f E7020000 		.4byte	.LASF23
+ 721 0263 01       		.byte	0x1
+ 722 0264 82       		.byte	0x82
+ 723 0265 81000000 		.4byte	0x81
+ 724 0269 00000000 		.4byte	.LFB68
+ 725 026d 30000000 		.4byte	.LFE68-.LFB68
+ 726 0271 01       		.uleb128 0x1
+ 727 0272 9C       		.byte	0x9c
+ 728 0273 A7020000 		.4byte	0x2a7
+ 729 0277 13       		.uleb128 0x13
+ 730 0278 636800   		.ascii	"ch\000"
+ 731 027b 01       		.byte	0x1
+ 732 027c 84       		.byte	0x84
+ 733 027d 81000000 		.4byte	0x81
+ 734 0281 A4000000 		.4byte	.LLST6
+ 735 0285 0C       		.uleb128 0xc
+ 736 0286 00000000 		.4byte	.LASF18
+ 737 028a 01       		.byte	0x1
+ 738 028b 86       		.byte	0x86
+ 739 028c 81000000 		.4byte	0x81
+ 740 0290 DC000000 		.4byte	.LLST7
+ 741 0294 0D       		.uleb128 0xd
+ 742 0295 06000000 		.4byte	.LVL27
+ 743 0299 7A030000 		.4byte	0x37a
+ 744 029d 0D       		.uleb128 0xd
+ 745 029e 22000000 		.4byte	.LVL31
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 17
+
+
+ 746 02a2 85030000 		.4byte	0x385
+ 747 02a6 00       		.byte	0
+ 748 02a7 12       		.uleb128 0x12
+ 749 02a8 53010000 		.4byte	.LASF24
+ 750 02ac 01       		.byte	0x1
+ 751 02ad 95       		.byte	0x95
+ 752 02ae 81000000 		.4byte	0x81
+ 753 02b2 00000000 		.4byte	.LFB69
+ 754 02b6 30000000 		.4byte	.LFE69-.LFB69
+ 755 02ba 01       		.uleb128 0x1
+ 756 02bb 9C       		.byte	0x9c
+ 757 02bc E1020000 		.4byte	0x2e1
+ 758 02c0 13       		.uleb128 0x13
+ 759 02c1 636800   		.ascii	"ch\000"
+ 760 02c4 01       		.byte	0x1
+ 761 02c5 97       		.byte	0x97
+ 762 02c6 81000000 		.4byte	0x81
+ 763 02ca EF000000 		.4byte	.LLST8
+ 764 02ce 0D       		.uleb128 0xd
+ 765 02cf 06000000 		.4byte	.LVL33
+ 766 02d3 5E020000 		.4byte	0x25e
+ 767 02d7 0D       		.uleb128 0xd
+ 768 02d8 1A000000 		.4byte	.LVL34
+ 769 02dc 5E020000 		.4byte	0x25e
+ 770 02e0 00       		.byte	0
+ 771 02e1 14       		.uleb128 0x14
+ 772 02e2 B4010000 		.4byte	.LASF25
+ 773 02e6 05       		.byte	0x5
+ 774 02e7 5506     		.2byte	0x655
+ 775 02e9 ED020000 		.4byte	0x2ed
+ 776 02ed 15       		.uleb128 0x15
+ 777 02ee 76000000 		.4byte	0x76
+ 778 02f2 16       		.uleb128 0x16
+ 779 02f3 DE000000 		.4byte	.LASF26
+ 780 02f7 01       		.byte	0x1
+ 781 02f8 14       		.byte	0x14
+ 782 02f9 C7000000 		.4byte	0xc7
+ 783 02fd 05       		.uleb128 0x5
+ 784 02fe 03       		.byte	0x3
+ 785 02ff 00000000 		.4byte	uartTxQueue
+ 786 0303 16       		.uleb128 0x16
+ 787 0304 6E020000 		.4byte	.LASF27
+ 788 0308 01       		.byte	0x1
+ 789 0309 15       		.byte	0x15
+ 790 030a 81000000 		.4byte	0x81
+ 791 030e 05       		.uleb128 0x5
+ 792 030f 03       		.byte	0x3
+ 793 0310 00000000 		.4byte	uartTxCount
+ 794 0314 16       		.uleb128 0x16
+ 795 0315 96020000 		.4byte	.LASF28
+ 796 0319 01       		.byte	0x1
+ 797 031a 16       		.byte	0x16
+ 798 031b 81000000 		.4byte	0x81
+ 799 031f 05       		.uleb128 0x5
+ 800 0320 03       		.byte	0x3
+ 801 0321 00000000 		.4byte	uartZlpRequired
+ 802 0325 16       		.uleb128 0x16
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 18
+
+
+ 803 0326 10000000 		.4byte	.LASF29
+ 804 032a 01       		.byte	0x1
+ 805 032b 17       		.byte	0x17
+ 806 032c 81000000 		.4byte	0x81
+ 807 0330 05       		.uleb128 0x5
+ 808 0331 03       		.byte	0x3
+ 809 0332 00000000 		.4byte	uartTxReject
+ 810 0336 16       		.uleb128 0x16
+ 811 0337 6A000000 		.4byte	.LASF30
+ 812 033b 01       		.byte	0x1
+ 813 033c 1A       		.byte	0x1a
+ 814 033d C7000000 		.4byte	0xc7
+ 815 0341 05       		.uleb128 0x5
+ 816 0342 03       		.byte	0x3
+ 817 0343 00000000 		.4byte	uartRxQueue
+ 818 0347 16       		.uleb128 0x16
+ 819 0348 59010000 		.4byte	.LASF31
+ 820 034c 01       		.byte	0x1
+ 821 034d 1B       		.byte	0x1b
+ 822 034e 81000000 		.4byte	0x81
+ 823 0352 05       		.uleb128 0x5
+ 824 0353 03       		.byte	0x3
+ 825 0354 00000000 		.4byte	uartRxCount
+ 826 0358 16       		.uleb128 0x16
+ 827 0359 2C000000 		.4byte	.LASF32
+ 828 035d 01       		.byte	0x1
+ 829 035e 1C       		.byte	0x1c
+ 830 035f 81000000 		.4byte	0x81
+ 831 0363 05       		.uleb128 0x5
+ 832 0364 03       		.byte	0x3
+ 833 0365 00000000 		.4byte	uartRxIndex
+ 834 0369 16       		.uleb128 0x16
+ 835 036a 38000000 		.4byte	.LASF33
+ 836 036e 01       		.byte	0x1
+ 837 036f 1D       		.byte	0x1d
+ 838 0370 81000000 		.4byte	0x81
+ 839 0374 05       		.uleb128 0x5
+ 840 0375 03       		.byte	0x3
+ 841 0376 00000000 		.4byte	uartRxCRDetect
+ 842 037a 17       		.uleb128 0x17
+ 843 037b 65010000 		.4byte	.LASF34
+ 844 037f 65010000 		.4byte	.LASF34
+ 845 0383 06       		.byte	0x6
+ 846 0384 7E       		.byte	0x7e
+ 847 0385 17       		.uleb128 0x17
+ 848 0386 A6020000 		.4byte	.LASF35
+ 849 038a A6020000 		.4byte	.LASF35
+ 850 038e 06       		.byte	0x6
+ 851 038f 7F       		.byte	0x7f
+ 852 0390 17       		.uleb128 0x17
+ 853 0391 57000000 		.4byte	.LASF36
+ 854 0395 57000000 		.4byte	.LASF36
+ 855 0399 07       		.byte	0x7
+ 856 039a 28       		.byte	0x28
+ 857 039b 17       		.uleb128 0x17
+ 858 039c 47000000 		.4byte	.LASF37
+ 859 03a0 47000000 		.4byte	.LASF37
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 19
+
+
+ 860 03a4 07       		.byte	0x7
+ 861 03a5 23       		.byte	0x23
+ 862 03a6 17       		.uleb128 0x17
+ 863 03a7 A0010000 		.4byte	.LASF38
+ 864 03ab A0010000 		.4byte	.LASF38
+ 865 03af 07       		.byte	0x7
+ 866 03b0 29       		.byte	0x29
+ 867 03b1 17       		.uleb128 0x17
+ 868 03b2 1D000000 		.4byte	.LASF39
+ 869 03b6 1D000000 		.4byte	.LASF39
+ 870 03ba 07       		.byte	0x7
+ 871 03bb 2B       		.byte	0x2b
+ 872 03bc 00       		.byte	0
+ 873              		.section	.debug_abbrev,"",%progbits
+ 874              	.Ldebug_abbrev0:
+ 875 0000 01       		.uleb128 0x1
+ 876 0001 11       		.uleb128 0x11
+ 877 0002 01       		.byte	0x1
+ 878 0003 25       		.uleb128 0x25
+ 879 0004 0E       		.uleb128 0xe
+ 880 0005 13       		.uleb128 0x13
+ 881 0006 0B       		.uleb128 0xb
+ 882 0007 03       		.uleb128 0x3
+ 883 0008 0E       		.uleb128 0xe
+ 884 0009 1B       		.uleb128 0x1b
+ 885 000a 0E       		.uleb128 0xe
+ 886 000b 55       		.uleb128 0x55
+ 887 000c 17       		.uleb128 0x17
+ 888 000d 11       		.uleb128 0x11
+ 889 000e 01       		.uleb128 0x1
+ 890 000f 10       		.uleb128 0x10
+ 891 0010 17       		.uleb128 0x17
+ 892 0011 00       		.byte	0
+ 893 0012 00       		.byte	0
+ 894 0013 02       		.uleb128 0x2
+ 895 0014 24       		.uleb128 0x24
+ 896 0015 00       		.byte	0
+ 897 0016 0B       		.uleb128 0xb
+ 898 0017 0B       		.uleb128 0xb
+ 899 0018 3E       		.uleb128 0x3e
+ 900 0019 0B       		.uleb128 0xb
+ 901 001a 03       		.uleb128 0x3
+ 902 001b 0E       		.uleb128 0xe
+ 903 001c 00       		.byte	0
+ 904 001d 00       		.byte	0
+ 905 001e 03       		.uleb128 0x3
+ 906 001f 16       		.uleb128 0x16
+ 907 0020 00       		.byte	0
+ 908 0021 03       		.uleb128 0x3
+ 909 0022 0E       		.uleb128 0xe
+ 910 0023 3A       		.uleb128 0x3a
+ 911 0024 0B       		.uleb128 0xb
+ 912 0025 3B       		.uleb128 0x3b
+ 913 0026 0B       		.uleb128 0xb
+ 914 0027 49       		.uleb128 0x49
+ 915 0028 13       		.uleb128 0x13
+ 916 0029 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 20
+
+
+ 917 002a 00       		.byte	0
+ 918 002b 04       		.uleb128 0x4
+ 919 002c 24       		.uleb128 0x24
+ 920 002d 00       		.byte	0
+ 921 002e 0B       		.uleb128 0xb
+ 922 002f 0B       		.uleb128 0xb
+ 923 0030 3E       		.uleb128 0x3e
+ 924 0031 0B       		.uleb128 0xb
+ 925 0032 03       		.uleb128 0x3
+ 926 0033 08       		.uleb128 0x8
+ 927 0034 00       		.byte	0
+ 928 0035 00       		.byte	0
+ 929 0036 05       		.uleb128 0x5
+ 930 0037 16       		.uleb128 0x16
+ 931 0038 00       		.byte	0
+ 932 0039 03       		.uleb128 0x3
+ 933 003a 0E       		.uleb128 0xe
+ 934 003b 3A       		.uleb128 0x3a
+ 935 003c 0B       		.uleb128 0xb
+ 936 003d 3B       		.uleb128 0x3b
+ 937 003e 05       		.uleb128 0x5
+ 938 003f 49       		.uleb128 0x49
+ 939 0040 13       		.uleb128 0x13
+ 940 0041 00       		.byte	0
+ 941 0042 00       		.byte	0
+ 942 0043 06       		.uleb128 0x6
+ 943 0044 0F       		.uleb128 0xf
+ 944 0045 00       		.byte	0
+ 945 0046 0B       		.uleb128 0xb
+ 946 0047 0B       		.uleb128 0xb
+ 947 0048 49       		.uleb128 0x49
+ 948 0049 13       		.uleb128 0x13
+ 949 004a 00       		.byte	0
+ 950 004b 00       		.byte	0
+ 951 004c 07       		.uleb128 0x7
+ 952 004d 26       		.uleb128 0x26
+ 953 004e 00       		.byte	0
+ 954 004f 49       		.uleb128 0x49
+ 955 0050 13       		.uleb128 0x13
+ 956 0051 00       		.byte	0
+ 957 0052 00       		.byte	0
+ 958 0053 08       		.uleb128 0x8
+ 959 0054 01       		.uleb128 0x1
+ 960 0055 01       		.byte	0x1
+ 961 0056 49       		.uleb128 0x49
+ 962 0057 13       		.uleb128 0x13
+ 963 0058 01       		.uleb128 0x1
+ 964 0059 13       		.uleb128 0x13
+ 965 005a 00       		.byte	0
+ 966 005b 00       		.byte	0
+ 967 005c 09       		.uleb128 0x9
+ 968 005d 21       		.uleb128 0x21
+ 969 005e 00       		.byte	0
+ 970 005f 49       		.uleb128 0x49
+ 971 0060 13       		.uleb128 0x13
+ 972 0061 2F       		.uleb128 0x2f
+ 973 0062 0B       		.uleb128 0xb
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 21
+
+
+ 974 0063 00       		.byte	0
+ 975 0064 00       		.byte	0
+ 976 0065 0A       		.uleb128 0xa
+ 977 0066 2E       		.uleb128 0x2e
+ 978 0067 01       		.byte	0x1
+ 979 0068 03       		.uleb128 0x3
+ 980 0069 0E       		.uleb128 0xe
+ 981 006a 3A       		.uleb128 0x3a
+ 982 006b 0B       		.uleb128 0xb
+ 983 006c 3B       		.uleb128 0x3b
+ 984 006d 0B       		.uleb128 0xb
+ 985 006e 27       		.uleb128 0x27
+ 986 006f 19       		.uleb128 0x19
+ 987 0070 11       		.uleb128 0x11
+ 988 0071 01       		.uleb128 0x1
+ 989 0072 12       		.uleb128 0x12
+ 990 0073 06       		.uleb128 0x6
+ 991 0074 40       		.uleb128 0x40
+ 992 0075 18       		.uleb128 0x18
+ 993 0076 9742     		.uleb128 0x2117
+ 994 0078 19       		.uleb128 0x19
+ 995 0079 01       		.uleb128 0x1
+ 996 007a 13       		.uleb128 0x13
+ 997 007b 00       		.byte	0
+ 998 007c 00       		.byte	0
+ 999 007d 0B       		.uleb128 0xb
+ 1000 007e 05       		.uleb128 0x5
+ 1001 007f 00       		.byte	0
+ 1002 0080 03       		.uleb128 0x3
+ 1003 0081 08       		.uleb128 0x8
+ 1004 0082 3A       		.uleb128 0x3a
+ 1005 0083 0B       		.uleb128 0xb
+ 1006 0084 3B       		.uleb128 0x3b
+ 1007 0085 0B       		.uleb128 0xb
+ 1008 0086 49       		.uleb128 0x49
+ 1009 0087 13       		.uleb128 0x13
+ 1010 0088 02       		.uleb128 0x2
+ 1011 0089 17       		.uleb128 0x17
+ 1012 008a 00       		.byte	0
+ 1013 008b 00       		.byte	0
+ 1014 008c 0C       		.uleb128 0xc
+ 1015 008d 34       		.uleb128 0x34
+ 1016 008e 00       		.byte	0
+ 1017 008f 03       		.uleb128 0x3
+ 1018 0090 0E       		.uleb128 0xe
+ 1019 0091 3A       		.uleb128 0x3a
+ 1020 0092 0B       		.uleb128 0xb
+ 1021 0093 3B       		.uleb128 0x3b
+ 1022 0094 0B       		.uleb128 0xb
+ 1023 0095 49       		.uleb128 0x49
+ 1024 0096 13       		.uleb128 0x13
+ 1025 0097 02       		.uleb128 0x2
+ 1026 0098 17       		.uleb128 0x17
+ 1027 0099 00       		.byte	0
+ 1028 009a 00       		.byte	0
+ 1029 009b 0D       		.uleb128 0xd
+ 1030 009c 898201   		.uleb128 0x4109
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 22
+
+
+ 1031 009f 00       		.byte	0
+ 1032 00a0 11       		.uleb128 0x11
+ 1033 00a1 01       		.uleb128 0x1
+ 1034 00a2 31       		.uleb128 0x31
+ 1035 00a3 13       		.uleb128 0x13
+ 1036 00a4 00       		.byte	0
+ 1037 00a5 00       		.byte	0
+ 1038 00a6 0E       		.uleb128 0xe
+ 1039 00a7 2E       		.uleb128 0x2e
+ 1040 00a8 01       		.byte	0x1
+ 1041 00a9 3F       		.uleb128 0x3f
+ 1042 00aa 19       		.uleb128 0x19
+ 1043 00ab 03       		.uleb128 0x3
+ 1044 00ac 0E       		.uleb128 0xe
+ 1045 00ad 3A       		.uleb128 0x3a
+ 1046 00ae 0B       		.uleb128 0xb
+ 1047 00af 3B       		.uleb128 0x3b
+ 1048 00b0 0B       		.uleb128 0xb
+ 1049 00b1 27       		.uleb128 0x27
+ 1050 00b2 19       		.uleb128 0x19
+ 1051 00b3 11       		.uleb128 0x11
+ 1052 00b4 01       		.uleb128 0x1
+ 1053 00b5 12       		.uleb128 0x12
+ 1054 00b6 06       		.uleb128 0x6
+ 1055 00b7 40       		.uleb128 0x40
+ 1056 00b8 18       		.uleb128 0x18
+ 1057 00b9 9742     		.uleb128 0x2117
+ 1058 00bb 19       		.uleb128 0x19
+ 1059 00bc 01       		.uleb128 0x1
+ 1060 00bd 13       		.uleb128 0x13
+ 1061 00be 00       		.byte	0
+ 1062 00bf 00       		.byte	0
+ 1063 00c0 0F       		.uleb128 0xf
+ 1064 00c1 898201   		.uleb128 0x4109
+ 1065 00c4 01       		.byte	0x1
+ 1066 00c5 11       		.uleb128 0x11
+ 1067 00c6 01       		.uleb128 0x1
+ 1068 00c7 31       		.uleb128 0x31
+ 1069 00c8 13       		.uleb128 0x13
+ 1070 00c9 01       		.uleb128 0x1
+ 1071 00ca 13       		.uleb128 0x13
+ 1072 00cb 00       		.byte	0
+ 1073 00cc 00       		.byte	0
+ 1074 00cd 10       		.uleb128 0x10
+ 1075 00ce 8A8201   		.uleb128 0x410a
+ 1076 00d1 00       		.byte	0
+ 1077 00d2 02       		.uleb128 0x2
+ 1078 00d3 18       		.uleb128 0x18
+ 1079 00d4 9142     		.uleb128 0x2111
+ 1080 00d6 18       		.uleb128 0x18
+ 1081 00d7 00       		.byte	0
+ 1082 00d8 00       		.byte	0
+ 1083 00d9 11       		.uleb128 0x11
+ 1084 00da 898201   		.uleb128 0x4109
+ 1085 00dd 01       		.byte	0x1
+ 1086 00de 11       		.uleb128 0x11
+ 1087 00df 01       		.uleb128 0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 23
+
+
+ 1088 00e0 31       		.uleb128 0x31
+ 1089 00e1 13       		.uleb128 0x13
+ 1090 00e2 00       		.byte	0
+ 1091 00e3 00       		.byte	0
+ 1092 00e4 12       		.uleb128 0x12
+ 1093 00e5 2E       		.uleb128 0x2e
+ 1094 00e6 01       		.byte	0x1
+ 1095 00e7 3F       		.uleb128 0x3f
+ 1096 00e8 19       		.uleb128 0x19
+ 1097 00e9 03       		.uleb128 0x3
+ 1098 00ea 0E       		.uleb128 0xe
+ 1099 00eb 3A       		.uleb128 0x3a
+ 1100 00ec 0B       		.uleb128 0xb
+ 1101 00ed 3B       		.uleb128 0x3b
+ 1102 00ee 0B       		.uleb128 0xb
+ 1103 00ef 27       		.uleb128 0x27
+ 1104 00f0 19       		.uleb128 0x19
+ 1105 00f1 49       		.uleb128 0x49
+ 1106 00f2 13       		.uleb128 0x13
+ 1107 00f3 11       		.uleb128 0x11
+ 1108 00f4 01       		.uleb128 0x1
+ 1109 00f5 12       		.uleb128 0x12
+ 1110 00f6 06       		.uleb128 0x6
+ 1111 00f7 40       		.uleb128 0x40
+ 1112 00f8 18       		.uleb128 0x18
+ 1113 00f9 9742     		.uleb128 0x2117
+ 1114 00fb 19       		.uleb128 0x19
+ 1115 00fc 01       		.uleb128 0x1
+ 1116 00fd 13       		.uleb128 0x13
+ 1117 00fe 00       		.byte	0
+ 1118 00ff 00       		.byte	0
+ 1119 0100 13       		.uleb128 0x13
+ 1120 0101 34       		.uleb128 0x34
+ 1121 0102 00       		.byte	0
+ 1122 0103 03       		.uleb128 0x3
+ 1123 0104 08       		.uleb128 0x8
+ 1124 0105 3A       		.uleb128 0x3a
+ 1125 0106 0B       		.uleb128 0xb
+ 1126 0107 3B       		.uleb128 0x3b
+ 1127 0108 0B       		.uleb128 0xb
+ 1128 0109 49       		.uleb128 0x49
+ 1129 010a 13       		.uleb128 0x13
+ 1130 010b 02       		.uleb128 0x2
+ 1131 010c 17       		.uleb128 0x17
+ 1132 010d 00       		.byte	0
+ 1133 010e 00       		.byte	0
+ 1134 010f 14       		.uleb128 0x14
+ 1135 0110 34       		.uleb128 0x34
+ 1136 0111 00       		.byte	0
+ 1137 0112 03       		.uleb128 0x3
+ 1138 0113 0E       		.uleb128 0xe
+ 1139 0114 3A       		.uleb128 0x3a
+ 1140 0115 0B       		.uleb128 0xb
+ 1141 0116 3B       		.uleb128 0x3b
+ 1142 0117 05       		.uleb128 0x5
+ 1143 0118 49       		.uleb128 0x49
+ 1144 0119 13       		.uleb128 0x13
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 24
+
+
+ 1145 011a 3F       		.uleb128 0x3f
+ 1146 011b 19       		.uleb128 0x19
+ 1147 011c 3C       		.uleb128 0x3c
+ 1148 011d 19       		.uleb128 0x19
+ 1149 011e 00       		.byte	0
+ 1150 011f 00       		.byte	0
+ 1151 0120 15       		.uleb128 0x15
+ 1152 0121 35       		.uleb128 0x35
+ 1153 0122 00       		.byte	0
+ 1154 0123 49       		.uleb128 0x49
+ 1155 0124 13       		.uleb128 0x13
+ 1156 0125 00       		.byte	0
+ 1157 0126 00       		.byte	0
+ 1158 0127 16       		.uleb128 0x16
+ 1159 0128 34       		.uleb128 0x34
+ 1160 0129 00       		.byte	0
+ 1161 012a 03       		.uleb128 0x3
+ 1162 012b 0E       		.uleb128 0xe
+ 1163 012c 3A       		.uleb128 0x3a
+ 1164 012d 0B       		.uleb128 0xb
+ 1165 012e 3B       		.uleb128 0x3b
+ 1166 012f 0B       		.uleb128 0xb
+ 1167 0130 49       		.uleb128 0x49
+ 1168 0131 13       		.uleb128 0x13
+ 1169 0132 3F       		.uleb128 0x3f
+ 1170 0133 19       		.uleb128 0x19
+ 1171 0134 02       		.uleb128 0x2
+ 1172 0135 18       		.uleb128 0x18
+ 1173 0136 00       		.byte	0
+ 1174 0137 00       		.byte	0
+ 1175 0138 17       		.uleb128 0x17
+ 1176 0139 2E       		.uleb128 0x2e
+ 1177 013a 00       		.byte	0
+ 1178 013b 3F       		.uleb128 0x3f
+ 1179 013c 19       		.uleb128 0x19
+ 1180 013d 3C       		.uleb128 0x3c
+ 1181 013e 19       		.uleb128 0x19
+ 1182 013f 6E       		.uleb128 0x6e
+ 1183 0140 0E       		.uleb128 0xe
+ 1184 0141 03       		.uleb128 0x3
+ 1185 0142 0E       		.uleb128 0xe
+ 1186 0143 3A       		.uleb128 0x3a
+ 1187 0144 0B       		.uleb128 0xb
+ 1188 0145 3B       		.uleb128 0x3b
+ 1189 0146 0B       		.uleb128 0xb
+ 1190 0147 00       		.byte	0
+ 1191 0148 00       		.byte	0
+ 1192 0149 00       		.byte	0
+ 1193              		.section	.debug_loc,"",%progbits
+ 1194              	.Ldebug_loc0:
+ 1195              	.LLST0:
+ 1196 0000 00000000 		.4byte	.LVL0
+ 1197 0004 04000000 		.4byte	.LVL1
+ 1198 0008 0100     		.2byte	0x1
+ 1199 000a 50       		.byte	0x50
+ 1200 000b 04000000 		.4byte	.LVL1
+ 1201 000f 30000000 		.4byte	.LFE63
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 25
+
+
+ 1202 0013 0400     		.2byte	0x4
+ 1203 0015 F3       		.byte	0xf3
+ 1204 0016 01       		.uleb128 0x1
+ 1205 0017 50       		.byte	0x50
+ 1206 0018 9F       		.byte	0x9f
+ 1207 0019 00000000 		.4byte	0
+ 1208 001d 00000000 		.4byte	0
+ 1209              	.LLST1:
+ 1210 0021 08000000 		.4byte	.LVL2
+ 1211 0025 13000000 		.4byte	.LVL3-1
+ 1212 0029 0100     		.2byte	0x1
+ 1213 002b 50       		.byte	0x50
+ 1214 002c 16000000 		.4byte	.LVL4
+ 1215 0030 23000000 		.4byte	.LVL5-1
+ 1216 0034 0100     		.2byte	0x1
+ 1217 0036 50       		.byte	0x50
+ 1218 0037 00000000 		.4byte	0
+ 1219 003b 00000000 		.4byte	0
+ 1220              	.LLST2:
+ 1221 003f 08000000 		.4byte	.LVL7
+ 1222 0043 56000000 		.4byte	.LVL11
+ 1223 0047 0100     		.2byte	0x1
+ 1224 0049 54       		.byte	0x54
+ 1225 004a 00000000 		.4byte	0
+ 1226 004e 00000000 		.4byte	0
+ 1227              	.LLST3:
+ 1228 0052 00000000 		.4byte	.LVL12
+ 1229 0056 0A000000 		.4byte	.LVL13
+ 1230 005a 0100     		.2byte	0x1
+ 1231 005c 50       		.byte	0x50
+ 1232 005d 0A000000 		.4byte	.LVL13
+ 1233 0061 16000000 		.4byte	.LFE65
+ 1234 0065 0400     		.2byte	0x4
+ 1235 0067 F3       		.byte	0xf3
+ 1236 0068 01       		.uleb128 0x1
+ 1237 0069 50       		.byte	0x50
+ 1238 006a 9F       		.byte	0x9f
+ 1239 006b 00000000 		.4byte	0
+ 1240 006f 00000000 		.4byte	0
+ 1241              	.LLST4:
+ 1242 0073 00000000 		.4byte	.LVL16
+ 1243 0077 06000000 		.4byte	.LVL17
+ 1244 007b 0100     		.2byte	0x1
+ 1245 007d 50       		.byte	0x50
+ 1246 007e 06000000 		.4byte	.LVL17
+ 1247 0082 14000000 		.4byte	.LFE66
+ 1248 0086 0100     		.2byte	0x1
+ 1249 0088 54       		.byte	0x54
+ 1250 0089 00000000 		.4byte	0
+ 1251 008d 00000000 		.4byte	0
+ 1252              	.LLST5:
+ 1253 0091 08000000 		.4byte	.LVL21
+ 1254 0095 2E000000 		.4byte	.LVL25
+ 1255 0099 0100     		.2byte	0x1
+ 1256 009b 54       		.byte	0x54
+ 1257 009c 00000000 		.4byte	0
+ 1258 00a0 00000000 		.4byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 26
+
+
+ 1259              	.LLST6:
+ 1260 00a4 02000000 		.4byte	.LVL26
+ 1261 00a8 1A000000 		.4byte	.LVL28
+ 1262 00ac 0300     		.2byte	0x3
+ 1263 00ae 09       		.byte	0x9
+ 1264 00af FF       		.byte	0xff
+ 1265 00b0 9F       		.byte	0x9f
+ 1266 00b1 1A000000 		.4byte	.LVL28
+ 1267 00b5 1C000000 		.4byte	.LVL29
+ 1268 00b9 0100     		.2byte	0x1
+ 1269 00bb 54       		.byte	0x54
+ 1270 00bc 1C000000 		.4byte	.LVL29
+ 1271 00c0 1E000000 		.4byte	.LVL30
+ 1272 00c4 0300     		.2byte	0x3
+ 1273 00c6 09       		.byte	0x9
+ 1274 00c7 FF       		.byte	0xff
+ 1275 00c8 9F       		.byte	0x9f
+ 1276 00c9 1E000000 		.4byte	.LVL30
+ 1277 00cd 26000000 		.4byte	.LVL32
+ 1278 00d1 0100     		.2byte	0x1
+ 1279 00d3 54       		.byte	0x54
+ 1280 00d4 00000000 		.4byte	0
+ 1281 00d8 00000000 		.4byte	0
+ 1282              	.LLST7:
+ 1283 00dc 06000000 		.4byte	.LVL27
+ 1284 00e0 21000000 		.4byte	.LVL31-1
+ 1285 00e4 0100     		.2byte	0x1
+ 1286 00e6 50       		.byte	0x50
+ 1287 00e7 00000000 		.4byte	0
+ 1288 00eb 00000000 		.4byte	0
+ 1289              	.LLST8:
+ 1290 00ef 06000000 		.4byte	.LVL33
+ 1291 00f3 19000000 		.4byte	.LVL34-1
+ 1292 00f7 0100     		.2byte	0x1
+ 1293 00f9 50       		.byte	0x50
+ 1294 00fa 1A000000 		.4byte	.LVL34
+ 1295 00fe 20000000 		.4byte	.LVL35
+ 1296 0102 0100     		.2byte	0x1
+ 1297 0104 50       		.byte	0x50
+ 1298 0105 20000000 		.4byte	.LVL35
+ 1299 0109 28000000 		.4byte	.LVL36
+ 1300 010d 0200     		.2byte	0x2
+ 1301 010f 3A       		.byte	0x3a
+ 1302 0110 9F       		.byte	0x9f
+ 1303 0111 28000000 		.4byte	.LVL36
+ 1304 0115 30000000 		.4byte	.LFE69
+ 1305 0119 0100     		.2byte	0x1
+ 1306 011b 50       		.byte	0x50
+ 1307 011c 00000000 		.4byte	0
+ 1308 0120 00000000 		.4byte	0
+ 1309              		.section	.debug_aranges,"",%progbits
+ 1310 0000 4C000000 		.4byte	0x4c
+ 1311 0004 0200     		.2byte	0x2
+ 1312 0006 00000000 		.4byte	.Ldebug_info0
+ 1313 000a 04       		.byte	0x4
+ 1314 000b 00       		.byte	0
+ 1315 000c 0000     		.2byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 27
+
+
+ 1316 000e 0000     		.2byte	0
+ 1317 0010 00000000 		.4byte	.LFB63
+ 1318 0014 30000000 		.4byte	.LFE63-.LFB63
+ 1319 0018 00000000 		.4byte	.LFB64
+ 1320 001c 60000000 		.4byte	.LFE64-.LFB64
+ 1321 0020 00000000 		.4byte	.LFB65
+ 1322 0024 16000000 		.4byte	.LFE65-.LFB65
+ 1323 0028 00000000 		.4byte	.LFB66
+ 1324 002c 14000000 		.4byte	.LFE66-.LFB66
+ 1325 0030 00000000 		.4byte	.LFB67
+ 1326 0034 38000000 		.4byte	.LFE67-.LFB67
+ 1327 0038 00000000 		.4byte	.LFB68
+ 1328 003c 30000000 		.4byte	.LFE68-.LFB68
+ 1329 0040 00000000 		.4byte	.LFB69
+ 1330 0044 30000000 		.4byte	.LFE69-.LFB69
+ 1331 0048 00000000 		.4byte	0
+ 1332 004c 00000000 		.4byte	0
+ 1333              		.section	.debug_ranges,"",%progbits
+ 1334              	.Ldebug_ranges0:
+ 1335 0000 00000000 		.4byte	.LFB63
+ 1336 0004 30000000 		.4byte	.LFE63
+ 1337 0008 00000000 		.4byte	.LFB64
+ 1338 000c 60000000 		.4byte	.LFE64
+ 1339 0010 00000000 		.4byte	.LFB65
+ 1340 0014 16000000 		.4byte	.LFE65
+ 1341 0018 00000000 		.4byte	.LFB66
+ 1342 001c 14000000 		.4byte	.LFE66
+ 1343 0020 00000000 		.4byte	.LFB67
+ 1344 0024 38000000 		.4byte	.LFE67
+ 1345 0028 00000000 		.4byte	.LFB68
+ 1346 002c 30000000 		.4byte	.LFE68
+ 1347 0030 00000000 		.4byte	.LFB69
+ 1348 0034 30000000 		.4byte	.LFE69
+ 1349 0038 00000000 		.4byte	0
+ 1350 003c 00000000 		.4byte	0
+ 1351              		.section	.debug_line,"",%progbits
+ 1352              	.Ldebug_line0:
+ 1353 0000 22020000 		.section	.debug_str,"MS",%progbits,1
+ 1353      02007001 
+ 1353      00000201 
+ 1353      FB0E0D00 
+ 1353      01010101 
+ 1354              	.LASF18:
+ 1355 0000 73746174 		.ascii	"state\000"
+ 1355      6500
+ 1356              	.LASF9:
+ 1357 0006 5F5F696E 		.ascii	"__int32_t\000"
+ 1357      7433325F 
+ 1357      7400
+ 1358              	.LASF29:
+ 1359 0010 75617274 		.ascii	"uartTxReject\000"
+ 1359      54785265 
+ 1359      6A656374 
+ 1359      00
+ 1360              	.LASF39:
+ 1361 001d 55534255 		.ascii	"USBUART_GetAll\000"
+ 1361      4152545F 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 28
+
+
+ 1361      47657441 
+ 1361      6C6C00
+ 1362              	.LASF32:
+ 1363 002c 75617274 		.ascii	"uartRxIndex\000"
+ 1363      5278496E 
+ 1363      64657800 
+ 1364              	.LASF33:
+ 1365 0038 75617274 		.ascii	"uartRxCRDetect\000"
+ 1365      52784352 
+ 1365      44657465 
+ 1365      637400
+ 1366              	.LASF37:
+ 1367 0047 55534255 		.ascii	"USBUART_PutData\000"
+ 1367      4152545F 
+ 1367      50757444 
+ 1367      61746100 
+ 1368              	.LASF36:
+ 1369 0057 55534255 		.ascii	"USBUART_CDCIsReady\000"
+ 1369      4152545F 
+ 1369      43444349 
+ 1369      73526561 
+ 1369      647900
+ 1370              	.LASF30:
+ 1371 006a 75617274 		.ascii	"uartRxQueue\000"
+ 1371      52785175 
+ 1371      65756500 
+ 1372              	.LASF13:
+ 1373 0076 666C6F61 		.ascii	"float\000"
+ 1373      7400
+ 1374              	.LASF1:
+ 1375 007c 756E7369 		.ascii	"unsigned char\000"
+ 1375      676E6564 
+ 1375      20636861 
+ 1375      7200
+ 1376              	.LASF20:
+ 1377 008a 70757463 		.ascii	"putch\000"
+ 1377      6800
+ 1378              	.LASF19:
+ 1379 0090 75617274 		.ascii	"uartTxIsr\000"
+ 1379      54784973 
+ 1379      7200
+ 1380              	.LASF12:
+ 1381 009a 696E7431 		.ascii	"int16\000"
+ 1381      3600
+ 1382              	.LASF5:
+ 1383 00a0 6C6F6E67 		.ascii	"long unsigned int\000"
+ 1383      20756E73 
+ 1383      69676E65 
+ 1383      6420696E 
+ 1383      7400
+ 1384              	.LASF3:
+ 1385 00b2 73686F72 		.ascii	"short unsigned int\000"
+ 1385      7420756E 
+ 1385      7369676E 
+ 1385      65642069 
+ 1385      6E7400
+ 1386              	.LASF41:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 29
+
+
+ 1387 00c5 55534255 		.ascii	"USBUART_FIFO.c\000"
+ 1387      4152545F 
+ 1387      4649464F 
+ 1387      2E6300
+ 1388              	.LASF43:
+ 1389 00d4 70757463 		.ascii	"putch_sub\000"
+ 1389      685F7375 
+ 1389      6200
+ 1390              	.LASF26:
+ 1391 00de 75617274 		.ascii	"uartTxQueue\000"
+ 1391      54785175 
+ 1391      65756500 
+ 1392              	.LASF14:
+ 1393 00ea 646F7562 		.ascii	"double\000"
+ 1393      6C6500
+ 1394              	.LASF42:
+ 1395 00f1 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 1395      536F435F 
+ 1395      43726561 
+ 1395      746F725C 
+ 1395      43593843 
+ 1396 0121 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 1396      65636569 
+ 1396      7665725C 
+ 1396      43593843 
+ 1396      4B49542D 
+ 1397              	.LASF24:
+ 1398 0153 67657463 		.ascii	"getch\000"
+ 1398      6800
+ 1399              	.LASF31:
+ 1400 0159 75617274 		.ascii	"uartRxCount\000"
+ 1400      5278436F 
+ 1400      756E7400 
+ 1401              	.LASF34:
+ 1402 0165 4379456E 		.ascii	"CyEnterCriticalSection\000"
+ 1402      74657243 
+ 1402      72697469 
+ 1402      63616C53 
+ 1402      65637469 
+ 1403              	.LASF8:
+ 1404 017c 756E7369 		.ascii	"unsigned int\000"
+ 1404      676E6564 
+ 1404      20696E74 
+ 1404      00
+ 1405              	.LASF7:
+ 1406 0189 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 1406      206C6F6E 
+ 1406      6720756E 
+ 1406      7369676E 
+ 1406      65642069 
+ 1407              	.LASF38:
+ 1408 01a0 55534255 		.ascii	"USBUART_DataIsReady\000"
+ 1408      4152545F 
+ 1408      44617461 
+ 1408      49735265 
+ 1408      61647900 
+ 1409              	.LASF25:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 30
+
+
+ 1410 01b4 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 1410      52784275 
+ 1410      66666572 
+ 1410      00
+ 1411              	.LASF40:
+ 1412 01c1 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 1412      43313120 
+ 1412      352E342E 
+ 1412      31203230 
+ 1412      31363036 
+ 1413 01f4 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 1413      20726576 
+ 1413      6973696F 
+ 1413      6E203233 
+ 1413      37373135 
+ 1414 0227 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 1414      66756E63 
+ 1414      74696F6E 
+ 1414      2D736563 
+ 1414      74696F6E 
+ 1415              	.LASF10:
+ 1416 024f 696E7433 		.ascii	"int32_t\000"
+ 1416      325F7400 
+ 1417              	.LASF17:
+ 1418 0257 73697A65 		.ascii	"sizetype\000"
+ 1418      74797065 
+ 1418      00
+ 1419              	.LASF6:
+ 1420 0260 6C6F6E67 		.ascii	"long long int\000"
+ 1420      206C6F6E 
+ 1420      6720696E 
+ 1420      7400
+ 1421              	.LASF27:
+ 1422 026e 75617274 		.ascii	"uartTxCount\000"
+ 1422      5478436F 
+ 1422      756E7400 
+ 1423              	.LASF15:
+ 1424 027a 63686172 		.ascii	"char\000"
+ 1424      00
+ 1425              	.LASF2:
+ 1426 027f 73686F72 		.ascii	"short int\000"
+ 1426      7420696E 
+ 1426      7400
+ 1427              	.LASF21:
+ 1428 0289 70757473 		.ascii	"putstr\000"
+ 1428      747200
+ 1429              	.LASF11:
+ 1430 0290 75696E74 		.ascii	"uint8\000"
+ 1430      3800
+ 1431              	.LASF28:
+ 1432 0296 75617274 		.ascii	"uartZlpRequired\000"
+ 1432      5A6C7052 
+ 1432      65717569 
+ 1432      72656400 
+ 1433              	.LASF35:
+ 1434 02a6 43794578 		.ascii	"CyExitCriticalSection\000"
+ 1434      69744372 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccwKSW3c.s 			page 31
+
+
+ 1434      69746963 
+ 1434      616C5365 
+ 1434      6374696F 
+ 1435              	.LASF22:
+ 1436 02bc 75617274 		.ascii	"uartRxIsr\000"
+ 1436      52784973 
+ 1436      7200
+ 1437              	.LASF4:
+ 1438 02c6 6C6F6E67 		.ascii	"long int\000"
+ 1438      20696E74 
+ 1438      00
+ 1439              	.LASF16:
+ 1440 02cf 6C6F6E67 		.ascii	"long double\000"
+ 1440      20646F75 
+ 1440      626C6500 
+ 1441              	.LASF0:
+ 1442 02db 7369676E 		.ascii	"signed char\000"
+ 1442      65642063 
+ 1442      68617200 
+ 1443              	.LASF23:
+ 1444 02e7 67657463 		.ascii	"getch_sub\000"
+ 1444      685F7375 
+ 1444      6200
+ 1445              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

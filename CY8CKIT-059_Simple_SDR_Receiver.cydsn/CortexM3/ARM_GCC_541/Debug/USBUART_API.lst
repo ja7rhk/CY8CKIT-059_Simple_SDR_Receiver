@@ -1,0 +1,1401 @@
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"USBUART_API.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.USBUART_Write,"ax",%progbits
+  20              		.align	2
+  21              		.global	USBUART_Write
+  22              		.thumb
+  23              		.thumb_func
+  24              		.type	USBUART_Write, %function
+  25              	USBUART_Write:
+  26              	.LFB64:
+  27              		.file 1 "USBUART_API.c"
+   1:USBUART_API.c **** /*********************************************************************
+   2:USBUART_API.c **** *
+   3:USBUART_API.c **** *                  Board Support Packet of Cypress Chips
+   4:USBUART_API.c **** *
+   5:USBUART_API.c **** *
+   6:USBUART_API.c **** *********************************************************************
+   7:USBUART_API.c **** * FileName:        USBUART_API.C
+   8:USBUART_API.c **** * Dependencies:
+   9:USBUART_API.c **** * Processor:
+  10:USBUART_API.c **** * Complier:
+  11:USBUART_API.c **** * Company:
+  12:USBUART_API.c **** *
+  13:USBUART_API.c **** * Software License Agreement
+  14:USBUART_API.c **** *
+  15:USBUART_API.c **** ********************************************************************************
+  16:USBUART_API.c **** * Copyright (2008), Cypress Semiconductor Corporation.
+  17:USBUART_API.c **** ********************************************************************************
+  18:USBUART_API.c **** * This software is owned by Cypress Semiconductor Corporation (Cypress) and is
+  19:USBUART_API.c **** * protected by and subject to worldwide patent protection (United States and
+  20:USBUART_API.c **** * foreign), United States copyright laws and international treaty provisions.
+  21:USBUART_API.c **** * Cypress hereby grants to licensee a personal, non-exclusive, non-transferable
+  22:USBUART_API.c **** * license to copy, use, modify, create derivative works of, and compile the
+  23:USBUART_API.c **** * Cypress Source Code and derivative works for the sole purpose of creating
+  24:USBUART_API.c **** * custom software in support of licensee product to be used only in conjunction
+  25:USBUART_API.c **** * with a Cypress integrated circuit as specified in the applicable agreement.
+  26:USBUART_API.c **** * Any reproduction, modification, translation, compilation, or representation of
+  27:USBUART_API.c **** * this software except as specified above is prohibited without the express
+  28:USBUART_API.c **** * written permission of Cypress.
+  29:USBUART_API.c **** *
+  30:USBUART_API.c **** * Disclaimer: CYPRESS MAKES NO WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, WITH
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 2
+
+
+  31:USBUART_API.c **** * REGARD TO THIS MATERIAL, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+  32:USBUART_API.c **** * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+  33:USBUART_API.c **** * Cypress reserves the right to make changes without further notice to the
+  34:USBUART_API.c **** * materials described herein. Cypress does not assume any liability arising out
+  35:USBUART_API.c **** * of the application or use of any product or circuit described herein. Cypress
+  36:USBUART_API.c **** * does not authorize its products for use as critical components in life-support
+  37:USBUART_API.c **** * systems where a malfunction or failure may reasonably be expected to result in
+  38:USBUART_API.c **** * significant injury to the user. The inclusion of Cypress' product in a life-
+  39:USBUART_API.c **** * support systems application implies that the manufacturer assumes all risk of
+  40:USBUART_API.c **** * such use and in doing so indemnifies Cypress against all charges. Use may be
+  41:USBUART_API.c **** * limited by and subject to the applicable Cypress software license agreement.
+  42:USBUART_API.c **** *******************************************************************************/
+  43:USBUART_API.c **** #include <device.h>
+  44:USBUART_API.c **** #include <string.h>
+  45:USBUART_API.c **** #include <stdio.h>
+  46:USBUART_API.c **** //#include "FIFO.h"
+  47:USBUART_API.c **** #include "USBUART_API.h"
+  48:USBUART_API.c **** 
+  49:USBUART_API.c **** #define USBUART_RX_BUFFER_SIZE 255                          /* USB receive buffer size;  max 255*/
+  50:USBUART_API.c **** uint8 baUSBRxBuf[USBUART_RX_BUFFER_SIZE];                   /* buffer */
+  51:USBUART_API.c **** #if PSoC3 // original code
+  52:USBUART_API.c **** FIFO USBRxFIFO;                                             /* FIFO for USB receive buffer */
+  53:USBUART_API.c **** #endif
+  54:USBUART_API.c **** uint8 bLineCoding[7];
+  55:USBUART_API.c **** 
+  56:USBUART_API.c **** #define USBUART_TX_BUFFER_SIZE 64                           /* USB transmit buffer size, max 64 */
+  57:USBUART_API.c **** 
+  58:USBUART_API.c **** // PSoC3 => PSoC5LP
+  59:USBUART_API.c **** extern volatile uint32 gUSBUART_Ready;
+  60:USBUART_API.c **** 
+  61:USBUART_API.c **** /*******************************************************************************
+  62:USBUART_API.c **** * FUNCTION NAME: void USBUART_Write( uint8 *pData, uint8 bLength )
+  63:USBUART_API.c **** *
+  64:USBUART_API.c **** * Summary:
+  65:USBUART_API.c **** *  Get the count of received bytes.
+  66:USBUART_API.c **** *
+  67:USBUART_API.c **** * Parameters:
+  68:USBUART_API.c **** *  pData: pointer to the buffer.
+  69:USBUART_API.c **** *  bLength:  number of bytes to be transmited.
+  70:USBUART_API.c **** *
+  71:USBUART_API.c **** * Return:
+  72:USBUART_API.c **** *  Void.
+  73:USBUART_API.c **** *
+  74:USBUART_API.c **** * Theory:
+  75:USBUART_API.c **** * -None-
+  76:USBUART_API.c **** *
+  77:USBUART_API.c **** * Side Effects:
+  78:USBUART_API.c **** * -None-
+  79:USBUART_API.c **** *******************************************************************************/
+  80:USBUART_API.c **** #if PSoC3 // original code
+  81:USBUART_API.c **** void USBUART_Write(uint8 *pData, uint8 bLength)
+  82:USBUART_API.c **** {
+  83:USBUART_API.c ****     if( USBUART_bGetEPState(2) == USBUART_IN_BUFFER_EMPTY )
+  84:USBUART_API.c ****     {
+  85:USBUART_API.c ****         if( bLength > USBUART_TX_BUFFER_SIZE ) bLength = USBUART_TX_BUFFER_SIZE;
+  86:USBUART_API.c ****         USBUART_LoadInEP( 2, pData, bLength );
+  87:USBUART_API.c ****     }
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 3
+
+
+  88:USBUART_API.c ****     return;
+  89:USBUART_API.c **** }
+  90:USBUART_API.c **** #else // PSoC5LP
+  91:USBUART_API.c **** void USBUART_Write(uint8 *pData)
+  92:USBUART_API.c **** {
+  28              		.loc 1 92 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              	.LVL0:
+  33 0000 10B5     		push	{r4, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 4, -8
+  36              		.cfi_offset 14, -4
+  37 0002 0446     		mov	r4, r0
+  93:USBUART_API.c ****     uint8 count;
+  94:USBUART_API.c **** 
+  95:USBUART_API.c ****     if (gUSBUART_Ready == 0)
+  38              		.loc 1 95 0
+  39 0004 084B     		ldr	r3, .L7
+  40 0006 1B68     		ldr	r3, [r3]
+  41 0008 6BB1     		cbz	r3, .L1
+  42              	.LVL1:
+  43              	.L3:
+  96:USBUART_API.c ****         return;
+  97:USBUART_API.c **** 
+  98:USBUART_API.c ****    	while(USBUART_CDCIsReady() == 0u);
+  44              		.loc 1 98 0 discriminator 1
+  45 000a FFF7FEFF 		bl	USBUART_CDCIsReady
+  46              	.LVL2:
+  47 000e 0028     		cmp	r0, #0
+  48 0010 FBD0     		beq	.L3
+  99:USBUART_API.c ****    	count = strlen((char*)pData);
+  49              		.loc 1 99 0
+  50 0012 2046     		mov	r0, r4
+  51 0014 FFF7FEFF 		bl	strlen
+  52              	.LVL3:
+  53 0018 C1B2     		uxtb	r1, r0
+  54              	.LVL4:
+ 100:USBUART_API.c ****     // count should smaller than 64
+ 101:USBUART_API.c ****     if( count > USBUART_TX_BUFFER_SIZE )
+  55              		.loc 1 101 0
+  56 001a 4029     		cmp	r1, #64
+  57 001c 00D9     		bls	.L4
+ 102:USBUART_API.c ****         count = USBUART_TX_BUFFER_SIZE;
+  58              		.loc 1 102 0
+  59 001e 4021     		movs	r1, #64
+  60              	.LVL5:
+  61              	.L4:
+ 103:USBUART_API.c ****    	USBUART_PutData(pData, count);
+  62              		.loc 1 103 0
+  63 0020 2046     		mov	r0, r4
+  64 0022 FFF7FEFF 		bl	USBUART_PutData
+  65              	.LVL6:
+  66              	.L1:
+  67 0026 10BD     		pop	{r4, pc}
+  68              	.LVL7:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 4
+
+
+  69              	.L8:
+  70              		.align	2
+  71              	.L7:
+  72 0028 00000000 		.word	gUSBUART_Ready
+  73              		.cfi_endproc
+  74              	.LFE64:
+  75              		.size	USBUART_Write, .-USBUART_Write
+  76              		.section	.text.USBUART_ReadAll,"ax",%progbits
+  77              		.align	2
+  78              		.global	USBUART_ReadAll
+  79              		.thumb
+  80              		.thumb_func
+  81              		.type	USBUART_ReadAll, %function
+  82              	USBUART_ReadAll:
+  83              	.LFB65:
+ 104:USBUART_API.c **** }
+ 105:USBUART_API.c **** #endif
+ 106:USBUART_API.c **** /*******************************************************************************
+ 107:USBUART_API.c **** * FUNCTION NAME: void USBUART_ReadAll(uint8 *pData)
+ 108:USBUART_API.c **** *
+ 109:USBUART_API.c **** * Summary:
+ 110:USBUART_API.c **** * Read all input data
+ 111:USBUART_API.c **** *
+ 112:USBUART_API.c **** * Parameters:
+ 113:USBUART_API.c **** *  pData: pointer to buffer where data will be placed
+ 114:USBUART_API.c **** *
+ 115:USBUART_API.c **** * Return:
+ 116:USBUART_API.c **** * Void.
+ 117:USBUART_API.c **** *
+ 118:USBUART_API.c **** * Theory:
+ 119:USBUART_API.c **** *
+ 120:USBUART_API.c **** *
+ 121:USBUART_API.c **** * Side Effects:
+ 122:USBUART_API.c **** * -None-
+ 123:USBUART_API.c **** *******************************************************************************/
+ 124:USBUART_API.c **** void USBUART_ReadAll(uint8 *pData)
+ 125:USBUART_API.c **** {
+  84              		.loc 1 125 0
+  85              		.cfi_startproc
+  86              		@ args = 0, pretend = 0, frame = 8
+  87              		@ frame_needed = 0, uses_anonymous_args = 0
+  88              	.LVL8:
+  89 0000 30B5     		push	{r4, r5, lr}
+  90              		.cfi_def_cfa_offset 12
+  91              		.cfi_offset 4, -12
+  92              		.cfi_offset 5, -8
+  93              		.cfi_offset 14, -4
+  94 0002 83B0     		sub	sp, sp, #12
+  95              		.cfi_def_cfa_offset 24
+  96 0004 0546     		mov	r5, r0
+  97              	.LVL9:
+ 126:USBUART_API.c **** #if PSoC3 // original code
+ 127:USBUART_API.c ****     uint8 bCount;
+ 128:USBUART_API.c **** 
+ 129:USBUART_API.c ****     bCount = USBUART_bGetRxCount();
+ 130:USBUART_API.c ****     FIFO_Read(&USBRxFIFO,pData,bCount);
+ 131:USBUART_API.c **** 	USBUART_EnableOutEP(3);					/* We've read data, allow more to come in */
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 5
+
+
+ 132:USBUART_API.c **** #else // PSoC5LP
+ 133:USBUART_API.c ****     uint8 ch, i;
+ 134:USBUART_API.c **** 
+ 135:USBUART_API.c ****     for (i = 0; i < (USBUART_RX_BUFFER_SIZE - 1); i++)
+  98              		.loc 1 135 0
+  99 0006 0024     		movs	r4, #0
+ 100 0008 1DE0     		b	.L10
+ 101              	.LVL10:
+ 102              	.L12:
+ 136:USBUART_API.c ****     {
+ 137:USBUART_API.c ****         while(1)
+ 138:USBUART_API.c ****         {
+ 139:USBUART_API.c ****             if (USBUART_DataIsReady() > 0)
+ 103              		.loc 1 139 0
+ 104 000a FFF7FEFF 		bl	USBUART_DataIsReady
+ 105              	.LVL11:
+ 106 000e 18B9     		cbnz	r0, .L11
+ 140:USBUART_API.c ****                 break;
+ 141:USBUART_API.c ****             CyDelay(10);    // 10ms
+ 107              		.loc 1 141 0
+ 108 0010 0A20     		movs	r0, #10
+ 109 0012 FFF7FEFF 		bl	CyDelay
+ 110              	.LVL12:
+ 142:USBUART_API.c ****         }
+ 111              		.loc 1 142 0
+ 112 0016 F8E7     		b	.L12
+ 113              	.L11:
+ 143:USBUART_API.c ****         USBUART_GetData(&ch, 1);
+ 114              		.loc 1 143 0
+ 115 0018 0121     		movs	r1, #1
+ 116 001a 0DF10700 		add	r0, sp, #7
+ 117 001e FFF7FEFF 		bl	USBUART_GetData
+ 118              	.LVL13:
+ 144:USBUART_API.c ****         USBUART_PutData(&ch, 1);
+ 119              		.loc 1 144 0
+ 120 0022 0121     		movs	r1, #1
+ 121 0024 0DF10700 		add	r0, sp, #7
+ 122 0028 FFF7FEFF 		bl	USBUART_PutData
+ 123              	.LVL14:
+ 145:USBUART_API.c ****         if (ch == '\r')
+ 124              		.loc 1 145 0
+ 125 002c 9DF80730 		ldrb	r3, [sp, #7]	@ zero_extendqisi2
+ 126 0030 0D2B     		cmp	r3, #13
+ 127 0032 05D1     		bne	.L13
+ 146:USBUART_API.c ****         {
+ 147:USBUART_API.c ****             pData[i] = '\0';
+ 128              		.loc 1 147 0
+ 129 0034 0023     		movs	r3, #0
+ 130 0036 2B55     		strb	r3, [r5, r4]
+ 148:USBUART_API.c ****             USBUART_Write((uint8*)"\r\n");
+ 131              		.loc 1 148 0
+ 132 0038 0548     		ldr	r0, .L16
+ 133 003a FFF7FEFF 		bl	USBUART_Write
+ 134              	.LVL15:
+ 149:USBUART_API.c ****             break;
+ 135              		.loc 1 149 0
+ 136 003e 04E0     		b	.L9
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 6
+
+
+ 137              	.L13:
+ 150:USBUART_API.c ****         }
+ 151:USBUART_API.c ****         pData[i] = ch;
+ 138              		.loc 1 151 0 discriminator 2
+ 139 0040 2B55     		strb	r3, [r5, r4]
+ 135:USBUART_API.c ****     {
+ 140              		.loc 1 135 0 discriminator 2
+ 141 0042 0134     		adds	r4, r4, #1
+ 142              	.LVL16:
+ 143 0044 E4B2     		uxtb	r4, r4
+ 144              	.LVL17:
+ 145              	.L10:
+ 135:USBUART_API.c ****     {
+ 146              		.loc 1 135 0 is_stmt 0 discriminator 1
+ 147 0046 FD2C     		cmp	r4, #253
+ 148 0048 DFD9     		bls	.L12
+ 149              	.L9:
+ 152:USBUART_API.c ****     }
+ 153:USBUART_API.c **** #endif
+ 154:USBUART_API.c ****     return;
+ 155:USBUART_API.c **** }
+ 150              		.loc 1 155 0 is_stmt 1
+ 151 004a 03B0     		add	sp, sp, #12
+ 152              		.cfi_def_cfa_offset 12
+ 153              		@ sp needed
+ 154 004c 30BD     		pop	{r4, r5, pc}
+ 155              	.LVL18:
+ 156              	.L17:
+ 157 004e 00BF     		.align	2
+ 158              	.L16:
+ 159 0050 00000000 		.word	.LC0
+ 160              		.cfi_endproc
+ 161              	.LFE65:
+ 162              		.size	USBUART_ReadAll, .-USBUART_ReadAll
+ 163              		.section	.text.USBUART_bTxIsReady,"ax",%progbits
+ 164              		.align	2
+ 165              		.global	USBUART_bTxIsReady
+ 166              		.thumb
+ 167              		.thumb_func
+ 168              		.type	USBUART_bTxIsReady, %function
+ 169              	USBUART_bTxIsReady:
+ 170              	.LFB66:
+ 156:USBUART_API.c **** 
+ 157:USBUART_API.c **** #if PSoC3 // original code
+ 158:USBUART_API.c **** /*******************************************************************************
+ 159:USBUART_API.c **** * FUNCTION NAME: uint8 USBUART_bGetRxCount(void)
+ 160:USBUART_API.c **** *
+ 161:USBUART_API.c **** * Summary:
+ 162:USBUART_API.c **** *  Get the size of valid data in the receive buffer.
+ 163:USBUART_API.c **** *
+ 164:USBUART_API.c **** * Parameters:
+ 165:USBUART_API.c **** * -None-
+ 166:USBUART_API.c **** *
+ 167:USBUART_API.c **** * Return:
+ 168:USBUART_API.c **** *  The size of valid data in the receive buffer.
+ 169:USBUART_API.c **** *
+ 170:USBUART_API.c **** * Theory:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 7
+
+
+ 171:USBUART_API.c **** * -None-
+ 172:USBUART_API.c **** *
+ 173:USBUART_API.c **** * Side Effects:
+ 174:USBUART_API.c **** * -None-
+ 175:USBUART_API.c **** *******************************************************************************/
+ 176:USBUART_API.c **** uint8 USBUART_bGetRxCount(void)
+ 177:USBUART_API.c **** {
+ 178:USBUART_API.c ****     return( FIFO_HoldNum(&USBRxFIFO) );
+ 179:USBUART_API.c **** 
+ 180:USBUART_API.c ****     return cnt;
+ 181:USBUART_API.c **** }    
+ 182:USBUART_API.c **** #endif
+ 183:USBUART_API.c **** 
+ 184:USBUART_API.c **** /*******************************************************************************
+ 185:USBUART_API.c **** * FUNCTION NAME: uint8 USBUART_bTxIsReady(void)
+ 186:USBUART_API.c **** *
+ 187:USBUART_API.c **** * Summary:
+ 188:USBUART_API.c **** *  Determines if the transmit buffer is ready
+ 189:USBUART_API.c **** *
+ 190:USBUART_API.c **** * Parameters:
+ 191:USBUART_API.c **** * -None-
+ 192:USBUART_API.c **** *
+ 193:USBUART_API.c **** * Return:
+ 194:USBUART_API.c **** *  0 if not ready, otherwise TX buffer size.
+ 195:USBUART_API.c **** *
+ 196:USBUART_API.c **** * Theory:
+ 197:USBUART_API.c **** * -None-
+ 198:USBUART_API.c **** *
+ 199:USBUART_API.c **** * Side Effects:
+ 200:USBUART_API.c **** * -None-
+ 201:USBUART_API.c **** *******************************************************************************/
+ 202:USBUART_API.c **** uint8 USBUART_bTxIsReady(void)
+ 203:USBUART_API.c **** {
+ 171              		.loc 1 203 0
+ 172              		.cfi_startproc
+ 173              		@ args = 0, pretend = 0, frame = 0
+ 174              		@ frame_needed = 0, uses_anonymous_args = 0
+ 175 0000 08B5     		push	{r3, lr}
+ 176              		.cfi_def_cfa_offset 8
+ 177              		.cfi_offset 3, -8
+ 178              		.cfi_offset 14, -4
+ 204:USBUART_API.c **** #if PSoC3 // original code
+ 205:USBUART_API.c **** 	if(CY_GET_REG8(USBUART_USB__SIE_EP2_CR0)&0x10)
+ 206:USBUART_API.c ****     {
+ 207:USBUART_API.c ****         return USBUART_TX_BUFFER_SIZE;
+ 208:USBUART_API.c ****     }
+ 209:USBUART_API.c ****     else
+ 210:USBUART_API.c ****     {
+ 211:USBUART_API.c ****         return 0;
+ 212:USBUART_API.c ****     }
+ 213:USBUART_API.c **** #else // PSoC5LP
+ 214:USBUART_API.c ****     return USBUART_CDCIsReady();
+ 179              		.loc 1 214 0
+ 180 0002 FFF7FEFF 		bl	USBUART_CDCIsReady
+ 181              	.LVL19:
+ 215:USBUART_API.c **** 
+ 216:USBUART_API.c **** #endif
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 8
+
+
+ 217:USBUART_API.c **** }
+ 182              		.loc 1 217 0
+ 183 0006 08BD     		pop	{r3, pc}
+ 184              		.cfi_endproc
+ 185              	.LFE66:
+ 186              		.size	USBUART_bTxIsReady, .-USBUART_bTxIsReady
+ 187              		.comm	bLineCoding,7,4
+ 188              		.comm	baUSBRxBuf,255,4
+ 189              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 190              		.align	2
+ 191              	.LC0:
+ 192 0000 0D0A00   		.ascii	"\015\012\000"
+ 193              		.text
+ 194              	.Letext0:
+ 195              		.file 2 "c:\\program files (x86)\\cypress\\psoc creator\\4.1\\psoc creator\\import\\gnu\\arm\\5.4.
+ 196              		.file 3 "c:\\program files (x86)\\cypress\\psoc creator\\4.1\\psoc creator\\import\\gnu\\arm\\5.4.
+ 197              		.file 4 "Generated_Source\\PSoC5/cytypes.h"
+ 198              		.file 5 "Generated_Source\\PSoC5/core_cm3.h"
+ 199              		.file 6 "Generated_Source\\PSoC5/USBUART_cdc.h"
+ 200              		.file 7 "c:\\program files (x86)\\cypress\\psoc creator\\4.1\\psoc creator\\import\\gnu\\arm\\5.4.
+ 201              		.file 8 "Generated_Source\\PSoC5/CyLib.h"
+ 202              		.section	.debug_info,"",%progbits
+ 203              	.Ldebug_info0:
+ 204 0000 88020000 		.4byte	0x288
+ 205 0004 0400     		.2byte	0x4
+ 206 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 207 000a 04       		.byte	0x4
+ 208 000b 01       		.uleb128 0x1
+ 209 000c 91000000 		.4byte	.LASF32
+ 210 0010 0C       		.byte	0xc
+ 211 0011 36000000 		.4byte	.LASF33
+ 212 0015 82010000 		.4byte	.LASF34
+ 213 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 214 001d 00000000 		.4byte	0
+ 215 0021 00000000 		.4byte	.Ldebug_line0
+ 216 0025 02       		.uleb128 0x2
+ 217 0026 01       		.byte	0x1
+ 218 0027 06       		.byte	0x6
+ 219 0028 7A020000 		.4byte	.LASF0
+ 220 002c 02       		.uleb128 0x2
+ 221 002d 01       		.byte	0x1
+ 222 002e 08       		.byte	0x8
+ 223 002f 83000000 		.4byte	.LASF1
+ 224 0033 02       		.uleb128 0x2
+ 225 0034 02       		.byte	0x2
+ 226 0035 05       		.byte	0x5
+ 227 0036 47020000 		.4byte	.LASF2
+ 228 003a 02       		.uleb128 0x2
+ 229 003b 02       		.byte	0x2
+ 230 003c 07       		.byte	0x7
+ 231 003d 31010000 		.4byte	.LASF3
+ 232 0041 03       		.uleb128 0x3
+ 233 0042 13000000 		.4byte	.LASF9
+ 234 0046 02       		.byte	0x2
+ 235 0047 3F       		.byte	0x3f
+ 236 0048 4C000000 		.4byte	0x4c
+ 237 004c 02       		.uleb128 0x2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 9
+
+
+ 238 004d 04       		.byte	0x4
+ 239 004e 05       		.byte	0x5
+ 240 004f 65020000 		.4byte	.LASF4
+ 241 0053 02       		.uleb128 0x2
+ 242 0054 04       		.byte	0x4
+ 243 0055 07       		.byte	0x7
+ 244 0056 1F010000 		.4byte	.LASF5
+ 245 005a 02       		.uleb128 0x2
+ 246 005b 08       		.byte	0x8
+ 247 005c 05       		.byte	0x5
+ 248 005d 2E020000 		.4byte	.LASF6
+ 249 0061 02       		.uleb128 0x2
+ 250 0062 08       		.byte	0x8
+ 251 0063 07       		.byte	0x7
+ 252 0064 F2010000 		.4byte	.LASF7
+ 253 0068 04       		.uleb128 0x4
+ 254 0069 04       		.byte	0x4
+ 255 006a 05       		.byte	0x5
+ 256 006b 696E7400 		.ascii	"int\000"
+ 257 006f 02       		.uleb128 0x2
+ 258 0070 04       		.byte	0x4
+ 259 0071 07       		.byte	0x7
+ 260 0072 29000000 		.4byte	.LASF8
+ 261 0076 03       		.uleb128 0x3
+ 262 0077 1D020000 		.4byte	.LASF10
+ 263 007b 03       		.byte	0x3
+ 264 007c 2C       		.byte	0x2c
+ 265 007d 41000000 		.4byte	0x41
+ 266 0081 05       		.uleb128 0x5
+ 267 0082 5F020000 		.4byte	.LASF11
+ 268 0086 04       		.byte	0x4
+ 269 0087 3801     		.2byte	0x138
+ 270 0089 2C000000 		.4byte	0x2c
+ 271 008d 05       		.uleb128 0x5
+ 272 008e E4010000 		.4byte	.LASF12
+ 273 0092 04       		.byte	0x4
+ 274 0093 3A01     		.2byte	0x13a
+ 275 0095 53000000 		.4byte	0x53
+ 276 0099 02       		.uleb128 0x2
+ 277 009a 04       		.byte	0x4
+ 278 009b 04       		.byte	0x4
+ 279 009c 6D000000 		.4byte	.LASF13
+ 280 00a0 02       		.uleb128 0x2
+ 281 00a1 08       		.byte	0x8
+ 282 00a2 04       		.byte	0x4
+ 283 00a3 70010000 		.4byte	.LASF14
+ 284 00a7 02       		.uleb128 0x2
+ 285 00a8 01       		.byte	0x1
+ 286 00a9 08       		.byte	0x8
+ 287 00aa 3C020000 		.4byte	.LASF15
+ 288 00ae 06       		.uleb128 0x6
+ 289 00af 8D000000 		.4byte	0x8d
+ 290 00b3 02       		.uleb128 0x2
+ 291 00b4 08       		.byte	0x8
+ 292 00b5 04       		.byte	0x4
+ 293 00b6 6E020000 		.4byte	.LASF16
+ 294 00ba 02       		.uleb128 0x2
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 10
+
+
+ 295 00bb 04       		.byte	0x4
+ 296 00bc 07       		.byte	0x7
+ 297 00bd 25020000 		.4byte	.LASF17
+ 298 00c1 07       		.uleb128 0x7
+ 299 00c2 81000000 		.4byte	0x81
+ 300 00c6 D1000000 		.4byte	0xd1
+ 301 00ca 08       		.uleb128 0x8
+ 302 00cb BA000000 		.4byte	0xba
+ 303 00cf 06       		.byte	0x6
+ 304 00d0 00       		.byte	0
+ 305 00d1 09       		.uleb128 0x9
+ 306 00d2 51020000 		.4byte	.LASF18
+ 307 00d6 01       		.byte	0x1
+ 308 00d7 5B       		.byte	0x5b
+ 309 00d8 00000000 		.4byte	.LFB64
+ 310 00dc 2C000000 		.4byte	.LFE64-.LFB64
+ 311 00e0 01       		.uleb128 0x1
+ 312 00e1 9C       		.byte	0x9c
+ 313 00e2 32010000 		.4byte	0x132
+ 314 00e6 0A       		.uleb128 0xa
+ 315 00e7 54000000 		.4byte	.LASF20
+ 316 00eb 01       		.byte	0x1
+ 317 00ec 5B       		.byte	0x5b
+ 318 00ed 32010000 		.4byte	0x132
+ 319 00f1 00000000 		.4byte	.LLST0
+ 320 00f5 0B       		.uleb128 0xb
+ 321 00f6 41020000 		.4byte	.LASF21
+ 322 00fa 01       		.byte	0x1
+ 323 00fb 5D       		.byte	0x5d
+ 324 00fc 81000000 		.4byte	0x81
+ 325 0100 2C000000 		.4byte	.LLST1
+ 326 0104 0C       		.uleb128 0xc
+ 327 0105 0E000000 		.4byte	.LVL2
+ 328 0109 49020000 		.4byte	0x249
+ 329 010d 0D       		.uleb128 0xd
+ 330 010e 18000000 		.4byte	.LVL3
+ 331 0112 54020000 		.4byte	0x254
+ 332 0116 21010000 		.4byte	0x121
+ 333 011a 0E       		.uleb128 0xe
+ 334 011b 01       		.uleb128 0x1
+ 335 011c 50       		.byte	0x50
+ 336 011d 02       		.uleb128 0x2
+ 337 011e 74       		.byte	0x74
+ 338 011f 00       		.sleb128 0
+ 339 0120 00       		.byte	0
+ 340 0121 0F       		.uleb128 0xf
+ 341 0122 26000000 		.4byte	.LVL6
+ 342 0126 5F020000 		.4byte	0x25f
+ 343 012a 0E       		.uleb128 0xe
+ 344 012b 01       		.uleb128 0x1
+ 345 012c 50       		.byte	0x50
+ 346 012d 02       		.uleb128 0x2
+ 347 012e 74       		.byte	0x74
+ 348 012f 00       		.sleb128 0
+ 349 0130 00       		.byte	0
+ 350 0131 00       		.byte	0
+ 351 0132 10       		.uleb128 0x10
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 11
+
+
+ 352 0133 04       		.byte	0x4
+ 353 0134 81000000 		.4byte	0x81
+ 354 0138 09       		.uleb128 0x9
+ 355 0139 73000000 		.4byte	.LASF19
+ 356 013d 01       		.byte	0x1
+ 357 013e 7C       		.byte	0x7c
+ 358 013f 00000000 		.4byte	.LFB65
+ 359 0143 54000000 		.4byte	.LFE65-.LFB65
+ 360 0147 01       		.uleb128 0x1
+ 361 0148 9C       		.byte	0x9c
+ 362 0149 D8010000 		.4byte	0x1d8
+ 363 014d 0A       		.uleb128 0xa
+ 364 014e 54000000 		.4byte	.LASF20
+ 365 0152 01       		.byte	0x1
+ 366 0153 7C       		.byte	0x7c
+ 367 0154 32010000 		.4byte	0x132
+ 368 0158 3F000000 		.4byte	.LLST2
+ 369 015c 11       		.uleb128 0x11
+ 370 015d 636800   		.ascii	"ch\000"
+ 371 0160 01       		.byte	0x1
+ 372 0161 85       		.byte	0x85
+ 373 0162 81000000 		.4byte	0x81
+ 374 0166 02       		.uleb128 0x2
+ 375 0167 91       		.byte	0x91
+ 376 0168 6F       		.sleb128 -17
+ 377 0169 12       		.uleb128 0x12
+ 378 016a 6900     		.ascii	"i\000"
+ 379 016c 01       		.byte	0x1
+ 380 016d 85       		.byte	0x85
+ 381 016e 81000000 		.4byte	0x81
+ 382 0172 6B000000 		.4byte	.LLST3
+ 383 0176 0C       		.uleb128 0xc
+ 384 0177 0E000000 		.4byte	.LVL11
+ 385 017b 6A020000 		.4byte	0x26a
+ 386 017f 0D       		.uleb128 0xd
+ 387 0180 16000000 		.4byte	.LVL12
+ 388 0184 75020000 		.4byte	0x275
+ 389 0188 92010000 		.4byte	0x192
+ 390 018c 0E       		.uleb128 0xe
+ 391 018d 01       		.uleb128 0x1
+ 392 018e 50       		.byte	0x50
+ 393 018f 01       		.uleb128 0x1
+ 394 0190 3A       		.byte	0x3a
+ 395 0191 00       		.byte	0
+ 396 0192 0D       		.uleb128 0xd
+ 397 0193 22000000 		.4byte	.LVL13
+ 398 0197 80020000 		.4byte	0x280
+ 399 019b AB010000 		.4byte	0x1ab
+ 400 019f 0E       		.uleb128 0xe
+ 401 01a0 01       		.uleb128 0x1
+ 402 01a1 50       		.byte	0x50
+ 403 01a2 02       		.uleb128 0x2
+ 404 01a3 91       		.byte	0x91
+ 405 01a4 6F       		.sleb128 -17
+ 406 01a5 0E       		.uleb128 0xe
+ 407 01a6 01       		.uleb128 0x1
+ 408 01a7 51       		.byte	0x51
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 12
+
+
+ 409 01a8 01       		.uleb128 0x1
+ 410 01a9 31       		.byte	0x31
+ 411 01aa 00       		.byte	0
+ 412 01ab 0D       		.uleb128 0xd
+ 413 01ac 2C000000 		.4byte	.LVL14
+ 414 01b0 5F020000 		.4byte	0x25f
+ 415 01b4 C4010000 		.4byte	0x1c4
+ 416 01b8 0E       		.uleb128 0xe
+ 417 01b9 01       		.uleb128 0x1
+ 418 01ba 50       		.byte	0x50
+ 419 01bb 02       		.uleb128 0x2
+ 420 01bc 91       		.byte	0x91
+ 421 01bd 6F       		.sleb128 -17
+ 422 01be 0E       		.uleb128 0xe
+ 423 01bf 01       		.uleb128 0x1
+ 424 01c0 51       		.byte	0x51
+ 425 01c1 01       		.uleb128 0x1
+ 426 01c2 31       		.byte	0x31
+ 427 01c3 00       		.byte	0
+ 428 01c4 0F       		.uleb128 0xf
+ 429 01c5 3E000000 		.4byte	.LVL15
+ 430 01c9 D1000000 		.4byte	0xd1
+ 431 01cd 0E       		.uleb128 0xe
+ 432 01ce 01       		.uleb128 0x1
+ 433 01cf 50       		.byte	0x50
+ 434 01d0 05       		.uleb128 0x5
+ 435 01d1 03       		.byte	0x3
+ 436 01d2 00000000 		.4byte	.LC0
+ 437 01d6 00       		.byte	0
+ 438 01d7 00       		.byte	0
+ 439 01d8 13       		.uleb128 0x13
+ 440 01d9 00000000 		.4byte	.LASF35
+ 441 01dd 01       		.byte	0x1
+ 442 01de CA       		.byte	0xca
+ 443 01df 81000000 		.4byte	0x81
+ 444 01e3 00000000 		.4byte	.LFB66
+ 445 01e7 08000000 		.4byte	.LFE66-.LFB66
+ 446 01eb 01       		.uleb128 0x1
+ 447 01ec 9C       		.byte	0x9c
+ 448 01ed FB010000 		.4byte	0x1fb
+ 449 01f1 0C       		.uleb128 0xc
+ 450 01f2 06000000 		.4byte	.LVL19
+ 451 01f6 49020000 		.4byte	0x249
+ 452 01fa 00       		.byte	0
+ 453 01fb 14       		.uleb128 0x14
+ 454 01fc 53010000 		.4byte	.LASF22
+ 455 0200 05       		.byte	0x5
+ 456 0201 5506     		.2byte	0x655
+ 457 0203 07020000 		.4byte	0x207
+ 458 0207 06       		.uleb128 0x6
+ 459 0208 76000000 		.4byte	0x76
+ 460 020c 07       		.uleb128 0x7
+ 461 020d 81000000 		.4byte	0x81
+ 462 0211 1C020000 		.4byte	0x21c
+ 463 0215 08       		.uleb128 0x8
+ 464 0216 BA000000 		.4byte	0xba
+ 465 021a FE       		.byte	0xfe
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 13
+
+
+ 466 021b 00       		.byte	0
+ 467 021c 15       		.uleb128 0x15
+ 468 021d 77010000 		.4byte	.LASF23
+ 469 0221 01       		.byte	0x1
+ 470 0222 32       		.byte	0x32
+ 471 0223 0C020000 		.4byte	0x20c
+ 472 0227 05       		.uleb128 0x5
+ 473 0228 03       		.byte	0x3
+ 474 0229 00000000 		.4byte	baUSBRxBuf
+ 475 022d 15       		.uleb128 0x15
+ 476 022e 1D000000 		.4byte	.LASF24
+ 477 0232 01       		.byte	0x1
+ 478 0233 36       		.byte	0x36
+ 479 0234 C1000000 		.4byte	0xc1
+ 480 0238 05       		.uleb128 0x5
+ 481 0239 03       		.byte	0x3
+ 482 023a 00000000 		.4byte	bLineCoding
+ 483 023e 16       		.uleb128 0x16
+ 484 023f 44010000 		.4byte	.LASF25
+ 485 0243 01       		.byte	0x1
+ 486 0244 3B       		.byte	0x3b
+ 487 0245 AE000000 		.4byte	0xae
+ 488 0249 17       		.uleb128 0x17
+ 489 024a 5A000000 		.4byte	.LASF26
+ 490 024e 5A000000 		.4byte	.LASF26
+ 491 0252 06       		.byte	0x6
+ 492 0253 28       		.byte	0x28
+ 493 0254 17       		.uleb128 0x17
+ 494 0255 EB010000 		.4byte	.LASF27
+ 495 0259 EB010000 		.4byte	.LASF27
+ 496 025d 07       		.byte	0x7
+ 497 025e 21       		.byte	0x21
+ 498 025f 17       		.uleb128 0x17
+ 499 0260 44000000 		.4byte	.LASF28
+ 500 0264 44000000 		.4byte	.LASF28
+ 501 0268 06       		.byte	0x6
+ 502 0269 23       		.byte	0x23
+ 503 026a 17       		.uleb128 0x17
+ 504 026b 09020000 		.4byte	.LASF29
+ 505 026f 09020000 		.4byte	.LASF29
+ 506 0273 06       		.byte	0x6
+ 507 0274 29       		.byte	0x29
+ 508 0275 17       		.uleb128 0x17
+ 509 0276 86020000 		.4byte	.LASF30
+ 510 027a 86020000 		.4byte	.LASF30
+ 511 027e 08       		.byte	0x8
+ 512 027f 77       		.byte	0x77
+ 513 0280 17       		.uleb128 0x17
+ 514 0281 60010000 		.4byte	.LASF31
+ 515 0285 60010000 		.4byte	.LASF31
+ 516 0289 06       		.byte	0x6
+ 517 028a 2A       		.byte	0x2a
+ 518 028b 00       		.byte	0
+ 519              		.section	.debug_abbrev,"",%progbits
+ 520              	.Ldebug_abbrev0:
+ 521 0000 01       		.uleb128 0x1
+ 522 0001 11       		.uleb128 0x11
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 14
+
+
+ 523 0002 01       		.byte	0x1
+ 524 0003 25       		.uleb128 0x25
+ 525 0004 0E       		.uleb128 0xe
+ 526 0005 13       		.uleb128 0x13
+ 527 0006 0B       		.uleb128 0xb
+ 528 0007 03       		.uleb128 0x3
+ 529 0008 0E       		.uleb128 0xe
+ 530 0009 1B       		.uleb128 0x1b
+ 531 000a 0E       		.uleb128 0xe
+ 532 000b 55       		.uleb128 0x55
+ 533 000c 17       		.uleb128 0x17
+ 534 000d 11       		.uleb128 0x11
+ 535 000e 01       		.uleb128 0x1
+ 536 000f 10       		.uleb128 0x10
+ 537 0010 17       		.uleb128 0x17
+ 538 0011 00       		.byte	0
+ 539 0012 00       		.byte	0
+ 540 0013 02       		.uleb128 0x2
+ 541 0014 24       		.uleb128 0x24
+ 542 0015 00       		.byte	0
+ 543 0016 0B       		.uleb128 0xb
+ 544 0017 0B       		.uleb128 0xb
+ 545 0018 3E       		.uleb128 0x3e
+ 546 0019 0B       		.uleb128 0xb
+ 547 001a 03       		.uleb128 0x3
+ 548 001b 0E       		.uleb128 0xe
+ 549 001c 00       		.byte	0
+ 550 001d 00       		.byte	0
+ 551 001e 03       		.uleb128 0x3
+ 552 001f 16       		.uleb128 0x16
+ 553 0020 00       		.byte	0
+ 554 0021 03       		.uleb128 0x3
+ 555 0022 0E       		.uleb128 0xe
+ 556 0023 3A       		.uleb128 0x3a
+ 557 0024 0B       		.uleb128 0xb
+ 558 0025 3B       		.uleb128 0x3b
+ 559 0026 0B       		.uleb128 0xb
+ 560 0027 49       		.uleb128 0x49
+ 561 0028 13       		.uleb128 0x13
+ 562 0029 00       		.byte	0
+ 563 002a 00       		.byte	0
+ 564 002b 04       		.uleb128 0x4
+ 565 002c 24       		.uleb128 0x24
+ 566 002d 00       		.byte	0
+ 567 002e 0B       		.uleb128 0xb
+ 568 002f 0B       		.uleb128 0xb
+ 569 0030 3E       		.uleb128 0x3e
+ 570 0031 0B       		.uleb128 0xb
+ 571 0032 03       		.uleb128 0x3
+ 572 0033 08       		.uleb128 0x8
+ 573 0034 00       		.byte	0
+ 574 0035 00       		.byte	0
+ 575 0036 05       		.uleb128 0x5
+ 576 0037 16       		.uleb128 0x16
+ 577 0038 00       		.byte	0
+ 578 0039 03       		.uleb128 0x3
+ 579 003a 0E       		.uleb128 0xe
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 15
+
+
+ 580 003b 3A       		.uleb128 0x3a
+ 581 003c 0B       		.uleb128 0xb
+ 582 003d 3B       		.uleb128 0x3b
+ 583 003e 05       		.uleb128 0x5
+ 584 003f 49       		.uleb128 0x49
+ 585 0040 13       		.uleb128 0x13
+ 586 0041 00       		.byte	0
+ 587 0042 00       		.byte	0
+ 588 0043 06       		.uleb128 0x6
+ 589 0044 35       		.uleb128 0x35
+ 590 0045 00       		.byte	0
+ 591 0046 49       		.uleb128 0x49
+ 592 0047 13       		.uleb128 0x13
+ 593 0048 00       		.byte	0
+ 594 0049 00       		.byte	0
+ 595 004a 07       		.uleb128 0x7
+ 596 004b 01       		.uleb128 0x1
+ 597 004c 01       		.byte	0x1
+ 598 004d 49       		.uleb128 0x49
+ 599 004e 13       		.uleb128 0x13
+ 600 004f 01       		.uleb128 0x1
+ 601 0050 13       		.uleb128 0x13
+ 602 0051 00       		.byte	0
+ 603 0052 00       		.byte	0
+ 604 0053 08       		.uleb128 0x8
+ 605 0054 21       		.uleb128 0x21
+ 606 0055 00       		.byte	0
+ 607 0056 49       		.uleb128 0x49
+ 608 0057 13       		.uleb128 0x13
+ 609 0058 2F       		.uleb128 0x2f
+ 610 0059 0B       		.uleb128 0xb
+ 611 005a 00       		.byte	0
+ 612 005b 00       		.byte	0
+ 613 005c 09       		.uleb128 0x9
+ 614 005d 2E       		.uleb128 0x2e
+ 615 005e 01       		.byte	0x1
+ 616 005f 3F       		.uleb128 0x3f
+ 617 0060 19       		.uleb128 0x19
+ 618 0061 03       		.uleb128 0x3
+ 619 0062 0E       		.uleb128 0xe
+ 620 0063 3A       		.uleb128 0x3a
+ 621 0064 0B       		.uleb128 0xb
+ 622 0065 3B       		.uleb128 0x3b
+ 623 0066 0B       		.uleb128 0xb
+ 624 0067 27       		.uleb128 0x27
+ 625 0068 19       		.uleb128 0x19
+ 626 0069 11       		.uleb128 0x11
+ 627 006a 01       		.uleb128 0x1
+ 628 006b 12       		.uleb128 0x12
+ 629 006c 06       		.uleb128 0x6
+ 630 006d 40       		.uleb128 0x40
+ 631 006e 18       		.uleb128 0x18
+ 632 006f 9742     		.uleb128 0x2117
+ 633 0071 19       		.uleb128 0x19
+ 634 0072 01       		.uleb128 0x1
+ 635 0073 13       		.uleb128 0x13
+ 636 0074 00       		.byte	0
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 16
+
+
+ 637 0075 00       		.byte	0
+ 638 0076 0A       		.uleb128 0xa
+ 639 0077 05       		.uleb128 0x5
+ 640 0078 00       		.byte	0
+ 641 0079 03       		.uleb128 0x3
+ 642 007a 0E       		.uleb128 0xe
+ 643 007b 3A       		.uleb128 0x3a
+ 644 007c 0B       		.uleb128 0xb
+ 645 007d 3B       		.uleb128 0x3b
+ 646 007e 0B       		.uleb128 0xb
+ 647 007f 49       		.uleb128 0x49
+ 648 0080 13       		.uleb128 0x13
+ 649 0081 02       		.uleb128 0x2
+ 650 0082 17       		.uleb128 0x17
+ 651 0083 00       		.byte	0
+ 652 0084 00       		.byte	0
+ 653 0085 0B       		.uleb128 0xb
+ 654 0086 34       		.uleb128 0x34
+ 655 0087 00       		.byte	0
+ 656 0088 03       		.uleb128 0x3
+ 657 0089 0E       		.uleb128 0xe
+ 658 008a 3A       		.uleb128 0x3a
+ 659 008b 0B       		.uleb128 0xb
+ 660 008c 3B       		.uleb128 0x3b
+ 661 008d 0B       		.uleb128 0xb
+ 662 008e 49       		.uleb128 0x49
+ 663 008f 13       		.uleb128 0x13
+ 664 0090 02       		.uleb128 0x2
+ 665 0091 17       		.uleb128 0x17
+ 666 0092 00       		.byte	0
+ 667 0093 00       		.byte	0
+ 668 0094 0C       		.uleb128 0xc
+ 669 0095 898201   		.uleb128 0x4109
+ 670 0098 00       		.byte	0
+ 671 0099 11       		.uleb128 0x11
+ 672 009a 01       		.uleb128 0x1
+ 673 009b 31       		.uleb128 0x31
+ 674 009c 13       		.uleb128 0x13
+ 675 009d 00       		.byte	0
+ 676 009e 00       		.byte	0
+ 677 009f 0D       		.uleb128 0xd
+ 678 00a0 898201   		.uleb128 0x4109
+ 679 00a3 01       		.byte	0x1
+ 680 00a4 11       		.uleb128 0x11
+ 681 00a5 01       		.uleb128 0x1
+ 682 00a6 31       		.uleb128 0x31
+ 683 00a7 13       		.uleb128 0x13
+ 684 00a8 01       		.uleb128 0x1
+ 685 00a9 13       		.uleb128 0x13
+ 686 00aa 00       		.byte	0
+ 687 00ab 00       		.byte	0
+ 688 00ac 0E       		.uleb128 0xe
+ 689 00ad 8A8201   		.uleb128 0x410a
+ 690 00b0 00       		.byte	0
+ 691 00b1 02       		.uleb128 0x2
+ 692 00b2 18       		.uleb128 0x18
+ 693 00b3 9142     		.uleb128 0x2111
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 17
+
+
+ 694 00b5 18       		.uleb128 0x18
+ 695 00b6 00       		.byte	0
+ 696 00b7 00       		.byte	0
+ 697 00b8 0F       		.uleb128 0xf
+ 698 00b9 898201   		.uleb128 0x4109
+ 699 00bc 01       		.byte	0x1
+ 700 00bd 11       		.uleb128 0x11
+ 701 00be 01       		.uleb128 0x1
+ 702 00bf 31       		.uleb128 0x31
+ 703 00c0 13       		.uleb128 0x13
+ 704 00c1 00       		.byte	0
+ 705 00c2 00       		.byte	0
+ 706 00c3 10       		.uleb128 0x10
+ 707 00c4 0F       		.uleb128 0xf
+ 708 00c5 00       		.byte	0
+ 709 00c6 0B       		.uleb128 0xb
+ 710 00c7 0B       		.uleb128 0xb
+ 711 00c8 49       		.uleb128 0x49
+ 712 00c9 13       		.uleb128 0x13
+ 713 00ca 00       		.byte	0
+ 714 00cb 00       		.byte	0
+ 715 00cc 11       		.uleb128 0x11
+ 716 00cd 34       		.uleb128 0x34
+ 717 00ce 00       		.byte	0
+ 718 00cf 03       		.uleb128 0x3
+ 719 00d0 08       		.uleb128 0x8
+ 720 00d1 3A       		.uleb128 0x3a
+ 721 00d2 0B       		.uleb128 0xb
+ 722 00d3 3B       		.uleb128 0x3b
+ 723 00d4 0B       		.uleb128 0xb
+ 724 00d5 49       		.uleb128 0x49
+ 725 00d6 13       		.uleb128 0x13
+ 726 00d7 02       		.uleb128 0x2
+ 727 00d8 18       		.uleb128 0x18
+ 728 00d9 00       		.byte	0
+ 729 00da 00       		.byte	0
+ 730 00db 12       		.uleb128 0x12
+ 731 00dc 34       		.uleb128 0x34
+ 732 00dd 00       		.byte	0
+ 733 00de 03       		.uleb128 0x3
+ 734 00df 08       		.uleb128 0x8
+ 735 00e0 3A       		.uleb128 0x3a
+ 736 00e1 0B       		.uleb128 0xb
+ 737 00e2 3B       		.uleb128 0x3b
+ 738 00e3 0B       		.uleb128 0xb
+ 739 00e4 49       		.uleb128 0x49
+ 740 00e5 13       		.uleb128 0x13
+ 741 00e6 02       		.uleb128 0x2
+ 742 00e7 17       		.uleb128 0x17
+ 743 00e8 00       		.byte	0
+ 744 00e9 00       		.byte	0
+ 745 00ea 13       		.uleb128 0x13
+ 746 00eb 2E       		.uleb128 0x2e
+ 747 00ec 01       		.byte	0x1
+ 748 00ed 3F       		.uleb128 0x3f
+ 749 00ee 19       		.uleb128 0x19
+ 750 00ef 03       		.uleb128 0x3
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 18
+
+
+ 751 00f0 0E       		.uleb128 0xe
+ 752 00f1 3A       		.uleb128 0x3a
+ 753 00f2 0B       		.uleb128 0xb
+ 754 00f3 3B       		.uleb128 0x3b
+ 755 00f4 0B       		.uleb128 0xb
+ 756 00f5 27       		.uleb128 0x27
+ 757 00f6 19       		.uleb128 0x19
+ 758 00f7 49       		.uleb128 0x49
+ 759 00f8 13       		.uleb128 0x13
+ 760 00f9 11       		.uleb128 0x11
+ 761 00fa 01       		.uleb128 0x1
+ 762 00fb 12       		.uleb128 0x12
+ 763 00fc 06       		.uleb128 0x6
+ 764 00fd 40       		.uleb128 0x40
+ 765 00fe 18       		.uleb128 0x18
+ 766 00ff 9742     		.uleb128 0x2117
+ 767 0101 19       		.uleb128 0x19
+ 768 0102 01       		.uleb128 0x1
+ 769 0103 13       		.uleb128 0x13
+ 770 0104 00       		.byte	0
+ 771 0105 00       		.byte	0
+ 772 0106 14       		.uleb128 0x14
+ 773 0107 34       		.uleb128 0x34
+ 774 0108 00       		.byte	0
+ 775 0109 03       		.uleb128 0x3
+ 776 010a 0E       		.uleb128 0xe
+ 777 010b 3A       		.uleb128 0x3a
+ 778 010c 0B       		.uleb128 0xb
+ 779 010d 3B       		.uleb128 0x3b
+ 780 010e 05       		.uleb128 0x5
+ 781 010f 49       		.uleb128 0x49
+ 782 0110 13       		.uleb128 0x13
+ 783 0111 3F       		.uleb128 0x3f
+ 784 0112 19       		.uleb128 0x19
+ 785 0113 3C       		.uleb128 0x3c
+ 786 0114 19       		.uleb128 0x19
+ 787 0115 00       		.byte	0
+ 788 0116 00       		.byte	0
+ 789 0117 15       		.uleb128 0x15
+ 790 0118 34       		.uleb128 0x34
+ 791 0119 00       		.byte	0
+ 792 011a 03       		.uleb128 0x3
+ 793 011b 0E       		.uleb128 0xe
+ 794 011c 3A       		.uleb128 0x3a
+ 795 011d 0B       		.uleb128 0xb
+ 796 011e 3B       		.uleb128 0x3b
+ 797 011f 0B       		.uleb128 0xb
+ 798 0120 49       		.uleb128 0x49
+ 799 0121 13       		.uleb128 0x13
+ 800 0122 3F       		.uleb128 0x3f
+ 801 0123 19       		.uleb128 0x19
+ 802 0124 02       		.uleb128 0x2
+ 803 0125 18       		.uleb128 0x18
+ 804 0126 00       		.byte	0
+ 805 0127 00       		.byte	0
+ 806 0128 16       		.uleb128 0x16
+ 807 0129 34       		.uleb128 0x34
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 19
+
+
+ 808 012a 00       		.byte	0
+ 809 012b 03       		.uleb128 0x3
+ 810 012c 0E       		.uleb128 0xe
+ 811 012d 3A       		.uleb128 0x3a
+ 812 012e 0B       		.uleb128 0xb
+ 813 012f 3B       		.uleb128 0x3b
+ 814 0130 0B       		.uleb128 0xb
+ 815 0131 49       		.uleb128 0x49
+ 816 0132 13       		.uleb128 0x13
+ 817 0133 3F       		.uleb128 0x3f
+ 818 0134 19       		.uleb128 0x19
+ 819 0135 3C       		.uleb128 0x3c
+ 820 0136 19       		.uleb128 0x19
+ 821 0137 00       		.byte	0
+ 822 0138 00       		.byte	0
+ 823 0139 17       		.uleb128 0x17
+ 824 013a 2E       		.uleb128 0x2e
+ 825 013b 00       		.byte	0
+ 826 013c 3F       		.uleb128 0x3f
+ 827 013d 19       		.uleb128 0x19
+ 828 013e 3C       		.uleb128 0x3c
+ 829 013f 19       		.uleb128 0x19
+ 830 0140 6E       		.uleb128 0x6e
+ 831 0141 0E       		.uleb128 0xe
+ 832 0142 03       		.uleb128 0x3
+ 833 0143 0E       		.uleb128 0xe
+ 834 0144 3A       		.uleb128 0x3a
+ 835 0145 0B       		.uleb128 0xb
+ 836 0146 3B       		.uleb128 0x3b
+ 837 0147 0B       		.uleb128 0xb
+ 838 0148 00       		.byte	0
+ 839 0149 00       		.byte	0
+ 840 014a 00       		.byte	0
+ 841              		.section	.debug_loc,"",%progbits
+ 842              	.Ldebug_loc0:
+ 843              	.LLST0:
+ 844 0000 00000000 		.4byte	.LVL0
+ 845 0004 0A000000 		.4byte	.LVL1
+ 846 0008 0100     		.2byte	0x1
+ 847 000a 50       		.byte	0x50
+ 848 000b 0A000000 		.4byte	.LVL1
+ 849 000f 28000000 		.4byte	.LVL7
+ 850 0013 0100     		.2byte	0x1
+ 851 0015 54       		.byte	0x54
+ 852 0016 28000000 		.4byte	.LVL7
+ 853 001a 2C000000 		.4byte	.LFE64
+ 854 001e 0400     		.2byte	0x4
+ 855 0020 F3       		.byte	0xf3
+ 856 0021 01       		.uleb128 0x1
+ 857 0022 50       		.byte	0x50
+ 858 0023 9F       		.byte	0x9f
+ 859 0024 00000000 		.4byte	0
+ 860 0028 00000000 		.4byte	0
+ 861              	.LLST1:
+ 862 002c 1A000000 		.4byte	.LVL4
+ 863 0030 25000000 		.4byte	.LVL6-1
+ 864 0034 0100     		.2byte	0x1
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 20
+
+
+ 865 0036 51       		.byte	0x51
+ 866 0037 00000000 		.4byte	0
+ 867 003b 00000000 		.4byte	0
+ 868              	.LLST2:
+ 869 003f 00000000 		.4byte	.LVL8
+ 870 0043 0A000000 		.4byte	.LVL10
+ 871 0047 0100     		.2byte	0x1
+ 872 0049 50       		.byte	0x50
+ 873 004a 0A000000 		.4byte	.LVL10
+ 874 004e 4E000000 		.4byte	.LVL18
+ 875 0052 0100     		.2byte	0x1
+ 876 0054 55       		.byte	0x55
+ 877 0055 4E000000 		.4byte	.LVL18
+ 878 0059 54000000 		.4byte	.LFE65
+ 879 005d 0400     		.2byte	0x4
+ 880 005f F3       		.byte	0xf3
+ 881 0060 01       		.uleb128 0x1
+ 882 0061 50       		.byte	0x50
+ 883 0062 9F       		.byte	0x9f
+ 884 0063 00000000 		.4byte	0
+ 885 0067 00000000 		.4byte	0
+ 886              	.LLST3:
+ 887 006b 06000000 		.4byte	.LVL9
+ 888 006f 0A000000 		.4byte	.LVL10
+ 889 0073 0200     		.2byte	0x2
+ 890 0075 30       		.byte	0x30
+ 891 0076 9F       		.byte	0x9f
+ 892 0077 0A000000 		.4byte	.LVL10
+ 893 007b 44000000 		.4byte	.LVL16
+ 894 007f 0100     		.2byte	0x1
+ 895 0081 54       		.byte	0x54
+ 896 0082 46000000 		.4byte	.LVL17
+ 897 0086 4E000000 		.4byte	.LVL18
+ 898 008a 0100     		.2byte	0x1
+ 899 008c 54       		.byte	0x54
+ 900 008d 00000000 		.4byte	0
+ 901 0091 00000000 		.4byte	0
+ 902              		.section	.debug_aranges,"",%progbits
+ 903 0000 2C000000 		.4byte	0x2c
+ 904 0004 0200     		.2byte	0x2
+ 905 0006 00000000 		.4byte	.Ldebug_info0
+ 906 000a 04       		.byte	0x4
+ 907 000b 00       		.byte	0
+ 908 000c 0000     		.2byte	0
+ 909 000e 0000     		.2byte	0
+ 910 0010 00000000 		.4byte	.LFB64
+ 911 0014 2C000000 		.4byte	.LFE64-.LFB64
+ 912 0018 00000000 		.4byte	.LFB65
+ 913 001c 54000000 		.4byte	.LFE65-.LFB65
+ 914 0020 00000000 		.4byte	.LFB66
+ 915 0024 08000000 		.4byte	.LFE66-.LFB66
+ 916 0028 00000000 		.4byte	0
+ 917 002c 00000000 		.4byte	0
+ 918              		.section	.debug_ranges,"",%progbits
+ 919              	.Ldebug_ranges0:
+ 920 0000 00000000 		.4byte	.LFB64
+ 921 0004 2C000000 		.4byte	.LFE64
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 21
+
+
+ 922 0008 00000000 		.4byte	.LFB65
+ 923 000c 54000000 		.4byte	.LFE65
+ 924 0010 00000000 		.4byte	.LFB66
+ 925 0014 08000000 		.4byte	.LFE66
+ 926 0018 00000000 		.4byte	0
+ 927 001c 00000000 		.4byte	0
+ 928              		.section	.debug_line,"",%progbits
+ 929              	.Ldebug_line0:
+ 930 0000 49020000 		.section	.debug_str,"MS",%progbits,1
+ 930      0200E301 
+ 930      00000201 
+ 930      FB0E0D00 
+ 930      01010101 
+ 931              	.LASF35:
+ 932 0000 55534255 		.ascii	"USBUART_bTxIsReady\000"
+ 932      4152545F 
+ 932      62547849 
+ 932      73526561 
+ 932      647900
+ 933              	.LASF9:
+ 934 0013 5F5F696E 		.ascii	"__int32_t\000"
+ 934      7433325F 
+ 934      7400
+ 935              	.LASF24:
+ 936 001d 624C696E 		.ascii	"bLineCoding\000"
+ 936      65436F64 
+ 936      696E6700 
+ 937              	.LASF8:
+ 938 0029 756E7369 		.ascii	"unsigned int\000"
+ 938      676E6564 
+ 938      20696E74 
+ 938      00
+ 939              	.LASF33:
+ 940 0036 55534255 		.ascii	"USBUART_API.c\000"
+ 940      4152545F 
+ 940      4150492E 
+ 940      6300
+ 941              	.LASF28:
+ 942 0044 55534255 		.ascii	"USBUART_PutData\000"
+ 942      4152545F 
+ 942      50757444 
+ 942      61746100 
+ 943              	.LASF20:
+ 944 0054 70446174 		.ascii	"pData\000"
+ 944      6100
+ 945              	.LASF26:
+ 946 005a 55534255 		.ascii	"USBUART_CDCIsReady\000"
+ 946      4152545F 
+ 946      43444349 
+ 946      73526561 
+ 946      647900
+ 947              	.LASF13:
+ 948 006d 666C6F61 		.ascii	"float\000"
+ 948      7400
+ 949              	.LASF19:
+ 950 0073 55534255 		.ascii	"USBUART_ReadAll\000"
+ 950      4152545F 
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 22
+
+
+ 950      52656164 
+ 950      416C6C00 
+ 951              	.LASF1:
+ 952 0083 756E7369 		.ascii	"unsigned char\000"
+ 952      676E6564 
+ 952      20636861 
+ 952      7200
+ 953              	.LASF32:
+ 954 0091 474E5520 		.ascii	"GNU C11 5.4.1 20160609 (release) [ARM/embedded-5-br"
+ 954      43313120 
+ 954      352E342E 
+ 954      31203230 
+ 954      31363036 
+ 955 00c4 616E6368 		.ascii	"anch revision 237715] -mcpu=cortex-m3 -mthumb -g -O"
+ 955      20726576 
+ 955      6973696F 
+ 955      6E203233 
+ 955      37373135 
+ 956 00f7 67202D66 		.ascii	"g -ffunction-sections -ffat-lto-objects\000"
+ 956      66756E63 
+ 956      74696F6E 
+ 956      2D736563 
+ 956      74696F6E 
+ 957              	.LASF5:
+ 958 011f 6C6F6E67 		.ascii	"long unsigned int\000"
+ 958      20756E73 
+ 958      69676E65 
+ 958      6420696E 
+ 958      7400
+ 959              	.LASF3:
+ 960 0131 73686F72 		.ascii	"short unsigned int\000"
+ 960      7420756E 
+ 960      7369676E 
+ 960      65642069 
+ 960      6E7400
+ 961              	.LASF25:
+ 962 0144 67555342 		.ascii	"gUSBUART_Ready\000"
+ 962      55415254 
+ 962      5F526561 
+ 962      647900
+ 963              	.LASF22:
+ 964 0153 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 964      52784275 
+ 964      66666572 
+ 964      00
+ 965              	.LASF31:
+ 966 0160 55534255 		.ascii	"USBUART_GetData\000"
+ 966      4152545F 
+ 966      47657444 
+ 966      61746100 
+ 967              	.LASF14:
+ 968 0170 646F7562 		.ascii	"double\000"
+ 968      6C6500
+ 969              	.LASF23:
+ 970 0177 62615553 		.ascii	"baUSBRxBuf\000"
+ 970      42527842 
+ 970      756600
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 23
+
+
+ 971              	.LASF34:
+ 972 0182 453A5C50 		.ascii	"E:\\PSoC_Creator\\CY8CKIT-059\\CY8CKIT-059_Simple_S"
+ 972      536F435F 
+ 972      43726561 
+ 972      746F725C 
+ 972      43593843 
+ 973 01b2 44525F52 		.ascii	"DR_Receiver\\CY8CKIT-059_Simple_SDR_Receiver.cydsn\000"
+ 973      65636569 
+ 973      7665725C 
+ 973      43593843 
+ 973      4B49542D 
+ 974              	.LASF12:
+ 975 01e4 75696E74 		.ascii	"uint32\000"
+ 975      333200
+ 976              	.LASF27:
+ 977 01eb 7374726C 		.ascii	"strlen\000"
+ 977      656E00
+ 978              	.LASF7:
+ 979 01f2 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 979      206C6F6E 
+ 979      6720756E 
+ 979      7369676E 
+ 979      65642069 
+ 980              	.LASF29:
+ 981 0209 55534255 		.ascii	"USBUART_DataIsReady\000"
+ 981      4152545F 
+ 981      44617461 
+ 981      49735265 
+ 981      61647900 
+ 982              	.LASF10:
+ 983 021d 696E7433 		.ascii	"int32_t\000"
+ 983      325F7400 
+ 984              	.LASF17:
+ 985 0225 73697A65 		.ascii	"sizetype\000"
+ 985      74797065 
+ 985      00
+ 986              	.LASF6:
+ 987 022e 6C6F6E67 		.ascii	"long long int\000"
+ 987      206C6F6E 
+ 987      6720696E 
+ 987      7400
+ 988              	.LASF15:
+ 989 023c 63686172 		.ascii	"char\000"
+ 989      00
+ 990              	.LASF21:
+ 991 0241 636F756E 		.ascii	"count\000"
+ 991      7400
+ 992              	.LASF2:
+ 993 0247 73686F72 		.ascii	"short int\000"
+ 993      7420696E 
+ 993      7400
+ 994              	.LASF18:
+ 995 0251 55534255 		.ascii	"USBUART_Write\000"
+ 995      4152545F 
+ 995      57726974 
+ 995      6500
+ 996              	.LASF11:
+ARM GAS  C:\Users\koseki\AppData\Local\Temp\ccv5HVG1.s 			page 24
+
+
+ 997 025f 75696E74 		.ascii	"uint8\000"
+ 997      3800
+ 998              	.LASF4:
+ 999 0265 6C6F6E67 		.ascii	"long int\000"
+ 999      20696E74 
+ 999      00
+ 1000              	.LASF16:
+ 1001 026e 6C6F6E67 		.ascii	"long double\000"
+ 1001      20646F75 
+ 1001      626C6500 
+ 1002              	.LASF0:
+ 1003 027a 7369676E 		.ascii	"signed char\000"
+ 1003      65642063 
+ 1003      68617200 
+ 1004              	.LASF30:
+ 1005 0286 43794465 		.ascii	"CyDelay\000"
+ 1005      6C617900 
+ 1006              		.ident	"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160609 (release) [ARM/embedded-5-bran

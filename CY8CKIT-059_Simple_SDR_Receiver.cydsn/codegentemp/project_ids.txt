@@ -1,0 +1,6 @@
+E:\PSoC_Creator\CY8CKIT-059\CY8CKIT-059_Simple_SDR_Receiver\CY8CKIT-059_Simple_SDR_Receiver.cydsn\CY8CKIT-059_Simple_SDR_Receiver.cyprj|963d97cd-15f8-4432-961c-dbfbf0b62d6d
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\default\CyAnnotationLibrary\CyAnnotationLibrary.cylib\CyAnnotationLibrary.cyprj|d7f95e25-041f-4373-a229-d71ecef1d468
+C:\Users\koseki\Documents\PSoC Creator\4.2\Downloads ( 4.2).cylib\Downloads ( 4.2).cyprj|27e4b185-1e17-40d3-9cf0-84aba9618374
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibraryupdates\CyComponentLibraryUpdates.cylib\CyComponentLibraryUpdates.cyprj|d78c2fba-c443-4a2b-94df-d47a596c2e6d
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cycomponentlibrary\CyComponentLibrary.cylib\CyComponentLibrary.cyprj|e18d11d3-86ff-4553-af07-1560d2f70e63
+C:\Program Files (x86)\Cypress\PSoC Creator\4.2\PSoC Creator\psoc\content\cyprimitives\CyPrimitives.cylib\CyPrimitives.cyprj|b5984a2d-8fc4-4cd5-b631-585412031915
